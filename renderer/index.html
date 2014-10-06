@@ -1,0 +1,30 @@
+<html>
+<body>
+    <div id="app" style="width:800px;height:600px;"></div>
+
+    <script src="plasio-renderer.js"></script>
+
+    <script>
+        var r = renderer.core.createRenderer(document.getElementById("app"));
+        r.setClearColor(1, 0, 0);
+        r.setEyePosition(200, 50, 200);
+        r.setTargetPosition(0, 0, 0);
+
+        console.log("Adding scale object");
+        r.addScaleObject("resources/scale-objects/EmpireStateBuilding/EmpireStateBuilding.js", 0, 0, 0);
+        r.addScaleObject("resources/scale-objects/EmpireStateBuilding/EmpireStateBuilding.js", 0, 100, 0);
+
+        /*
+        var f = 0.0;
+        setInterval(function() {
+            var x = Math.sin(f) * 1000.0,
+                z = Math.cos(f) * 1000.0;
+
+            r.setEyePosition(x, 100, z);
+            f += Math.PI/10;
+        }, 500);
+        */
+    </script>
+
+</body>
+</html>
