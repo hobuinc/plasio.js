@@ -22,8 +22,9 @@
   IModelCache
   (get-model [this uri]
     (let [ds (get @state uri)]
+      (println "Model cache" ds)
       (cond
-        (seq? ds) (async/to-chan [ds])
+        (sequential? ds) (async/to-chan [ds])
         (nil? ds) (let [m (load-model uri)
                         c1 (async/chan)
                         c2 (async/chan)]

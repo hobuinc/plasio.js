@@ -11,8 +11,18 @@
         r.setTargetPosition(0, 0, 0);
 
         console.log("Adding scale object");
-        r.addScaleObject("resources/scale-objects/EmpireStateBuilding/EmpireStateBuilding.js", 0, 0, 0);
+        r.addScaleObject("", 0, 0, 0);
         r.addScaleObject("resources/scale-objects/EmpireStateBuilding/EmpireStateBuilding.js", 0, 100, 0);
+
+        var f = true;
+        setInterval(function() {
+                if (f)
+                    r.addScaleObject("resources/scale-objects/EmpireStateBuilding/EmpireStateBuilding.js", 0, 0, 0);
+                else
+                    r.removeAllScaleObjects();
+
+                f = !f;
+        }, 2000);
 
         /*
         var f = 0.0;
