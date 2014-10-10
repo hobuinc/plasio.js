@@ -1,6 +1,10 @@
 (ns renderer.engine
   "The renderer engine, drawing stuff 24/7"
-  (:require [renderer.engine.model-cache :as mc]
+  (:require [renderer.engine.util :refer [safe-korks join-ks mk-vector
+                                          mk-color set-vector tvstr]]
+            [renderer.engine.shaders :refer [make-shader]]
+            [renderer.engine.model-cache :as mc]
+            [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
             [clojure.set :as set])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
@@ -13,17 +17,7 @@
   (update! [this korks v])
   (sub-cursor [this korks])
   (app-root [this])
-  (root [this]))
-
-(defn safe-korks [a]
-  (if (nil? a)
-    []
-    (if (sequential? a) a [a])))
-
-(defn- join-ks [a b]
-  (let [a (safe-korks a)
-        b (safe-korks b)]
-    (concat a b)))
+  (root [this ks]))
 
 (defrecord StateCursor [root-state ks]
   ICursor
@@ -31,22 +25,38 @@
     (swap! root-state update-in (join-ks ks korks)
            (fn [old]
              (let [new-state (f old)]
-               (println "Transact!" (str this) ": " old "->" new-state)
+               (l/logi "Transact!" (str this) ": " old "->" new-state)
                new-state))))
   (update! [this korks v]
-    (println "Update!" (str this) ": " v)
+    (l/logi "Update!" (str this) ": " v)
     (swap! root-state assoc-in (join-ks ks korks) v))
   (sub-cursor [this korks]
-    (println "Sub-cursor" (str this) ": " ks "->" korks ":" (join-ks ks korks))
+    (l/logi "Sub-cursor" (str this) ": " ks "->" korks ":" (join-ks ks korks))
     (StateCursor. root-state (join-ks ks korks)))
   (app-root [this]
     @root-state)
-  (root [this]
+  (root [this ks]
     (get-in @root-state (safe-korks ks)))
   Object
   (toString [this]
     (str "<StateCursor " ks ">")))
 
+
+(defprotocol IBuffer
+  "A protocol spec a buffer, a buffer should/would release its contents once its loaded into the 3D engine
+  e.g., also provides ways to fetch items"
+  (clear-buffer! [this])
+  (get-buffer [this]))
+
+(defrecord Buffer [id buffer]
+  IBuffer
+  (clear-buffer! [_]
+    (reset! buffer []))
+  (get-buffer [_]
+    @buffer))
+
+(defn make-buffer [id buf]
+  (Buffer. id (atom buf)))
 
 (defprotocol IRenderEngine
   "The render engine protocol, implement if you want to use a different rendering
@@ -62,7 +72,7 @@
   (let [s (safe-korks ks)]
     (if-let [src (get-in app-state s)]
       (let [cur (sub-cursor cursor s)]
-        (println "SYNC-COMP" (str cur))
+        (l/logi "SYNC-COMP" (str cur))
         (f cur src)))))
 
 
@@ -92,21 +102,8 @@
       (js/THREE.OrthographicCamera. rangew (- rangew)
                                     rangeh (- rangeh) 1 10000))))
 
-(defn- mk-vector
-  "Creates a vector depending on number of arguments provided"
-  ([x y] (js/THREE.Vector2. x y))
-  ([x y z] (js/THREE.Vector3. x y z))
-  ([x y z w] (js/THREE.Vector4. x y z w)))
-
-(defn- set-vector
-  "Updates the vector depending on the number of arguments provided"
-  ([v [x y z]] (.set v x y z))
-  ([v x y] (.set v x y))
-  ([v x y z] (.set v x y z))
-  ([v x y z w] (.set v x y z w)))
-
-(defn- tvstr [o]
-  (str "(" (.-x o) ", " (.-y o) ", " (.-z o) ")"))
+(def ^:private large-vec (mk-vector 9999999999 9999999999 9999999999))
+(def ^:private small-vec (mk-vector -9999999999 -9999999999 -9999999999))
 
 (defn- update-cameras
   "Given the current run-state for cameras, state and the overall app state returns an updated
@@ -120,18 +117,12 @@
                  ;; associate and create new cameras
                  (reduce #(assoc %1 %2 (mk-camera %2 app-state)) without-old-cams newc)))))
 
-(defn- mk-color
-  ([col]
-   (apply mk-color (take 3 col)))
-  ([r g b]
-   (js/THREE.Color. r g b)))
-
 (defn- update-display-state
   "Update display properties"
   [cursor state-ds]
   ;; Render Color
-  (println "Updating display state!")
-  (println cursor)
+  (l/logi "Updating display state!")
+  (l/logi cursor)
   (transact! cursor :clear-color (fn [_] (mk-color (:clear-color state-ds)))))
 
 (defn- place-camera
@@ -139,7 +130,7 @@
   configures the camera"
   [cam p t]
   (when (and cam p t)
-    (println "Placing camera" (tvstr p) " -> " (tvstr t))
+    (l/logi "Placing camera" (tvstr p) " -> " (tvstr t))
     (.copy (.-position cam) p)
     (.lookAt cam t)))
 
@@ -170,9 +161,90 @@
                      (set-vector (.-position mesh) pos)
                      (set-vector (.-scale mesh) 1 1 1)
                      (.add scene mesh)
-                     (println "Mesh added" mesh mat (tvstr (.-position mesh)))
+                     (l/logi "Mesh added" mesh mat (tvstr (.-position mesh)))
                      (update! cursor [] mesh)))
                nil)))
+
+(defn- map-attributes
+  "Given a geometry buffer, adds attributes and returns an arr ay of arraybuffers"
+  [geom total-points]
+  (let [attrs {:position 3 :color 3 :intensity 1 :classification 1}]
+    (into {} (for [[k s] attrs]
+               (do (.addAttribute geom (name k) js/Float32Array total-points s)
+                   [k (.-array (aget (.-attributes geom) (name k)))])))))
+
+(defn- mad
+  "A simple mad (multiply and add) operation, v * m + a"
+  [v m a]
+  (+ (* v m) a))
+
+(defn- set-indexed
+  "Set the given values starting at a certain offset"
+  [arr offset & values]
+  (loop [index 0
+         v values]
+    (if (seq v)
+      (do
+        (aset arr (mad offset 1 index) (first v))
+        (recur (inc index) (rest v)))
+      arr)))
+
+(defn cp-elements [dest woff src roff len]
+  (loop [i 0]
+    (when (< i len)
+      (aset dest (+ woff i) (aget src (+ roff i)))
+      (recur (inc i)))))
+
+(defn- pull-keys
+  "Given a JS object and a list of keys, returns a seq of values associated with the keys"
+  [obj & keys]
+  (map #(aget obj %) keys))
+
+
+(defn- make-geom-buffer
+  "Makes a particle system out of given seq of points"
+  [points]
+  (let [total-points (quot (.-length points) 8)
+        mn large-vec
+        mx small-vec
+        color-min large-vec
+        color-max small-vec
+        geom (js/THREE.BufferGeometry.)
+        attrs (map-attributes geom total-points)]
+    ;; Add all the points in
+    (l/logi "Points" points)
+    (loop [pcount 0
+           rindex 0]
+      (if (< pcount total-points)
+        (let [woff (* 3 pcount)]
+          ;; copy points
+          (cp-elements (:position attrs) woff points rindex 3)
+          (cp-elements (:color attrs) woff points (+ 3 rindex) 3)
+          (cp-elements (:intensity attrs) pcount points (+ 6 rindex) 1)
+          (cp-elements (:classification attrs) pcount points (+ 7 rindex) 1)
+          (recur (inc pcount) (+ rindex 8)))
+        geom))))
+
+(defn- geom->particle-system
+  [geom mat]
+  (hash-map :ps (js/THREE.ParticleSystem. geom (:material mat))
+            :mat mat))
+
+(defn- make-particle-system
+  [points]
+  (-> points
+      make-geom-buffer
+      (geom->particle-system (make-shader))))
+
+(defn- point-buffer->particle-system
+  "Converts a point buffer from an external source into a partical system
+  which can be loaded into a THREE renderer"
+  [^Buffer buffer]
+  (l/logi "Making particle system")
+  (let [points (get-buffer buffer)
+        ps (make-particle-system points)]
+    (clear-buffer! buffer)
+    ps))
 
 (defn- update-scale-objects
   "Adds and removes scale objects from the scenegraph"
@@ -198,11 +270,34 @@
                                  without-objects added-objects)]
                    r)))))
 
+(defn update-point-buffers
+  "Adds or removes point buffers from scene"
+  [cursor state-pb]
+  (let [scene (root cursor :scene)]
+   (transact! cursor []
+             (fn [pb]
+               (let [hash-fn :id
+                     [added removed] (changes state-pb pb hash-fn)
+                     without-removed (apply dissoc pb removed)
+                     buffer-map (into {}  (for [b state-pb] [(:id b) b]))
+                     added (vals (select-keys buffer-map added))]
+                 (l/logi "Added", added, "Removed", removed)
+                 ;; remove all removed buffers
+                 (l/logi "Removing existing stuff")
+                 ;(doall (map #(. scene remove (get-in pb [% :ps]) removed)))
+                 ;; convert all new sources to particle systems and add them
+                 ;; to our scene
+                 (l/logi "Adding new objects now!")
+                 (reduce #(let [ps (point-buffer->particle-system %2)]
+                            (l/logi "Adding particle system to scene:" ps)
+                            (. scene add (:ps ps))
+                            (assoc %1 (hash-fn %2) ps)) without-removed added))))))
 (def updaters
   [[:cameras update-cameras]
    [:display update-display-state]
    [:view update-view-state]
-   [:scale-objects update-scale-objects]])
+   [:scale-objects update-scale-objects]
+   [:point-buffers update-point-buffers]])
 
 (defn- sync-local-state
   "Given the current state of the renderer, updates the running state so that all

@@ -4,10 +4,12 @@
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/clojurescript "0.0-2311"]
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]]
+                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
+                 [weasel "0.3.0"]]
 
   :plugins [[lein-cljsbuild "1.0.4-SNAPSHOT"]]
-  :profiles {:dev {:plugins [[com.cemerick/austin "0.1.5"]]}}
+  :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.1.3"]]
+                   :plugins [[com.cemerick/austin "0.1.5"]]}}
 
   :source-paths ["src"]
 

@@ -1,8 +1,7 @@
 (ns renderer.core
   (:require [clojure.set :as set]
-            [renderer.engine :as r]))
-
-(enable-console-print!)
+            [renderer.engine :as r]
+            [renderer.log :as l]))
 
 (def init-state {:render-target nil
                  :cameras []
@@ -16,7 +15,7 @@
   (-> state
       (update-in [:cameras] conj {:active true
                                   :type "perspective"
-                                  :fov 75})))
+                                  :fov 60})))
 
 (defprotocol IPlasioRenderer
   (startup [this elem])
@@ -25,23 +24,24 @@
   (set-eye-position [this x y z] [this pos])
   (set-target-position [this x y z] [this pos])
   (add-scale-object [this uri x y z] [this uri pos])
-  (remove-all-scale-objects [this]))
+  (remove-all-scale-objects [this])
+  (add-point-buffer [this id buffer]))
 
 (defrecord PlasioRenderer [state]
   IPlasioRenderer
   (startup [this elem]
-    (println "Doing startup!")
+    (l/logi "Doing startup!")
     (let [rengine (-> (r/make-engine)
                       (r/init elem state))]
 
-      (println "Have engine");
+      (l/logi "Have engine");
       ;; Add some state listeners to auto-trigger redraw
       (add-watch state "__watcher"
                  (fn [_ _ _ new-state]
-                   (println "state changed to:" new-state)
+                   (l/logi "state changed to:" new-state)
                    (r/sync-state rengine new-state)))
       ;; jump start stuff by setting our state from init-state
-      (println "Setting up state!")
+      (l/logi "Setting up state!")
       (reset! state (do-startup init-state))))
 
   (add-camera [this props]
@@ -63,7 +63,7 @@
     (set-target-position this [x y z]))
 
   (add-scale-object [this uri x y z]
-    (println "Adding scale object" uri x y z)
+    (l/logi "Adding scale object" uri x y z)
     (add-scale-object this uri [x y z]))
 
   (add-scale-object [this uri pos]
@@ -73,7 +73,13 @@
     (swap! state assoc-in [:scale-objects] []))
 
   (set-target-position [this pos]
-    (swap! state assoc-in [:view :target] pos)))
+    (swap! state assoc-in [:view :target] pos))
+
+  (add-point-buffer [this id buffer]
+    ;; TODO: make sure that passed buffer is of javascript array buffer
+    (when-not (= (type buffer) js/Float32Array)
+      (throw (js/Error. "Only Float32Array types are expected for adding buffers")))
+    (swap! state update-in [:point-buffers] conj (r/make-buffer id buffer))))
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -93,4 +99,5 @@
               :setEyePosition (partial-js set-eye-position r)
               :setTargetPosition (partial-js set-target-position r)
               :addScaleObject (partial-js add-scale-object r)
-              :removeAllScaleObjects (partial-js remove-all-scale-objects r)})))
+              :removeAllScaleObjects (partial-js remove-all-scale-objects r)
+              :addPointBuffer (partial-js add-point-buffer r)})))
