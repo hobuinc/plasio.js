@@ -29,15 +29,31 @@
         }
 
         r.addPointBuffer("mybuff", arr);
-        /*
-        var f = true;
+        var f = 0;
+        var step = function() {
+            f += 0.001;
+            var x = Math.sin(f) * 100.0;
+            var z = Math.cos(f) * 100.0;
+
+            //r.setEyePosition(x, 50, z);
+
+            //requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+
+        setTimeout(function() {
+                r.removePointBuffer("mybuff");
+        }, 2000);
+
+/*
+        var a = true;
         setInterval(function() {
-                if (f)
+                if (a)
                     r.addScaleObject("resources/scale-objects/EmpireStateBuilding/EmpireStateBuilding.js", 0, 0, 0);
                 else
                     r.removeAllScaleObjects();
 
-                f = !f;
+                a = !a;
         }, 2000);
         */
 

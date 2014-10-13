@@ -25,7 +25,8 @@
   (set-target-position [this x y z] [this pos])
   (add-scale-object [this uri x y z] [this uri pos])
   (remove-all-scale-objects [this])
-  (add-point-buffer [this id buffer]))
+  (add-point-buffer [this id buffer])
+  (remove-point-buffer [this id]))
 
 (defrecord PlasioRenderer [state]
   IPlasioRenderer
@@ -79,7 +80,14 @@
     ;; TODO: make sure that passed buffer is of javascript array buffer
     (when-not (= (type buffer) js/Float32Array)
       (throw (js/Error. "Only Float32Array types are expected for adding buffers")))
-    (swap! state update-in [:point-buffers] conj (r/make-buffer id buffer))))
+    (swap! state update-in [:point-buffers] conj (r/make-buffer id buffer)))
+
+  (remove-point-buffer [this id]
+    (l/logi "Removing buffer with id" id)
+    (l/logi "Buffers" (get-in @state [:point-buffers]))
+    (swap! state update-in [:point-buffers]
+           (fn [bufs]
+             (remove #(= (:id %) id) bufs)))))
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -100,4 +108,5 @@
               :setTargetPosition (partial-js set-target-position r)
               :addScaleObject (partial-js add-scale-object r)
               :removeAllScaleObjects (partial-js remove-all-scale-objects r)
-              :addPointBuffer (partial-js add-point-buffer r)})))
+              :addPointBuffer (partial-js add-point-buffer r)
+              :removePointBuffer (partial-js remove-point-buffer r)})))

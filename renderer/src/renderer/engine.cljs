@@ -88,6 +88,24 @@
          del-keys (set/difference obj-keys k)]
      [(into [] new-keys) (into [] del-keys)])))
 
+(defn- add-remove
+  "Given a seq of new objects, current state where the new objects eventually end up, a hash function, this function
+  calls back the create and destroy functions and finally returns a new object which has the new objects added and removed"
+  [in-ks out-obj create-fn destroy-fn hash-fn]
+  (let [[added-keys removed-keys] (changes in-ks out-obj hash-fn)
+        added-map   (into {} (for [k in-ks] [(hash-fn k) k]))
+        added-objects   (select-keys added-map added-keys)
+        removed-objects (select-keys out-obj removed-keys)]
+    ;; first delete all objects that need to go away
+    ;;
+    (doall (map destroy-fn (vals removed-objects)))
+    ;; Now call create-fn on all new keys and add them to hashmap
+    ;;
+    (l/logi "I am going to create on" added-objects)
+    (let [rn (into {} (for [[k v] added-objects] [k (create-fn v)]))]
+      (-> (apply dissoc out-obj removed-keys)
+          (merge rn)))))
+
 (defn- mk-camera
   "Given properties of the camera, create a new camera"
   [props app-state]
@@ -251,24 +269,18 @@
   [cursor state-so]
   (transact! cursor []
              (fn [so]
-               (let [so (if (nil? so) {} so) ;; make sure we handle the case when there are no scale objects in run state
-                     hash-fn (fn [[uri pos]] (keyword (apply str uri pos)))
-                     [added-objects removed-objects] (changes state-so so hash-fn)
+               (let [hash-fn (fn [[uri pos]] (keyword (apply str uri pos)))
                      root (app-root cursor)
                      scene (:scene root)
-                     model-cache (:model-cache root)
-                     without-objects (apply dissoc so removed-objects)
-                     hash-objs (into {} (for [s state-so] [(hash-fn s) s]))
-                     added-objects (map #(get hash-objs %) added-objects)]
-                 ;; Remove stuff which doesn't exist anymore
-                 (doall (map #(.remove scene (get so %)) removed-objects))
-                 (let [r (reduce #(let [[uri pos] %2
-                                        hkey (hash-fn %2)
-                                        cur (sub-cursor cursor hkey)]
-                                    (add-model cur model-cache scene uri pos)
-                                    (assoc %1 hkey nil))
-                                 without-objects added-objects)]
-                   r)))))
+                     model-cache (:model-cache root)]
+                 (add-remove state-so so
+                             (fn [[uri pos]]
+                               (let [hkey (hash-fn [uri pos])]
+                                 (add-model (sub-cursor cursor hkey) model-cache scene uri pos)
+                                 nil))
+                             (fn [r]
+                               (. scene remove r))
+                             hash-fn)))))
 
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
@@ -276,22 +288,14 @@
   (let [scene (root cursor :scene)]
    (transact! cursor []
              (fn [pb]
-               (let [hash-fn :id
-                     [added removed] (changes state-pb pb hash-fn)
-                     without-removed (apply dissoc pb removed)
-                     buffer-map (into {}  (for [b state-pb] [(:id b) b]))
-                     added (vals (select-keys buffer-map added))]
-                 (l/logi "Added", added, "Removed", removed)
-                 ;; remove all removed buffers
-                 (l/logi "Removing existing stuff")
-                 ;(doall (map #(. scene remove (get-in pb [% :ps]) removed)))
-                 ;; convert all new sources to particle systems and add them
-                 ;; to our scene
-                 (l/logi "Adding new objects now!")
-                 (reduce #(let [ps (point-buffer->particle-system %2)]
-                            (l/logi "Adding particle system to scene:" ps)
-                            (. scene add (:ps ps))
-                            (assoc %1 (hash-fn %2) ps)) without-removed added))))))
+               (add-remove state-pb pb
+                           (fn [n]
+                             (let [ps (point-buffer->particle-system n)]
+                               (. scene add (:ps ps))
+                               ps))
+                           (fn [d]
+                             (. scene remove (:ps d)))
+                           :id)))))
 (def updaters
   [[:cameras update-cameras]
    [:display update-display-state]
