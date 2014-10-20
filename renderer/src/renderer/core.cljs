@@ -1,6 +1,8 @@
 (ns renderer.core
   (:require [clojure.set :as set]
+            [cljs-uuid.core :as uuid]
             [renderer.engine :as r]
+            [renderer.engine.util :as u]
             [renderer.log :as l]))
 
 (def init-state {:render-target nil
@@ -25,6 +27,8 @@
   (set-target-position [this x y z] [this pos])
   (add-scale-object [this uri x y z] [this uri pos])
   (remove-all-scale-objects [this])
+  (add-prop-listener [this korks f])
+  (remove-prop-listener [this id])
   (add-point-buffer [this id buffer])
   (remove-point-buffer [this id]))
 
@@ -76,6 +80,17 @@
   (set-target-position [this pos]
     (swap! state assoc-in [:view :target] pos))
 
+  (add-prop-listener [this korks f]
+    (let [id (str (uuid/make-random))
+          korks (map keyword (u/safe-korks korks))]
+      (add-watch state id
+                 (fn [_ _ _ new-state]
+                   (f (clj->js (get-in new-state korks)))))
+      id))
+
+  (remove-prop-listener [this id]
+    (remove-watch state id))
+
   (add-point-buffer [this id buffer]
     ;; TODO: make sure that passed buffer is of javascript array buffer
     (when-not (= (type buffer) js/Float32Array)
@@ -108,5 +123,7 @@
               :setTargetPosition (partial-js set-target-position r)
               :addScaleObject (partial-js add-scale-object r)
               :removeAllScaleObjects (partial-js remove-all-scale-objects r)
+              :addPropertyListener (partial-js add-prop-listener r)
+              :removePropertyListener (partial-js remove-prop-listener r)
               :addPointBuffer (partial-js add-point-buffer r)
               :removePointBuffer (partial-js remove-point-buffer r)})))

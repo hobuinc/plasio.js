@@ -6,9 +6,18 @@
 
     <script>
         var r = renderer.core.createRenderer(document.getElementById("app"));
+
+        var lid = r.addPropertyListener(["view"], function(st) {
+            console.log("Property changed to", st);
+        });
+
+        console.log("Listener ID:", lid);
+
         r.setClearColor(0, 0, 0);
         r.setEyePosition(75, 50, 75);
         r.setTargetPosition(0, 0, 0);
+
+        r.removePropertyListener(lid);
 
         var pointSize = 3 + 3 + 2;
         var dim = 100;
