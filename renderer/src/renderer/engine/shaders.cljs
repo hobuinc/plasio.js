@@ -1,27 +1,32 @@
 (ns renderer.engine.shaders
   "Shaders abstraction"
-  (:require [renderer.engine.util :refer [mk-vector safe-korks get-set]]))
+  (:require [renderer.engine.util :refer [mk-vector mk-color safe-korks get-set]]))
 
 
 (declare vertex-shader)
 (declare frag-shader)
 
+(defn- obj-in [obj korks]
+  (reduce #(aget %1 (name %2)) obj (safe-korks korks)))
+
 (defprotocol IShader
-  (update-uniform! [this korks f])
   (reset-uniform! [this korks v]))
 
-(defn- ref-for [obj korks]
-  (let [korks (safe-korks korks)]
-    (reduce #(aget %1 (name %2)) obj korks)))
-
+(defn- coerce [t v]
+  (condp = t
+    :f v
+    :i v
+    :v2 (apply mk-vector v)
+    :v3 (apply mk-vector v)
+    :t  (throw (js/Error. "Texture loading support coming soon"))
+    :c  (apply mk-color v)
+    :v4v (mapv #(apply mk-vector %) v)))
 
 (defrecord Shader [material props]
   IShader
-  (update-uniform! [this nm f]
-    (get-set props [:uniforms nm] f))
-
   (reset-uniform! [this nm new-val]
-    (get-set props [:uniforms nm] new-val)))
+    (let [typ (keyword (obj-in props [:uniforms nm :type]))]
+      (get-set props [:uniforms nm :value] (coerce typ new-val)))))
 
 (defn- uniform
   "Generates a uniform spec and assocs it into the given map"

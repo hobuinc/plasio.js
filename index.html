@@ -1,0 +1,69 @@
+<html>
+<body>
+    <div id="app" style="width:800px;height:600px;"></div>
+
+    <script src="renderer/plasio-renderer.js"></script>
+    <script src="gh-policies/dist/gh-policies.js"></script>
+
+
+    <script>
+        var r = renderer.core.createRenderer(document.getElementById("app"));
+        var p = new GreyhoundPolicies.QuadTreePolicy(r,
+                "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
+
+        var e = p.start();
+
+        e.on("bbox", function(bbox) {
+            var off = [
+                bbox.mins[0] + (bbox.maxs[0] - bbox.mins[0]) / 2,
+                bbox.mins[1] + (bbox.maxs[1] - bbox.mins[1]) / 2,
+                bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2
+            ];
+
+            r.setRenderOptions({
+                offsets: off
+            });
+        });
+
+        r.setClearColor(0, 0, 0);
+        r.setEyePosition(2500, 1350, 2500);
+        r.setTargetPosition(0, 0, 0);
+
+        var f = 0;
+        var step = function() {
+            f += 0.001;
+            var x = Math.sin(f) * 2500.0;
+            var z = Math.cos(f) * 2500.0;
+
+            r.setEyePosition(x, 1350, z);
+
+            requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+
+/*
+        var a = true;
+        setInterval(function() {
+                if (a)
+                    r.addScaleObject("resources/scale-objects/EmpireStateBuilding/EmpireStateBuilding.js", 0, 0, 0);
+                else
+                    r.removeAllScaleObjects();
+
+                a = !a;
+        }, 2000);
+        */
+
+        /*
+        var f = 0.0;
+        setInterval(function() {
+            var x = Math.sin(f) * 1000.0,
+                z = Math.cos(f) * 1000.0;
+
+            r.setEyePosition(x, 100, z);
+            f += Math.PI/10;
+        }, 500);
+        */
+    </script>
+
+</body>
+</html>

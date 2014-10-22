@@ -2,7 +2,7 @@
   "The renderer engine, drawing stuff 24/7"
   (:require [renderer.engine.util :refer [safe-korks join-ks mk-vector
                                           mk-color set-vector tvstr]]
-            [renderer.engine.shaders :refer [make-shader]]
+            [renderer.engine.shaders :refer [make-shader reset-uniform!]]
             [renderer.engine.model-cache :as mc]
             [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
@@ -85,26 +85,30 @@
    (let [k        (set (map hash-fn ks))
          obj-keys (set (keys obj))
          new-keys (set/difference k obj-keys)
-         del-keys (set/difference obj-keys k)]
-     [(into [] new-keys) (into [] del-keys)])))
+         del-keys (set/difference obj-keys k)
+         unchanged (set/union k obj-keys)]
+     [(into [] new-keys) (into [] del-keys) (into [] unchanged)])))
 
 (defn- add-remove
   "Given a seq of new objects, current state where the new objects eventually end up, a hash function, this function
   calls back the create and destroy functions and finally returns a new object which has the new objects added and removed"
-  [in-ks out-obj create-fn destroy-fn hash-fn]
-  (let [[added-keys removed-keys] (changes in-ks out-obj hash-fn)
-        added-map   (into {} (for [k in-ks] [(hash-fn k) k]))
-        added-objects   (select-keys added-map added-keys)
-        removed-objects (select-keys out-obj removed-keys)]
-    ;; first delete all objects that need to go away
-    ;;
-    (doall (map destroy-fn (vals removed-objects)))
-    ;; Now call create-fn on all new keys and add them to hashmap
-    ;;
-    (l/logi "I am going to create on" added-objects)
-    (let [rn (into {} (for [[k v] added-objects] [k (create-fn v)]))]
-      (-> (apply dissoc out-obj removed-keys)
-          (merge rn)))))
+  ([in-ks out-obj create-fn destroy-fn update-fn hash-fn]
+   (let [[added-keys removed-keys unchanged-keys] (changes in-ks out-obj hash-fn)
+         added-map   (into {} (for [k in-ks] [(hash-fn k) k]))
+         added-objects   (select-keys added-map added-keys)
+         removed-objects (select-keys out-obj removed-keys)]
+     ;; first delete all objects that need to go away
+     ;;
+     (doall (map destroy-fn (vals removed-objects)))
+     ;; Now call create-fn on all new keys and add them to hashmap
+     ;;
+     (l/logi "I am going to create on" added-objects)
+     (let [rn (into {} (for [[k v] added-objects] [k (create-fn v)]))
+           cleaned (apply dissoc out-obj removed-keys)]
+       (-> (into {} (for [[k v] cleaned] [k (update-fn v)]))
+           (merge rn)))))
+  ([in-ks out-obj create-fn destroy-fn hash-fn]
+   (add-remove in-ks out-obj create-fn destroy-fn identity hash-fn)))
 
 (defn- mk-camera
   "Given properties of the camera, create a new camera"
@@ -129,19 +133,29 @@
   [cursor state-cams]
   (transact! cursor []
              (fn [cams]
-               (let [[newc oldc] (changes state-cams cams)
+               (let [[newc oldc _] (changes state-cams cams)
                      app-state (app-root cursor)
                      without-old-cams (apply dissoc cams oldc)]
                  ;; associate and create new cameras
                  (reduce #(assoc %1 %2 (mk-camera %2 app-state)) without-old-cams newc)))))
+
+(defn- update-material! [m opts]
+  (doall
+    (map (fn [[k v]] (reset-uniform! m k v)) opts))
+  m)
 
 (defn- update-display-state
   "Update display properties"
   [cursor state-ds]
   ;; Render Color
   (l/logi "Updating display state!")
+  (l/logi state-ds)
   (l/logi cursor)
-  (transact! cursor :clear-color (fn [_] (mk-color (:clear-color state-ds)))))
+  (transact! cursor :clear-color (fn [_] (mk-color (:clear-color state-ds))))
+  (transact! cursor :render-options (fn [m]
+                                      (update-material! (or m
+                                                            (root cursor :material))
+                                                        (:render-options state-ds)))))
 
 (defn- place-camera
   "Given a camera object along with its position and target to look at
@@ -245,22 +259,21 @@
 
 (defn- geom->particle-system
   [geom mat]
-  (hash-map :ps (js/THREE.ParticleSystem. geom (:material mat))
-            :mat mat))
+  (hash-map :ps (js/THREE.ParticleSystem. geom (:material mat))))
 
 (defn- make-particle-system
-  [points]
+  [points mat]
   (-> points
       make-geom-buffer
-      (geom->particle-system (make-shader))))
+      (geom->particle-system mat)))
 
 (defn- point-buffer->particle-system
   "Converts a point buffer from an external source into a partical system
   which can be loaded into a THREE renderer"
-  [^Buffer buffer]
+  [^Buffer buffer mat]
   (l/logi "Making particle system")
   (let [points (get-buffer buffer)
-        ps (make-particle-system points)]
+        ps (make-particle-system points mat)]
     (clear-buffer! buffer)
     ps))
 
@@ -285,17 +298,19 @@
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
   [cursor state-pb]
-  (let [scene (root cursor :scene)]
+  (let [scene (root cursor :scene)
+        mat (root cursor :material)]
    (transact! cursor []
              (fn [pb]
                (add-remove state-pb pb
                            (fn [n]
-                             (let [ps (point-buffer->particle-system n)]
+                             (let [ps (point-buffer->particle-system n mat)]
                                (. scene add (:ps ps))
                                ps))
                            (fn [d]
                              (. scene remove (:ps d)))
                            :id)))))
+
 (def updaters
   [[:cameras update-cameras]
    [:display update-display-state]
@@ -368,6 +383,7 @@
                              :height height
                              :renderer render
                              :model-cache (mc/make-cache)
+                             :material (make-shader)
                              :scene scene})]
         ;; start up the loop to trigger updates of our local state
         (go-loop [state (<! state-update)]

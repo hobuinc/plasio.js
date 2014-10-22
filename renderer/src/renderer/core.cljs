@@ -3,11 +3,13 @@
             [cljs-uuid.core :as uuid]
             [renderer.engine :as r]
             [renderer.engine.util :as u]
-            [renderer.log :as l]))
+            [renderer.log :as l])
+  (:require-macros [cljs.core.async.macros :refer [go]]))
 
 (def init-state {:render-target nil
                  :cameras []
-                 :display {:clear-color [0 0 0]}
+                 :display {:clear-color [0 0 0]
+                           :render-options {}}
                  :scale-objects []
                  :data {:batches []}})
 
@@ -30,7 +32,8 @@
   (add-prop-listener [this korks f])
   (remove-prop-listener [this id])
   (add-point-buffer [this id buffer])
-  (remove-point-buffer [this id]))
+  (remove-point-buffer [this id])
+  (set-render-options [this opts]))
 
 (defrecord PlasioRenderer [state]
   IPlasioRenderer
@@ -83,6 +86,8 @@
   (add-prop-listener [this korks f]
     (let [id (str (uuid/make-random))
           korks (map keyword (u/safe-korks korks))]
+      ; make sure the current value is sent on subscribe
+      (go (f (clj->js (get-in @state korks))))
       (add-watch state id
                  (fn [_ _ _ new-state]
                    (f (clj->js (get-in new-state korks)))))
@@ -102,7 +107,10 @@
     (l/logi "Buffers" (get-in @state [:point-buffers]))
     (swap! state update-in [:point-buffers]
            (fn [bufs]
-             (remove #(= (:id %) id) bufs)))))
+             (remove #(= (:id %) id) bufs))))
+
+  (set-render-options [this opts]
+    (swap! state update-in [:display :render-options] merge opts)))
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -126,4 +134,5 @@
               :addPropertyListener (partial-js add-prop-listener r)
               :removePropertyListener (partial-js remove-prop-listener r)
               :addPointBuffer (partial-js add-point-buffer r)
-              :removePointBuffer (partial-js remove-point-buffer r)})))
+              :removePointBuffer (partial-js remove-point-buffer r)
+              :setRenderOptions (partial-js set-render-options r)})))
