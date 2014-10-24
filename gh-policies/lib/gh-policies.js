@@ -19,6 +19,21 @@ var ppoint = function(data, idx) {
                 "i:", f[6], "c:", f[7]);
 };
 
+var splitTillDepth = function(bbox, depth) {
+    var split = function(b, d) {
+        console.log(b);
+        var bxs = b.splitQuad();
+        if (depth === d) return bxs;
+
+        return [].concat(split(bxs[0], d + 1),
+                         split(bxs[1], d + 1),
+                         split(bxs[2], d + 1),
+                         split(bxs[3], d + 1));
+    };
+
+    return split(bbox, 1);
+}
+
 QuadTreePolicy.prototype.start = function() {
     var e = new EventEmitter();
     var reader = new gh.GreyhoundReader(this.server);
@@ -42,6 +57,8 @@ QuadTreePolicy.prototype.start = function() {
             e.emit("bbox", bbox);
 
             console.log("Have bounding box", bbox);
+
+            var boxes = splitTillDepth(bbox, 2);
 
             // Make sure the color range is setup fine
             var maxColorComponent = Math.max(
@@ -75,18 +92,15 @@ QuadTreePolicy.prototype.start = function() {
 
                 console.log("Querying with schema:", JSON.stringify(schema, null, "    "));
 
-                // make sure our quad tree stuff
-                reader.read(sessionId, {
-                    schema: schema,
-                    bbox: bbox,
-                    depthStart: 0,
-                    depthEnd: 9
-                }, function(err, data) {
-                    console.log("Read complete", err, data);
-                    ppoint(data.data, 0);
-                    if (err) return e.emit("error", err);
-                    console.log("Added data!");
-                    o.renderer.addPointBuffer("buff", new Float32Array(data.data.buffer));
+                var q = new gh.ReadQueue(reader, sessionId, schema);
+                boxes.forEach(function(box, i) {
+                    var dpth = Math.floor(Math.random() * 4);
+                    console.log("Requesting", box, dpth);
+
+                    q.queue({bbox: box, depthStart: 0, depthEnd: 9+dpth}, function(err, data) {
+                        console.log("got buffer");
+                        o.renderer.addPointBuffer("buff"+i, new Float32Array(data.data.buffer));
+                    });
                 });
             });
         });

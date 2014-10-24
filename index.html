@@ -1,15 +1,74 @@
 <html>
 <body>
-    <div id="app" style="width:800px;height:600px;"></div>
+    <div id="app" style="width:1000px;height:800px;"></div>
 
     <script src="renderer/plasio-renderer.js"></script>
     <script src="gh-policies/dist/gh-policies.js"></script>
-
 
     <script>
         var r = renderer.core.createRenderer(document.getElementById("app"));
         var p = new GreyhoundPolicies.QuadTreePolicy(r,
                 "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
+
+        var CatmullRom = function() {
+           this.points = [];
+           this.maxTime = null;
+        };
+
+        CatmullRom.prototype.add = function (x, y, z, t) {
+            this.points.push([x, y, z, t]);
+            this.maxTime = t;
+        };
+
+        CatmullRom.prototype.forTime = function(t) {
+            var p = this.points;
+
+            while (t > this.maxTime)
+                t -= this.maxTime;
+
+
+            // find i
+            var ti = 0;
+            for (var i = 0, il = p.length - 1; i < il ; i ++) {
+                if (t >= p[i][3] && t < p[i+1][3]) {
+                    ti = i;
+                    break;
+                }
+            };
+
+            var si = function(i) {
+                return i < 0 ? p.length + i : ((i > p.length - 1) ? i % p.length : i);
+            };
+
+            // we got i, figure out last one and next two indexes;
+            var p0 = p[si(ti - 1)];
+            var p1 = p[si(ti)];
+            var p2 = p[si(ti + 1)];
+            var p3 = p[si(ti + 2)];
+
+            var u = (t - p1[3]) / (p2[3] - p1[3]);
+
+            // much math, stolen from the interwebs
+            var u3 = u * u * u;
+            var u2 = u * u;
+            var f1 = -0.5 * u3 + u2 - 0.5 * u;
+            var f2 =  1.5 * u3 - 2.5 * u2 + 1.0;
+            var f3 = -1.5 * u3 + 2.0 * u2 + 0.5 * u;
+            var f4 =  0.5 * u3 - 0.5 * u2;
+            var x = p0[0] * f1 + p1[0] * f2 + p2[0] * f3 + p3[0] * f4;
+            var y = p0[1] * f1 + p1[1] * f2 + p2[1] * f3 + p3[1] * f4;
+            var z = p0[2] * f1 + p1[2] * f2 + p2[2] * f3 + p3[2] * f4;
+
+
+            return [x, y, z];
+        };
+
+        var mkc = function() {
+            var n = new CatmullRom();
+            for(var i = 0 ; i < 10 ; i ++)
+                n.add(0, 0, i, i / 9);
+            return n;
+        };
 
         var e = p.start();
 
@@ -23,24 +82,35 @@
             r.setRenderOptions({
                 offsets: off
             });
+
+            startStuff(bbox, off);
         });
 
-        r.setClearColor(0, 0, 0);
-        r.setEyePosition(2500, 1350, 2500);
-        r.setTargetPosition(0, 0, 0);
+        var startStuff = function(bbox, offsets) {
+            var n = new CatmullRom();
 
-        var f = 0;
-        var step = function() {
-            f += 0.001;
-            var x = Math.sin(f) * 2500.0;
-            var z = Math.cos(f) * 2500.0;
+            var midz = bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2;
 
-            r.setEyePosition(x, 1350, z);
+            // add the four corners as path
+            n.add(bbox.mins[0] - offsets[0], midz, bbox.mins[1] - offsets[1], 0.0);
+            n.add(bbox.maxs[0] - offsets[0], midz, bbox.mins[1] - offsets[1], 0.25);
+            n.add(bbox.maxs[0] - offsets[0], midz, bbox.maxs[1] - offsets[1], 0.5);
+            n.add(bbox.mins[0] - offsets[0], midz, bbox.maxs[1] - offsets[1], 0.75);
+            n.add(bbox.mins[0] - offsets[0], midz, bbox.mins[1] - offsets[1], 1.0);
 
+            r.setClearColor(0, 0, 0);
+            r.setTargetPosition(0, 0, 0);
+
+            var f = 0;
+            var step = function() {
+                f += 0.001;
+                var p = n.forTime(f);
+
+                r.setEyePosition(p[0], p[1], p[2]);
+                requestAnimationFrame(step);
+            };
             requestAnimationFrame(step);
         };
-        requestAnimationFrame(step);
-
 /*
         var a = true;
         setInterval(function() {
