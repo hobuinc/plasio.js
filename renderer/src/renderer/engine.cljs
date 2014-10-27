@@ -4,6 +4,7 @@
                                           mk-color set-vector tvstr]]
             [renderer.engine.shaders :refer [make-shader reset-uniform!]]
             [renderer.engine.model-cache :as mc]
+            [renderer.engine.workers :as w]
             [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
             [clojure.set :as set])
@@ -197,14 +198,6 @@
                      (update! cursor [] mesh)))
                nil)))
 
-(defn- map-attributes
-  "Given a geometry buffer, adds attributes and returns an arr ay of arraybuffers"
-  [geom total-points]
-  (let [attrs {:position 3 :color 3 :intensity 1 :classification 1}]
-    (into {} (for [[k s] attrs]
-               (do (.addAttribute geom (name k) js/Float32Array total-points s)
-                   [k (.-array (aget (.-attributes geom) (name k)))])))))
-
 (defn- mad
   "A simple mad (multiply and add) operation, v * m + a"
   [v m a]
@@ -221,61 +214,43 @@
         (recur (inc index) (rest v)))
       arr)))
 
-(defn cp-elements [dest woff src roff len]
-  (loop [i 0]
-    (when (< i len)
-      (aset dest (+ woff i) (aget src (+ roff i)))
-      (recur (inc i)))))
-
 (defn- pull-keys
   "Given a JS object and a list of keys, returns a seq of values associated with the keys"
   [obj & keys]
   (map #(aget obj %) keys))
 
+(defn- ppoint [obj idx]
+  (let [poff (* 3 idx)
+        p (.-array (.-position (.-attributes (.-geometry obj))))
+        c (.-array (.-color (.-attributes (.-geometry obj))))
+        i (.-array (.-intensity (.-attributes (.-geometry obj))))
+        k (.-array (.-classification (.-attributes (.-geometry obj))))]
+    (println "x:" (aget p (+ poff 0)) "y:" (aget p (+ poff 1)) "z:" (aget p (+ poff 2))
+             "r:" (aget c (+ poff 0)) "g:" (aget c (+ poff 1)) "b:" (aget c (+ poff 2))
+             "i:" (aget i idx) "k:" (aget k idx))))
 
-(defn- make-geom-buffer
-  "Makes a particle system out of given seq of points"
-  [points]
-  (let [total-points (quot (.-length points) 8)
-        mn large-vec
-        mx small-vec
-        color-min large-vec
-        color-max small-vec
-        geom (js/THREE.BufferGeometry.)
-        attrs (map-attributes geom total-points)]
-    ;; Add all the points in
-    (l/logi "Points" points)
-    (loop [pcount 0
-           rindex 0]
-      (if (< pcount total-points)
-        (let [woff (* 3 pcount)]
-          ;; copy points
-          (cp-elements (:position attrs) woff points rindex 3)
-          (cp-elements (:color attrs) woff points (+ 3 rindex) 3)
-          (cp-elements (:intensity attrs) pcount points (+ 6 rindex) 1)
-          (cp-elements (:classification attrs) pcount points (+ 7 rindex) 1)
-          (recur (inc pcount) (+ rindex 8)))
-        geom))))
 
-(defn- geom->particle-system
-  [geom mat]
-  (hash-map :ps (js/THREE.ParticleSystem. geom (:material mat))))
+(defn- attrs->point-cloud
+  [attrs mat]
+  (let [geom (reduce (fn [obj [k {:keys [array size]}]]
+                       (.addAttribute obj (name k) (js/THREE.BufferAttribute. array size))
+                       obj) (js/THREE.BufferGeometry.) attrs)]
+    (js/THREE.PointCloud. geom (:material mat))))
 
-(defn- make-particle-system
+(defn- make-point-cloud
   [points mat]
-  (-> points
-      make-geom-buffer
-      (geom->particle-system mat)))
+  (go (let [attrs (<! (w/array-buffer->attrs points))]
+        (attrs->point-cloud attrs mat))))
 
-(defn- point-buffer->particle-system
+(defn- point-buffer->point-cloud
   "Converts a point buffer from an external source into a partical system
   which can be loaded into a THREE renderer"
   [^Buffer buffer mat]
-  (l/logi "Making particle system")
-  (let [points (get-buffer buffer)
-        ps (make-particle-system points mat)]
-    (clear-buffer! buffer)
-    ps))
+  (go (l/logi "Making particle system")
+      (let [points (get-buffer buffer)
+            ps (<! (make-point-cloud points mat))]
+        (clear-buffer! buffer)
+        (assoc buffer :ps ps))))
 
 (defn- update-scale-objects
   "Adds and removes scale objects from the scenegraph"
@@ -304,9 +279,14 @@
              (fn [pb]
                (add-remove state-pb pb
                            (fn [n]
-                             (let [ps (point-buffer->particle-system n mat)]
-                               (. scene add (:ps ps))
-                               ps))
+                             (go
+                               (let [ps (<! (point-buffer->point-cloud n mat))]
+                                 (.log js/console (:ps ps))
+                                 (.add scene (:ps ps))
+                                 (ppoint (:ps ps) 100)
+                                 (l/logi "Added to scene!")
+                                 (update! cursor [n] ps)))
+                             n)
                            (fn [d]
                              (. scene remove (:ps d)))
                            :id)))))
@@ -343,6 +323,8 @@
           s   (:scene state)
           vw  (:view state)
           ds  (:display state)]
+      (.log js/console (:material (:material state)))
+      (.log js/console (:scene state))
       ;; Place the camera in the scene to view things right
       (when camera
         (place-camera camera (:eye vw) (:target vw)))

@@ -3,7 +3,7 @@
 
 (enable-console-print!)
 
-(def ^:dynamic *show-log-messages* false)
+(def ^:dynamic *show-log-messages* true)
 
 (def ^:private log-levels {:info "INFO"
                            :warn "WARN"

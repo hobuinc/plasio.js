@@ -47,6 +47,7 @@
 (defn make-shader []
   (let [obj (clj->js
               (-> {}
+                  (attribute :position :v3)
                   (attribute :color :c)
                   (attribute :intensity :f)
                   (attribute :classification :f)
@@ -108,6 +109,7 @@
   uniform sampler2D map;
   uniform vec2  klassRange;
 
+  attribute vec3 position;
   attribute vec3 color;
   attribute float intensity;
   attribute float classification;
@@ -119,7 +121,7 @@
   void main() {
       fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1);
 
-      vec4 mvPosition = modelViewMatrix * vec4( fpos, 1.0 );
+      vec4 mvPosition = modelViewMatrix * vec4( 0, 0, 0, 1.0 );
       gl_Position = projectionMatrix * mvPosition;
       float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
 
@@ -155,7 +157,7 @@
 
       // blend and return
       gl_PointSize = pointSize;
-      col = vec4(mix(color_source, intensity_source, intensityBlend), 1.0);
+      col = //vec4(mix(color_source, intensity_source, intensityBlend), 1.0);
   }")
 
 

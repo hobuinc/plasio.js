@@ -79,6 +79,7 @@
                 bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2
             ];
 
+            console.log("Setting offsets to:", off);
             r.setRenderOptions({
                 offsets: off
             });
@@ -98,8 +99,11 @@
             n.add(bbox.mins[0] - offsets[0], midz, bbox.maxs[1] - offsets[1], 0.75);
             n.add(bbox.mins[0] - offsets[0], midz, bbox.mins[1] - offsets[1], 1.0);
 
-            r.setClearColor(0, 0, 0);
+            r.setClearColor(1, 1, 1);
             r.setTargetPosition(0, 0, 0);
+            r.setRenderOptions({
+                pointSize: 5
+            });
 
             var f = 0;
             var step = function() {
@@ -107,7 +111,7 @@
                 var p = n.forTime(f);
 
                 r.setEyePosition(p[0], p[1], p[2]);
-                requestAnimationFrame(step);
+                //requestAnimationFrame(step);
             };
             requestAnimationFrame(step);
         };
