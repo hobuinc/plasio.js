@@ -58,8 +58,7 @@ QuadTreePolicy.prototype.start = function() {
 
             console.log("Have bounding box", bbox);
 
-            //var boxes = splitTillDepth(bbox, 2);
-            boxes = [bbox];
+            var boxes = splitTillDepth(bbox, 2);
 
             // Make sure the color range is setup fine
             var maxColorComponent = Math.max(
@@ -98,7 +97,7 @@ QuadTreePolicy.prototype.start = function() {
                     var dpth = Math.floor(Math.random() * 4);
                     console.log("Requesting", box, dpth);
 
-                    q.queue({bbox: box, depthStart: 0, depthEnd: 7}, function(err, data) {
+                    q.queue({bbox: box, depthStart: 0, depthEnd: 7+dpth}, function(err, data) {
                         console.log("got buffer");
                         o.renderer.addPointBuffer("buff"+i, new Float32Array(data.data.buffer));
                     });

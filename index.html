@@ -90,19 +90,21 @@
         var startStuff = function(bbox, offsets) {
             var n = new CatmullRom();
 
-            var midz = bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2;
+            var midz = (bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2) - offsets[2] + 400.0;
+
+            var sf = 1.1;
 
             // add the four corners as path
-            n.add(bbox.mins[0] - offsets[0], midz, bbox.mins[1] - offsets[1], 0.0);
-            n.add(bbox.maxs[0] - offsets[0], midz, bbox.mins[1] - offsets[1], 0.25);
-            n.add(bbox.maxs[0] - offsets[0], midz, bbox.maxs[1] - offsets[1], 0.5);
-            n.add(bbox.mins[0] - offsets[0], midz, bbox.maxs[1] - offsets[1], 0.75);
-            n.add(bbox.mins[0] - offsets[0], midz, bbox.mins[1] - offsets[1], 1.0);
+            n.add((bbox.mins[0] - offsets[0]) * sf, midz, (bbox.mins[1] - offsets[1]) * sf, 0.0);
+            n.add((bbox.maxs[0] - offsets[0]) * sf, midz, (bbox.mins[1] - offsets[1]) * sf, 0.25);
+            n.add((bbox.maxs[0] - offsets[0]) * sf, midz, (bbox.maxs[1] - offsets[1]) * sf, 0.5);
+            n.add((bbox.mins[0] - offsets[0]) * sf, midz, (bbox.maxs[1] - offsets[1]) * sf, 0.75);
+            n.add((bbox.mins[0] - offsets[0]) * sf, midz, (bbox.mins[1] - offsets[1]) * sf, 1.0);
 
-            r.setClearColor(1, 1, 1);
+            r.setClearColor(0, 0, 0);
             r.setTargetPosition(0, 0, 0);
             r.setRenderOptions({
-                pointSize: 5
+                pointSize: 2
             });
 
             var f = 0;
@@ -111,8 +113,10 @@
                 var p = n.forTime(f);
 
                 r.setEyePosition(p[0], p[1], p[2]);
-                //requestAnimationFrame(step);
+                requestAnimationFrame(step);
             };
+
+            //setInterval(step, 1000);
             requestAnimationFrame(step);
         };
 /*

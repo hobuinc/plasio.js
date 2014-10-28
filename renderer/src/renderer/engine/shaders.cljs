@@ -1,91 +1,25 @@
 (ns renderer.engine.shaders
   "Shaders abstraction"
-  (:require [renderer.engine.util :refer [mk-vector mk-color safe-korks get-set]]))
+  (:require [cljs-webgl.shaders :as shaders]
+            [cljs-webgl.constants.shader :as shader]))
 
 
 (declare vertex-shader)
 (declare frag-shader)
 
-(defn- obj-in [obj korks]
-  (reduce #(aget %1 (name %2)) obj (safe-korks korks)))
-
-(defprotocol IShader
-  (reset-uniform! [this korks v]))
-
-(defn- coerce [t v]
-  (condp = t
-    :f v
-    :i v
-    :v2 (apply mk-vector v)
-    :v3 (apply mk-vector v)
-    :t  (throw (js/Error. "Texture loading support coming soon"))
-    :c  (apply mk-color v)
-    :v4v (mapv #(apply mk-vector %) v)))
-
-(defrecord Shader [material props]
-  IShader
-  (reset-uniform! [this nm new-val]
-    (let [typ (keyword (obj-in props [:uniforms nm :type]))]
-      (get-set props [:uniforms nm :value] (coerce typ new-val)))))
-
-(defn- uniform
-  "Generates a uniform spec and assocs it into the given map"
-  ([m nm typ]
-   (let [defaults {:f 0.0
-                   :i 0
-                   :v2 (mk-vector 0 0)
-                   :v3 (mk-vector 0 0 0)}]
-     (uniform m nm typ (typ defaults))))
-  ([m nm typ default]
-   (assoc-in m [:uniforms nm] {:type (name typ) :value default})))
-
-(defn- attribute
-  "Generates a uniform spec and assocs it into the given map"
-  ([m nm typ]
-   (assoc-in m [:attributes nm] {:type (name typ) :value nil})))
-
-(defn make-shader []
-  (let [obj (clj->js
-              (-> {}
-                  (attribute :position :v3)
-                  (attribute :color :c)
-                  (attribute :intensity :f)
-                  (attribute :classification :f)
-
-                  (uniform :pointSize :f 1.0)
-                  (uniform :intensityBlend :f 0.0)
-                  (uniform :maxColorComponent :f 1.0)
-
-                  (uniform :rgb_f :f 1.0)
-                  (uniform :class_f :f 1.0)
-                  (uniform :map_f :f 1.0)
-                  (uniform :imap_f :f 1.0)
-
-                  (uniform :intensity_f :f 0.0)
-                  (uniform :height_f :f 0.0)
-                  (uniform :iheight_f :f 0.0)
-
-                  (uniform :xyzScale :v3 (mk-vector 1 1 1))
-                  (uniform :clampLower :f 0)
-                  (uniform :clampHigher :f 1)
-
-                  (uniform :colorClampLower :f 0)
-                  (uniform :colorClampHigher :f 1)
-
-                  (uniform :zrange :v2)
-                  (uniform :offsets :v3)
-                  (uniform :map :t nil)
-                  (uniform :klassRange :v2)
-                  (uniform :do_place_clipping :i)
-                  (uniform :planes :v4v (repeatedly 6 (partial mk-vector 0 0 0 0)))
-
-                  (assoc :vertexShader vertex-shader)
-                  (assoc :fragmentShader frag-shader)))]
-    (map->Shader {:material (js/THREE.ShaderMaterial. obj)
-                  :props obj})))
+(defn create-shader [gl]
+  (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader)
+        fs (shaders/create-shader gl shader/fragment-shader frag-shader)]
+    (shaders/create-program gl vs fs)))
 
 (def vertex-shader
   "
+  precision mediump float;
+
+  uniform mat4  projectionMatrix;
+  uniform mat4  modelViewMatrix;
+  uniform mat4  modelViewProjectionMatrix;
+
   uniform float pointSize;
   uniform float intensityBlend;
   uniform float maxColorComponent;
@@ -121,7 +55,7 @@
   void main() {
       fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1);
 
-      vec4 mvPosition = modelViewMatrix * vec4( 0, 0, 0, 1.0 );
+      vec4 mvPosition = modelViewMatrix * vec4( fpos, 1.0 );
       gl_Position = projectionMatrix * mvPosition;
       float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
 
@@ -157,12 +91,14 @@
 
       // blend and return
       gl_PointSize = pointSize;
-      col = //vec4(mix(color_source, intensity_source, intensityBlend), 1.0);
+      col = vec4(mix(color_source, intensity_source, intensityBlend), 1.0);
   }")
 
 
 (def frag-shader
   "
+  precision mediump float;
+
   uniform vec4 planes[6];
   uniform int do_plane_clipping;
 

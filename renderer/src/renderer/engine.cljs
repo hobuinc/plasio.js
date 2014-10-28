@@ -2,9 +2,10 @@
   "The renderer engine, drawing stuff 24/7"
   (:require [renderer.engine.util :refer [safe-korks join-ks mk-vector
                                           mk-color set-vector tvstr]]
-            [renderer.engine.shaders :refer [make-shader reset-uniform!]]
+            [renderer.engine.shaders :as shaders]
             [renderer.engine.model-cache :as mc]
             [renderer.engine.workers :as w]
+            [renderer.engine.render :as r]
             [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
             [clojure.set :as set])
@@ -67,16 +68,6 @@
   (draw [this]))
 
 
-(defn- sync-comp
-  "Calls the provided function with the current run-state for the given sub-key"
-  [cursor app-state ks f]
-  (let [s (safe-korks ks)]
-    (if-let [src (get-in app-state s)]
-      (let [cur (sub-cursor cursor s)]
-        (l/logi "SYNC-COMP" (str cur))
-        (f cur src)))))
-
-
 (defn- changes
   "Given a list of keys and a map where some of those keys may be in use, return the list
   of keys which are not in the map, and the list of VALUES for keys no longer in map"
@@ -110,80 +101,6 @@
            (merge rn)))))
   ([in-ks out-obj create-fn destroy-fn hash-fn]
    (add-remove in-ks out-obj create-fn destroy-fn identity hash-fn)))
-
-(defn- mk-camera
-  "Given properties of the camera, create a new camera"
-  [props app-state]
-  (let [camera-type (:type props)
-        width       (:width app-state)
-        height      (:height app-state)
-        rangew      (/ width 2)
-        fov         (if-let [fov (:fov props)] fov 60)
-        rangeh      (/ height 2)]
-    (if (= camera-type "perspective")
-      (js/THREE.PerspectiveCamera. 60 (/ width height) 1 10000)
-      (js/THREE.OrthographicCamera. rangew (- rangew)
-                                    rangeh (- rangeh) 1 10000))))
-
-(def ^:private large-vec (mk-vector 9999999999 9999999999 9999999999))
-(def ^:private small-vec (mk-vector -9999999999 -9999999999 -9999999999))
-
-(defn- update-cameras
-  "Given the current run-state for cameras, state and the overall app state returns an updated
-  list of cameras"
-  [cursor state-cams]
-  (transact! cursor []
-             (fn [cams]
-               (let [[newc oldc _] (changes state-cams cams)
-                     app-state (app-root cursor)
-                     without-old-cams (apply dissoc cams oldc)]
-                 ;; associate and create new cameras
-                 (reduce #(assoc %1 %2 (mk-camera %2 app-state)) without-old-cams newc)))))
-
-(defn- update-material! [m opts]
-  (doall
-    (map (fn [[k v]] (reset-uniform! m k v)) opts))
-  m)
-
-(defn- update-display-state
-  "Update display properties"
-  [cursor state-ds]
-  ;; Render Color
-  (l/logi "Updating display state!")
-  (l/logi state-ds)
-  (l/logi cursor)
-  (transact! cursor :clear-color (fn [_] (mk-color (:clear-color state-ds))))
-  (transact! cursor :render-options (fn [m]
-                                      (update-material! (or m
-                                                            (root cursor :material))
-                                                        (:render-options state-ds)))))
-
-(defn- place-camera
-  "Given a camera object along with its position and target to look at
-  configures the camera"
-  [cam p t]
-  (when (and cam p t)
-    (l/logi "Placing camera" (tvstr p) " -> " (tvstr t))
-    (.copy (.-position cam) p)
-    (.lookAt cam t)))
-
-(defn- create-or-update
-  "Given two map like objects mdst and msrc, calls either fcreate or fupdate
-  depending on whether mdst/korks exists or not, both the callbacks are passed
-  values from msrc/korks, only that its the second parameter in case of fupdate
-  and first in case of fcreate"
-  [mdst msrc korks fcreate fupdate]
-  (let [korks (safe-korks korks)
-        src   (get-in msrc korks)]
-    (when src (update-in mdst korks #(if % (fupdate % src) (fcreate src))))))
-
-(defn- update-view-state
-  "Update the view state"
-  [cursor state-vs]
-  (transact! cursor []
-             (fn [v] (-> v
-                         (create-or-update state-vs :eye #(apply mk-vector %) #(apply set-vector %1 %2))
-                         (create-or-update state-vs :target #(apply mk-vector %) #(apply set-vector %1 %2))))))
 
 (defn- add-model [cursor cache scene uri pos]
   (transact! cursor []
@@ -219,175 +136,74 @@
   [obj & keys]
   (map #(aget obj %) keys))
 
-(defn- ppoint [obj idx]
-  (let [poff (* 3 idx)
-        p (.-array (.-position (.-attributes (.-geometry obj))))
-        c (.-array (.-color (.-attributes (.-geometry obj))))
-        i (.-array (.-intensity (.-attributes (.-geometry obj))))
-        k (.-array (.-classification (.-attributes (.-geometry obj))))]
-    (println "x:" (aget p (+ poff 0)) "y:" (aget p (+ poff 1)) "z:" (aget p (+ poff 2))
-             "r:" (aget c (+ poff 0)) "g:" (aget c (+ poff 1)) "b:" (aget c (+ poff 2))
-             "i:" (aget i idx) "k:" (aget k idx))))
-
-
-(defn- attrs->point-cloud
-  [attrs mat]
-  (let [geom (reduce (fn [obj [k {:keys [array size]}]]
-                       (.addAttribute obj (name k) (js/THREE.BufferAttribute. array size))
-                       obj) (js/THREE.BufferGeometry.) attrs)]
-    (js/THREE.PointCloud. geom (:material mat))))
-
-(defn- make-point-cloud
-  [points mat]
-  (go (let [attrs (<! (w/array-buffer->attrs points))]
-        (attrs->point-cloud attrs mat))))
-
-(defn- point-buffer->point-cloud
-  "Converts a point buffer from an external source into a partical system
-  which can be loaded into a THREE renderer"
-  [^Buffer buffer mat]
-  (go (l/logi "Making particle system")
-      (let [points (get-buffer buffer)
-            ps (<! (make-point-cloud points mat))]
-        (clear-buffer! buffer)
-        (assoc buffer :ps ps))))
-
-(defn- update-scale-objects
-  "Adds and removes scale objects from the scenegraph"
-  [cursor state-so]
-  (transact! cursor []
-             (fn [so]
-               (let [hash-fn (fn [[uri pos]] (keyword (apply str uri pos)))
-                     root (app-root cursor)
-                     scene (:scene root)
-                     model-cache (:model-cache root)]
-                 (add-remove state-so so
-                             (fn [[uri pos]]
-                               (let [hkey (hash-fn [uri pos])]
-                                 (add-model (sub-cursor cursor hkey) model-cache scene uri pos)
-                                 nil))
-                             (fn [r]
-                               (. scene remove r))
-                             hash-fn)))))
-
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
   [cursor state-pb]
-  (let [scene (root cursor :scene)
-        mat (root cursor :material)]
-   (transact! cursor []
-             (fn [pb]
-               (add-remove state-pb pb
-                           (fn [n]
-                             (go
-                               (let [ps (<! (point-buffer->point-cloud n mat))]
-                                 (.log js/console (:ps ps))
-                                 (.add scene (:ps ps))
-                                 (ppoint (:ps ps) 100)
-                                 (l/logi "Added to scene!")
-                                 (update! cursor [n] ps)))
-                             n)
-                           (fn [d]
-                             (. scene remove (:ps d)))
-                           :id)))))
-
-(def updaters
-  [[:cameras update-cameras]
-   [:display update-display-state]
-   [:view update-view-state]
-   [:scale-objects update-scale-objects]
-   [:point-buffers update-point-buffers]])
+  (let [gl (root cursor :gl)]
+    (transact! cursor []
+               (fn [pb]
+                 (add-remove state-pb pb
+                             (fn [n]
+                               (let [buffer (r/create-buffer gl (get-buffer n))]
+                                 (clear-buffer! n)
+                                 (assoc n :gl-buffer buffer)))
+                             identity
+                             :id)))))
 
 (defn- sync-local-state
   "Given the current state of the renderer, updates the running state so that all
   needed componenets are created and added to the scene"
   [cursor new-state]
-  ;; update cameras
-  (doall
-    (map (fn [[prop f]]
-           (sync-comp cursor new-state prop f)) updaters)))
+  ;; update point buffers
+  (update-point-buffers (sub-cursor cursor [:point-buffers]) (:point-buffers new-state)))
 
-(defn- find-in-state [state ks pred]
-  "Given a state, a key or a seq of keys, and a pred returns the first element, the key for which passes pred.
-  The state/ks should be a map"
-  (let [m (get-in state (if (seq? ks) ks [ks]))
-        k (first (filter pred (keys m)))]
-    (when k
-      (m k))))
+(defn- create-canvas-with-size [w h]
+  (let [c (.createElement js/document "canvas")]
+    (set! (.-width c) w)
+    (set! (.-height c) h)
+    c))
 
-(defn- render-state
-  "Given a running state, render it out"
-  [state]
-  (when-let [camera (find-in-state state :cameras :active)]
-    (let [r   (:renderer state)
-          s   (:scene state)
-          vw  (:view state)
-          ds  (:display state)]
-      (.log js/console (:material (:material state)))
-      (.log js/console (:scene state))
-      ;; Place the camera in the scene to view things right
-      (when camera
-        (place-camera camera (:eye vw) (:target vw)))
-
-      ;; setup display properties
-      (when-let [cc (:clear-color ds)]
-        (.setClearColor r (.getHex cc)))
-
-      ;; Render the scene to the default frame buffer
-      (when (and r s camera)
-        (.render r s camera nil true)))))
-
-(defrecord THREERenderEngine []
+(defrecord WebGLRenderEngine []
   IRenderEngine
   (init [this elem source-state]
-    (let [refresh-chan  (async/chan (async/sliding-buffer 1))
-          state-update  (async/chan)
+    (let [update-chan   (async/chan (async/sliding-buffer 1))
           width         (.-offsetWidth elem)
           height        (.-offsetHeight elem)
-          scene         (js/THREE.Scene.)
-          light         (js/THREE.AmbientLight. 0xFFFFFF)
-          render        (js/THREE.WebGLRenderer. #js {:antialias false})]
+          canvas        (create-canvas-with-size width height)
+          context       (r/get-gl-context canvas)]
       ;; basic scene setup
       ;;
-      (.add scene light)
-      (.setSize render width height)
-      (set! (.-autoClear render) false)
-      (.appendChild elem (.-domElement render))
-
-      ;; start up the loop to refresh the chan
-      (go-loop [state (<! refresh-chan)]
-               (js/requestAnimationFrame #(render-state state))
-               (recur (<! refresh-chan)))
+      (.appendChild elem canvas)
 
       ;; setup whatever we can
       (let [run-state (atom {:render-target elem
                              :width width
                              :height height
-                             :renderer render
-                             :model-cache (mc/make-cache)
-                             :material (make-shader)
-                             :scene scene})]
-        ;; start up the loop to trigger updates of our local state
-        (go-loop [state (<! state-update)]
-                 (sync-local-state (StateCursor. run-state []) state)
-                 (recur (<! state-update)))
-
-        (add-watch run-state "__redraw"
+                             :source-state {}
+                             :gl context
+                             :shader (shaders/create-shader context)
+                             :point-buffers {}})]
+        ;; start watching states for changes
+        (add-watch run-state "__internal"
                    (fn [_ _ _ new-state]
-                     (async/put! refresh-chan new-state)))
-        (assoc this
-               :run-state run-state
-               :state-update-chan state-update))))
+                     (js/requestAnimationFrame #(r/render-state new-state))))
+
+        (go-loop [new-state (<! update-chan)]
+                 (sync-local-state (StateCursor. run-state []) new-state) ; make sure local stuff is synced
+                 (swap! run-state assoc :source-state new-state)
+                 (recur (<! update-chan)))
+        (assoc this :state-update-chan update-chan
+               :run-state run-state))))
 
   (sync-state [this state]
     (async/put! (:state-update-chan this) state))
 
   (draw [this]
-    (render-state @(:run-state this))))
+    (async/put! (:state-update-chan this) (:run-state this))))
 
 
 (defn make-engine
   "Create the default render engine"
   []
-  (THREERenderEngine.))
+  (WebGLRenderEngine.))
 

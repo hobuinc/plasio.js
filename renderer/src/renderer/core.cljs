@@ -19,7 +19,7 @@
   (-> state
       (update-in [:cameras] conj {:active true
                                   :type "perspective"
-                                  :fov 60})))
+                                  :fov 70})))
 
 (defprotocol IPlasioRenderer
   (startup [this elem])
