@@ -145,6 +145,7 @@
                  (add-remove state-pb pb
                              (fn [n]
                                (let [buffer (r/create-buffer gl (get-buffer n))]
+                                 (println "Created buffer")
                                  (clear-buffer! n)
                                  (assoc n :gl-buffer buffer)))
                              identity

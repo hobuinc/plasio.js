@@ -90,7 +90,8 @@
       (go (f (clj->js (get-in @state korks))))
       (add-watch state id
                  (fn [_ _ _ new-state]
-                   (f (clj->js (get-in new-state korks)))))
+                   (let [v (get-in new-state korks)]
+                     (go (f (clj->js v))))))
       id))
 
   (remove-prop-listener [this id]

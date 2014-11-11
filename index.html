@@ -7,7 +7,7 @@
 
     <script>
         var r = renderer.core.createRenderer(document.getElementById("app"));
-        var p = new GreyhoundPolicies.QuadTreePolicy(r,
+        var p = new GreyhoundPolicies.NodeDistancePolicy(r,
                 "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
 
         var CatmullRom = function() {
@@ -92,7 +92,7 @@
 
             var midz = (bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2) - offsets[2] + 400.0;
 
-            var sf = 1.1;
+            var sf = 1;
 
             // add the four corners as path
             n.add((bbox.mins[0] - offsets[0]) * sf, midz, (bbox.mins[1] - offsets[1]) * sf, 0.0);
@@ -107,9 +107,15 @@
                 pointSize: 2
             });
 
+            var tlast = performance.now();
             var f = 0;
             var step = function() {
-                f += 0.001;
+                var tthis = performance.now();
+                var tdelta = (tthis - tlast) * 0.001;
+                tlast = tthis;
+
+                f += 0.001 * tdelta;
+
                 var p = n.forTime(f);
 
                 r.setEyePosition(p[0], p[1], p[2]);
