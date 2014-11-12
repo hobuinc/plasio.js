@@ -10,6 +10,8 @@
         var p = new GreyhoundPolicies.NodeDistancePolicy(r,
                 "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
 
+        r.addLoader(new GreyhoundPolicies.GreyhoundLoader());
+
         var CatmullRom = function() {
            this.points = [];
            this.maxTime = null;

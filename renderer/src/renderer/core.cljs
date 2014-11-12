@@ -31,8 +31,10 @@
   (remove-all-scale-objects [this])
   (add-prop-listener [this korks f])
   (remove-prop-listener [this id])
-  (add-point-buffer [this id buffer])
+  (add-point-buffer [this id])
   (remove-point-buffer [this id])
+  (add-loader [this loader])
+  (remove-loader [this loader])
   (set-render-options [this opts]))
 
 (defrecord PlasioRenderer [state]
@@ -97,11 +99,9 @@
   (remove-prop-listener [this id]
     (remove-watch state id))
 
-  (add-point-buffer [this id buffer]
+  (add-point-buffer [this id]
     ;; TODO: make sure that passed buffer is of javascript array buffer
-    (when-not (= (type buffer) js/Float32Array)
-      (throw (js/Error. "Only Float32Array types are expected for adding buffers")))
-    (swap! state update-in [:point-buffers] conj (r/make-buffer id buffer)))
+    (swap! state update-in [:point-buffers] conj id))
 
   (remove-point-buffer [this id]
     (l/logi "Removing buffer with id" id)
@@ -109,6 +109,12 @@
     (swap! state update-in [:point-buffers]
            (fn [bufs]
              (remove #(= (:id %) id) bufs))))
+
+  (add-loader [this loader]
+    (swap! state update-in [:loaders] assoc (.-key loader) loader))
+
+  (remove-loader [this name]
+    (swap! state update-in [:loaders] dissoc name))
 
   (set-render-options [this opts]
     (swap! state update-in [:display :render-options] merge opts)))
@@ -136,4 +142,5 @@
               :removePropertyListener (partial-js remove-prop-listener r)
               :addPointBuffer (partial-js add-point-buffer r)
               :removePointBuffer (partial-js remove-point-buffer r)
+              :addLoader (partial-js add-loader r)
               :setRenderOptions (partial-js set-render-options r)})))

@@ -12,191 +12,125 @@ var geodist = function(a, b) {
     return vec2.distance(a, b);
 };
 
-var Cell = function(id, downloadQueue, renderer, allBBox, bbox, globalOffset, defaultStartDepth) {
-    this.id = id;
-    this.downloadQueue = downloadQueue;
+
+var GHID = {
+    toId: function(o) {
+        var w = {}
+        w.host = o.host;
+        w.port = o.port;
+        w.pipelineId = o.pipelineId;
+        w.depthBegin = o.depthBegin;
+        w.depthEnd = o.depthEnd;
+        w.mins = o.bbox.mins;
+        w.maxs = o.bbox.maxs;
+        w.schema = o.schema;
+
+        return "greyhound:" +
+            JSON.stringify(w);
+    },
+    fromId: function(s) {
+        var o = JSON.parse(s.substr(10)); // jump past greyhound:
+        o.bbox = new gh.BBox(o.mins, o.maxs);
+        return o;
+    }
+};
+
+var GreyhoundLoader = function() {
+    // each loader needs a key
+    this.key = "greyhound";
+    this.pipelines = {};
+};
+
+
+GreyhoundLoader.prototype._withSession = function(host, pipelineId, cb) {
+    if (this.pipelines[pipelineId])
+        return process.nextTick(cb.bind(null, null, this.pipelines[pipelineId]));
+
+
+    // we don't have that session id, craete it
+    var r = new gh.GreyhoundReader(host);
+    var o = this;
+
+    r.createSession(pipelineId, function(err, sessionId) {
+        if (err) return process.nextTick(err.bind(null, err));
+
+        o.pipelines[pipelineId] = sessionId;
+        cb(null, sessionId);
+    });
+};
+
+
+GreyhoundLoader.prototype.load = function(id, cb) {
+    var specs = GHID.fromId(id);
+
+    var host = specs.host + ":" + specs.port;
+    var pipelineId = specs.pipelineId;
+
+    console.log("Load request:", id, specs);
+
+    var o = this;
+
+    this._withSession(host, pipelineId, function(err, session) {
+        if (err) return cb(err);
+
+        var r = new gh.GreyhoundReader(host);
+        r.read(session, specs, function(err, data) {
+            if (err) return cb(err);
+
+            cb(null, new Float32Array(data.data.buffer));
+        });
+    });
+};
+
+
+var Cell = function(reader, schema, pipelineId, renderer, allBBox, bbox, globalOffset, defaultStartDepth) {
+    this.reader = reader;
+    this.schema = schema;
+    this.pipelineId = pipelineId;
     this.renderer = renderer;
     this.bbox = bbox;
     this.worldBBox = bbox.offsetBy(globalOffset);
-    this.center = vec3.add(vec3.create(), vec3.subtract(vec3.create(), this.worldBBox.maxs, this.worldBBox.mins), this.worldBBox.mins);
-    this.baseDepth = (defaultStartDepth || 8);
+    this.center = vec3.add(vec3.create(),
+                           vec3.subtract(vec3.create(),
+                                         this.worldBBox.maxs, this.worldBBox.mins), this.worldBBox.mins);
+    this.baseDepth = (defaultStartDepth || 6);
     this.depth = this.baseDepth;
 
     this.cellStack = [[0, this.baseDepth]];
 
     this.maxDist = geodist(allBBox.mins, allBBox.maxs);
-    this.maxDepthLevel = 12;
+    this.maxDepthLevel = 10;
     this.currentDownloadId = null;
 
     console.log(this.maxDist);
 
     // queue the base volume
-    this.downloadAndAdd(id + ":base", {bbox: bbox, depthEnd: this.baseDepth});
+    this.addBuffer({bbox: bbox, depthBegin: 0, depthEnd: this.baseDepth});
 }
 
-var CancellableQueue = function(reader, sessionId, schema, pfn) {
-    this.reader = reader;
-    this.sessionId = sessionId;
-    this.schema = schema;
-    this.readInProgress = false;
-    this.tasks = [];
-    this.pfn = pfn;
-    this.readers = [];
-    this.maxReaders = 15;
-    for (var i = 0 ; i < this.maxReaders ; i ++) {
-        this.readers.push(new gh.GreyhoundReader(reader.getHost() + ":" + reader.getPort()))
-    }
+Cell.prototype.addBuffer = function(query) {
+    query.pipelineId = this.pipelineId;
+    query.host = this.reader.getHost();
+    query.port = this.reader.getPort();
+    query.schema = this.schema;
 
-    this.stats = { points: 0, bytes: 0};
-};
 
-CancellableQueue.id = 0;
+    var id = GHID.toId(query);
 
-CancellableQueue.prototype.cancel = function(id) {
-    var t = this._findTask(id);
-
-    if (t) {
-        var f = t[3];
-        console.log("Task cancelled");
-        process.nextTick(f.bind(null, new Error("Was cancelled")));
-
-        this._clearTask(id);
-    }
-
-    // TODO: Cancel any active read tasks
-};
-
-var niceQueue = function(tasks) {
-    return tasks.map(function(q) {
-        return q[0] + ":" + q[1] + "::" + (q[2].depthStart || 0) + "->" + q[2].depthEnd;
-    }).join("    ");
-};
-
-CancellableQueue.prototype.queue = function(query, cb) {
-    var id = CancellableQueue.id ++;
-    console.log("Queing task:", query);
-
-    var priority = this.pfn(query);
-    this.tasks.push([priority, id, query, cb]);
-    this.tasks.sort(function(a, b) {
-        var p1 = a[0], p2 = b[0];
-        return p1 - p2;
-    });
-
-    if(this.readers.length > 0) {
-        // there are some free readers available
-        this._processNextTask();
-    }
-};
-
-CancellableQueue.prototype._clearTask = function(id) {
-    this.tasks = this.tasks.filter(function(v) {
-        return v[1] !== id;
-    });
-};
-
-CancellableQueue.prototype._findTask = function(id) {
-    // sup guys, 1996 calling.
-    for(var i in this.tasks) {
-        var t = this.tasks[i];
-        if (t[1] === id)
-            return t;
-    }
-
-    return null;
+    console.log("Adding:", id);
+    this.renderer.addPointBuffer(id);
 }
 
-CancellableQueue.prototype._processNextTask = function() {
-    if (this.tasks.length === 0) {
-        return; // all done
-    }
+Cell.prototype.removeBuffer = function(query) {
+    query.pipelineId = this.pipelineId;
+    query.host = this.reader.getHost();
+    query.port = this.reader.getPort();
+    query.schema = this.schema;
 
+    var id= GHID.toId(query);
 
-    // if there are no more readers left, just leave, one of the completions will re-trigger this code
-    //
-    if (this.readers.length === 0) {
-        console.warn("No readers, will wait for task to finish");
-        return;
-    }
-
-    // otherwise work with these reader
-    var reader = this.readers.pop();
-
-    console.log("reader acquired", this.readers.length);
-
-
-    var t = this.tasks[0];
-    var id = t[1],
-        query = t[2],
-        cb = t[3];
-
-    // delete current task so the user just can't remove it and feel
-    // that its cancelled
-    this._clearTask(id);
-
-    var o = this;
-
-    query.schema = query.schema || this.schema;
-    reader.read(this.sessionId, query, function(err, data) {
-        o.stats.points += data.numPoints;
-        o.stats.bytes += data.numBytes;
-
-        // this request finished processing
-        console.log("finished processing:", query, "stats", o.stats);
-
-        // return the reader back to the pool
-        o.readers.push(reader);
-
-        // schedule next task
-        process.nextTick(function() {
-            o._processNextTask();
-        });
-
-        // notify about data
-        cb(err, data);
-    });
-}
-
-var getCached = (function() {
-    var cache = {};
-    var ctotal = 0;
-
-    return function(queue, qid, query, cb) {
-        console.log("gc!", qid);
-        if (cache[qid]) {
-            console.log("qh!:", qid);
-            return setTimeout(cb.bind(null, null, cache[qid]));
-        }
-
-        queue.queue(query, function(err, data) {
-            if (err) return cb(err);
-            ctotal += data.data.length;
-            console.log("qs!:", qid, data.data.length, "bytes", ctotal, "cached");
-
-            cache[qid] = data;
-            cb(null, data);
-        });
-    };
-
-})();
-
-Cell.prototype.downloadAndAdd = function(qid, query, fdone) {
-    // if there's a download in progress, cancel it
-    if (this.currentDownloadId !== null) {
-        this.downloadQueue.cancel(this.currentDownloadId);
-        this.currentDownloadId = null;
-    }
-
-    // now requeue the new download
-    var o = this;
-    this.currentDownloadId = this.downloadQueue.queue(query, function(err, data) {
-        // got data, add it in
-        o.currentDownloadId = null;
-        o.renderer.addPointBuffer(qid, new Float32Array(data.data.buffer));
-
-        if (fdone)
-            process.nextTick(fdone);
-    });
+    console.log("Removing:", id);
+    this.renderer.removePointBuffer(id);
 }
 
 Cell.prototype.updateCell = function(eye) {
@@ -206,10 +140,6 @@ Cell.prototype.updateCell = function(eye) {
     var neededDepth = this.baseDepth + Math.floor(Math.max(1.0 - dn, 0.0) * (this.maxDepthLevel - this.baseDepth));
 
     var o = this;
-
-    var qid = function(s, e) {
-        return o.id + ":" + s + "->" + e;
-    }
 
     if (neededDepth === this.depth)
         return; // we are at the depth we need to be
@@ -226,12 +156,10 @@ Cell.prototype.updateCell = function(eye) {
         };
 
 
-        var id = qid(this.depth, neededDepth);
-        this.downloadAndAdd(id, query, function() {
-            o.cellStack.push([o.depth, neededDepth]);
-        });
+        this.addBuffer(query)
+        this.cellStack.push([o.depth, neededDepth]);
 
-        o.depth = neededDepth;
+        this.depth = neededDepth;
     }
     else {
         // keep removing stuff from the stack till we get to our needed resolution.
@@ -243,7 +171,11 @@ Cell.prototype.updateCell = function(eye) {
 
             if (l > neededDepth) {
                 // this block's low point is above us, this buffer needs to go
-                this.renderer.removePointBuffer(qid(l, r));
+                this.removeBuffer({
+                    bbox: this.bbox,
+                    depthBegin: l,
+                    depthEnd: r
+                });
 
                 s.pop(); // get rid of this block
                 continue; // move on the next one and check that
@@ -254,7 +186,12 @@ Cell.prototype.updateCell = function(eye) {
             //
             if (h > neededDepth) {
                 // this buffer needs to go
-                this.renderer.removePointBuffer(qid(l, r));
+                this.removeBuffer({
+                    bbox: this.bbox,
+                    depthBegin: l,
+                    depthEnd: r
+                });
+
                 s.pop();
             }
 
@@ -272,10 +209,8 @@ Cell.prototype.updateCell = function(eye) {
                 depthEnd: neededDepth
             };
 
-            var qidd = qid(start, neededDepth);
-            this.downloadAndAdd(qidd, q, function() {
-                o.cellStack.push([o.depth, neededDepth]);
-            });
+            this.addBuffer(q);
+            this.cellStack.push([o.depth, neededDepth]);
 
             this.depth = neededDepth;
             break;
@@ -359,15 +294,9 @@ NodeDistancePolicy.prototype.start = function() {
                 .Intensity("floating", 4);
             schema.push({name: "Classification", type: "floating", size: 4});
 
-            var readQueue = new CancellableQueue(reader, sessionId, schema, function(q) {
-                return (q.depthBegin ?
-                        (q.depthBegin + (q.depthEnd - q.depthBegin) / 2) :
-                        q.depthEnd);
-            });
-
 
             var cells = boxes.map(function(box, index) {
-                return new Cell(index, readQueue, o.renderer, bbox, box, globalOffset);
+                return new Cell(reader, schema, o.pipelineId, o.renderer, bbox, box, globalOffset);
             });
 
             o.renderer.addPropertyListener(["view", "eye"], function(pos) {
@@ -393,6 +322,7 @@ NodeDistancePolicy.prototype.start = function() {
 
 
 module.exports = {
-    NodeDistancePolicy: NodeDistancePolicy
+    NodeDistancePolicy: NodeDistancePolicy,
+    GreyhoundLoader: GreyhoundLoader
 };
 

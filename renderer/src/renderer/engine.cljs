@@ -44,22 +44,6 @@
     (str "<StateCursor " ks ">")))
 
 
-(defprotocol IBuffer
-  "A protocol spec a buffer, a buffer should/would release its contents once its loaded into the 3D engine
-  e.g., also provides ways to fetch items"
-  (clear-buffer! [this])
-  (get-buffer [this]))
-
-(defrecord Buffer [id buffer]
-  IBuffer
-  (clear-buffer! [_]
-    (reset! buffer []))
-  (get-buffer [_]
-    @buffer))
-
-(defn make-buffer [id buf]
-  (Buffer. id (atom buf)))
-
 (defprotocol IRenderEngine
   "The render engine protocol, implement if you want to use a different rendering
   engine, other than three.js"
@@ -136,20 +120,40 @@
   [obj & keys]
   (map #(aget obj %) keys))
 
+(defn- loader-for-id [id]
+  (if-let [p (re-find #"^([a-z]+):.*" id)]
+    (second p)
+    (throw (js/Error. (str "Don't know how to get buffers for ID: " id)))))
+
+(defn- load-buffer [loader id]
+  (let [c (async/chan)]
+    (println "trying to load buffer: " id)
+    (.load loader id (fn [err data]
+                       (if err
+                         (async/close! c)
+                         (async/onto-chan c [data]))))
+    c))
+
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
   [cursor state-pb]
-  (let [gl (root cursor :gl)]
+  (let [gl          (root cursor :gl)
+        all-loaders (root cursor [:source-state :loaders])]
     (transact! cursor []
                (fn [pb]
                  (add-remove state-pb pb
-                             (fn [n]
-                               (let [buffer (r/create-buffer gl (get-buffer n))]
-                                 (println "Created buffer")
-                                 (clear-buffer! n)
-                                 (assoc n :gl-buffer buffer)))
+                             (fn [buffer-id]
+                               (println "adding buffer with id: " buffer-id)
+                               (let [loader-id (loader-for-id buffer-id)
+                                     loader (get all-loaders loader-id)]
+                                 (if-not loader
+                                   (throw (js/Error. (str "Don't know about a loader for: " loader-id))))
+                                 (go (let [data (<! (load-buffer loader buffer-id))
+                                           buf  (r/create-buffer gl data)]
+                                       (update! cursor [buffer-id :gl-buffer] buf)))
+                                 {:visible true :gl-buffer nil}))
                              identity
-                             :id)))))
+                             identity)))))
 
 (defn- sync-local-state
   "Given the current state of the renderer, updates the running state so that all
