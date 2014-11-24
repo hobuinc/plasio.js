@@ -144,6 +144,7 @@
   "Render the state in its current form"
   [{:keys [source-state] :as state}]
   (let [gl (:gl state)
+        bcache (:loaded-buffers state)
         width  (context/get-drawing-buffer-width gl)
         height (context/get-drawing-buffer-height gl)
         cam (first (filter :active (:cameras source-state)))
@@ -160,6 +161,6 @@
 
     ; draw all loaded buffers
     (doseq [buf (vals (:point-buffers state))]
-      (when-let [gl-buffer (:gl-buffer buf)]
+      (when-let [gl-buffer (get @bcache (:buffer-key buf))]
         (draw-buffer gl gl-buffer (:shader state) proj mv ro width height)))))
 

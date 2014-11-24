@@ -104,11 +104,9 @@
     (swap! state update-in [:point-buffers] conj id))
 
   (remove-point-buffer [this id]
-    (l/logi "Removing buffer with id" id)
-    (l/logi "Buffers" (get-in @state [:point-buffers]))
     (swap! state update-in [:point-buffers]
            (fn [bufs]
-             (remove #(= (:id %) id) bufs))))
+             (remove #{id} bufs))))
 
   (add-loader [this loader]
     (swap! state update-in [:loaders] assoc (.-key loader) loader))

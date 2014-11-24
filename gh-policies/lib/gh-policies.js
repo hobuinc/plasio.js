@@ -66,7 +66,7 @@ GreyhoundLoader.prototype.load = function(id, cb) {
     var host = specs.host + ":" + specs.port;
     var pipelineId = specs.pipelineId;
 
-    console.log("Load request:", id, specs);
+    //console.log("Load request:", id, specs);
 
     var o = this;
 
@@ -117,7 +117,7 @@ Cell.prototype.addBuffer = function(query) {
 
     var id = GHID.toId(query);
 
-    console.log("Adding:", id);
+    //console.log("Adding:", id);
     this.renderer.addPointBuffer(id);
 }
 
@@ -174,7 +174,7 @@ Cell.prototype.updateCell = function(eye) {
                 this.removeBuffer({
                     bbox: this.bbox,
                     depthBegin: l,
-                    depthEnd: r
+                    depthEnd: h
                 });
 
                 s.pop(); // get rid of this block
@@ -189,7 +189,7 @@ Cell.prototype.updateCell = function(eye) {
                 this.removeBuffer({
                     bbox: this.bbox,
                     depthBegin: l,
-                    depthEnd: r
+                    depthEnd: h
                 });
 
                 s.pop();
@@ -272,7 +272,7 @@ NodeDistancePolicy.prototype.start = function() {
 
             console.log("Have bounding box", bbox);
 
-            var boxes = splitTillDepth(bbox, 3);
+            var boxes = splitTillDepth(bbox, 1);
 
             // Make sure the color range is setup fine
             var maxColorComponent = Math.max(
@@ -303,8 +303,11 @@ NodeDistancePolicy.prototype.start = function() {
                 if (pos === null)
                     return;
 
-                // x is flipped
+                // patch eye position to match our transform in shader
+                var a = pos[1];
                 pos[0] = -pos[0];
+                pos[1] = pos[2];
+                pos[2] = a;
 
                 e.emit("update", pos);
 

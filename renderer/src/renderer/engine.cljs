@@ -99,27 +99,6 @@
                      (update! cursor [] mesh)))
                nil)))
 
-(defn- mad
-  "A simple mad (multiply and add) operation, v * m + a"
-  [v m a]
-  (+ (* v m) a))
-
-(defn- set-indexed
-  "Set the given values starting at a certain offset"
-  [arr offset & values]
-  (loop [index 0
-         v values]
-    (if (seq v)
-      (do
-        (aset arr (mad offset 1 index) (first v))
-        (recur (inc index) (rest v)))
-      arr)))
-
-(defn- pull-keys
-  "Given a JS object and a list of keys, returns a seq of values associated with the keys"
-  [obj & keys]
-  (map #(aget obj %) keys))
-
 (defn- loader-for-id [id]
   (if-let [p (re-find #"^([a-z]+):.*" id)]
     (second p)
@@ -127,7 +106,6 @@
 
 (defn- load-buffer [loader id]
   (let [c (async/chan)]
-    (println "trying to load buffer: " id)
     (.load loader id (fn [err data]
                        (if err
                          (async/close! c)
@@ -138,21 +116,30 @@
   "Adds or removes point buffers from scene"
   [cursor state-pb]
   (let [gl          (root cursor :gl)
+        bcache      (root cursor :loaded-buffers)
         all-loaders (root cursor [:source-state :loaders])]
     (transact! cursor []
                (fn [pb]
                  (add-remove state-pb pb
                              (fn [buffer-id]
-                               (println "adding buffer with id: " buffer-id)
                                (let [loader-id (loader-for-id buffer-id)
                                      loader (get all-loaders loader-id)]
                                  (if-not loader
                                    (throw (js/Error. (str "Don't know about a loader for: " loader-id))))
-                                 (go (let [data (<! (load-buffer loader buffer-id))
-                                           buf  (r/create-buffer gl data)]
-                                       (update! cursor [buffer-id :gl-buffer] buf)))
-                                 {:visible true :gl-buffer nil}))
-                             identity
+                                 (go (let [data (<! (load-buffer loader buffer-id))]
+                                       ;; only add buffer if we still need it, the buffer could
+                                       ;; have been removed while we were still downloading
+                                       (transact! cursor [buffer-id]
+                                                  (fn [v]
+                                                    (when-not (nil? v)
+                                                      (let [buf (r/create-buffer gl data)]
+                                                        (swap! bcache assoc buffer-id buf)
+                                                        (assoc v :buffer-key buffer-id)))))))
+                                 {:visible true}))
+                             (fn [{:keys [buffer-key]}]
+                               (when-let [gl-buffer (get @bcache buffer-key)]
+                                 (.deleteBuffer gl gl-buffer)
+                                 (swap! bcache dissoc buffer-key)))
                              identity)))))
 
 (defn- sync-local-state
@@ -187,6 +174,7 @@
                              :source-state {}
                              :gl context
                              :shader (shaders/create-shader context)
+                             :loaded-buffers (atom {}) ;; cache of loaded buffers
                              :point-buffers {}})]
         ;; start watching states for changes
         (add-watch run-state "__internal"
@@ -197,7 +185,8 @@
                  (sync-local-state (StateCursor. run-state []) new-state) ; make sure local stuff is synced
                  (swap! run-state assoc :source-state new-state)
                  (recur (<! update-chan)))
-        (assoc this :state-update-chan update-chan
+        (assoc this
+               :state-update-chan update-chan
                :run-state run-state))))
 
   (sync-state [this state]
