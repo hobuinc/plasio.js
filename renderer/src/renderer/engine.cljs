@@ -49,6 +49,7 @@
   engine, other than three.js"
   (init [this elem source-state])
   (sync-state [this state])
+  (pick-point [this x y])
   (draw [this]))
 
 
@@ -174,6 +175,7 @@
                              :source-state {}
                              :gl context
                              :shader (shaders/create-shader context)
+                             :picker (r/create-picker context)
                              :loaded-buffers (atom {}) ;; cache of loaded buffers
                              :point-buffers {}})]
         ;; start watching states for changes
@@ -191,6 +193,9 @@
 
   (sync-state [this state]
     (async/put! (:state-update-chan this) state))
+
+  (pick-point [{:keys [run-state] :as this} x y]
+    (r/pick-point (:picker @run-state) @run-state x y))
 
   (draw [this]
     (async/put! (:state-update-chan this) (:run-state this))))

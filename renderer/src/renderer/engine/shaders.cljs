@@ -7,9 +7,18 @@
 (declare vertex-shader)
 (declare frag-shader)
 
+(declare vertex-shader-picker)
+(declare frag-shader-picker)
+
 (defn create-shader [gl]
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader)
         fs (shaders/create-shader gl shader/fragment-shader frag-shader)]
+    (shaders/create-program gl vs fs)))
+
+
+(defn create-picker-shader [gl]
+  (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader-picker)
+        fs (shaders/create-shader gl shader/fragment-shader frag-shader-picker)]
     (shaders/create-program gl vs fs)))
 
 (def vertex-shader
@@ -95,6 +104,32 @@
   }")
 
 
+(def vertex-shader-picker
+  "precision mediump float;
+
+   uniform mat4  projectionMatrix;
+   uniform mat4  modelViewMatrix;
+   uniform mat4  modelViewProjectionMatrix;
+
+   uniform float pointSize;
+   uniform vec3 xyzScale;
+   uniform vec2 zrange;
+   uniform vec3 offsets;
+   uniform vec3 which;
+
+   attribute vec3 position;
+
+   varying vec3 xyz;
+
+   void main() {
+       vec3 fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1);
+       vec4 mvPosition = modelViewMatrix * vec4(fpos, 1.0);
+       gl_Position = projectionMatrix * mvPosition;
+       gl_PointSize = pointSize;
+       xyz = which * fpos;
+   }")
+
+
 (def frag-shader
   "
   precision mediump float;
@@ -116,3 +151,51 @@
       gl_FragColor = col;
   }")
 
+(def frag-shader-picker
+  "precision mediump float;
+
+   varying vec3 xyz;
+   float shift_right(float v, float amt) {
+       v = floor(v) + 0.5;
+       return floor(v / exp2(amt));
+   }
+
+   float shift_left(float v, float amt) {
+       return floor(v * exp2(amt) + 0.5);
+   }
+
+   float mask_last(float v, float bits) {
+       return mod(v, shift_left(1.0, bits));
+   }
+
+   float extract_bits(float num, float from, float to) {
+       from = floor(from + 0.5);
+       to = floor(to + 0.5);
+       return mask_last(shift_right(num, from), to - from);
+   }
+
+   vec4 encode_float(float val) {
+       if (val == 0.0)
+           return vec4(0, 0, 0, 0);
+
+
+	   float sign = val > 0.0 ? 0.0 : 1.0;
+	   val = abs(val);
+       float exponent = floor(log2(val));
+       float biased_exponent = exponent + 127.0;
+       float fraction = ((val / exp2(exponent)) - 1.0) * 8388608.0;
+
+       float t = biased_exponent / 2.0;
+       float last_bit_of_biased_exponent = fract(t) * 2.0;
+       float remaining_bits_of_biased_exponent = floor(t);
+
+       float byte4 = extract_bits(fraction, 0.0, 8.0) / 255.0;
+       float byte3 = extract_bits(fraction, 8.0, 16.0) / 255.0;
+       float byte2 = (last_bit_of_biased_exponent * 128.0 + extract_bits(fraction, 16.0, 23.0)) / 255.0;
+       float byte1 = (sign * 128.0 + remaining_bits_of_biased_exponent) / 255.0;
+       return vec4(byte4, byte3, byte2, byte1);
+   }
+
+   void main() {
+       float s = xyz.x + xyz.y + xyz.z;
+	   gl_FragColor = encode_float(s); }")

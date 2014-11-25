@@ -35,9 +35,10 @@
   (remove-point-buffer [this id])
   (add-loader [this loader])
   (remove-loader [this loader])
-  (set-render-options [this opts]))
+  (set-render-options [this opts])
+  (pick-point [this x y]))
 
-(defrecord PlasioRenderer [state]
+(defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
   (startup [this elem]
     (l/logi "Doing startup!")
@@ -52,6 +53,7 @@
                    (r/sync-state rengine new-state)))
       ;; jump start stuff by setting our state from init-state
       (l/logi "Setting up state!")
+      (reset! render-engine rengine)
       (reset! state (do-startup init-state))))
 
   (add-camera [this props]
@@ -115,20 +117,23 @@
     (swap! state update-in [:loaders] dissoc name))
 
   (set-render-options [this opts]
-    (swap! state update-in [:display :render-options] merge opts)))
+    (swap! state update-in [:display :render-options] merge opts))
+
+  (pick-point [this x y]
+    (r/pick-point @render-engine x y)))
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
   [f this]
   (fn [& args]
     (let [c (js->clj args :keywordize-keys true)]
-      (apply f this c))))
+      (clj->js (apply f this c)))))
 
 (defn ^:export createRenderer
   "Given a DOM element, initialize a renderer on it, also returns an object which
   can have methods invoked on it to do stuff with it"
   [elem]
-  (let [r (PlasioRenderer. (atom {}))]
+  (let [r (PlasioRenderer. (atom {}) (atom nil))]
     (startup r elem)
     (clj->js {:addCamera (partial-js add-camera r)
               :setClearColor (partial-js set-clear-color r)
@@ -141,4 +146,5 @@
               :addPointBuffer (partial-js add-point-buffer r)
               :removePointBuffer (partial-js remove-point-buffer r)
               :addLoader (partial-js add-loader r)
-              :setRenderOptions (partial-js set-render-options r)})))
+              :setRenderOptions (partial-js set-render-options r)
+              :pickPoint (partial-js pick-point r)})))

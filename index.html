@@ -6,9 +6,16 @@
     <script src="gh-policies/dist/gh-policies.js"></script>
 
     <script>
-        var r = renderer.core.createRenderer(document.getElementById("app"));
+        var e = document.getElementById("app");
+        var r = renderer.core.createRenderer(e);
         var p = new GreyhoundPolicies.NodeDistancePolicy(r,
                 "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
+
+        e.addEventListener("dblclick", function(e) {
+            console.log("double clicked on me:", e.offsetX, e.offsetY);
+            var point = r.pickPoint(e.offsetX, e.offsetY);
+            console.log("Got 3D point:", point);
+        });
 
         r.addLoader(new GreyhoundPolicies.GreyhoundLoader());
 
@@ -116,7 +123,7 @@
                 var tdelta = (tthis - tlast) * 0.001;
                 tlast = tthis;
 
-                f += 0.01 * tdelta;
+                f += 0.001 * tdelta;
 
                 var p = n.forTime(f);
 
