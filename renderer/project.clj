@@ -21,9 +21,9 @@
     :builds [{:id "dev"
               :notify-command ["./scripts/post-compile.sh" "target/dev"]
               :source-paths ["src"]
-              :compiler {:externs ["vendor/three.js"]
-                         :output-to "target/dev/renderer.js"
+              :compiler {:output-to "target/dev/renderer.js"
                          :output-dir "target/dev"
+                         :externs ["vendor/gl-matrix.js"]
                          :pretty-print true
                          :optimizations :whitespace}}
              {:id "release"
@@ -34,5 +34,4 @@
                          :output-dir "target/rel"
                          :externs ["vendor/gl-matrix.js"]
                          :pretty-print false
-                         :optimizations :advanced}}
-             ]})
+                         :optimizations :advanced}}]})

@@ -3,15 +3,15 @@
     <div id="app" style="width:800px;height:600px;"></div>
 
     <script src="renderer/plasio-renderer.js"></script>
-    <script src="cameras/orbital.js"></script>
-    <script src="gh-policies/dist/gh-policies.js"></script>
+    <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
         var e = document.getElementById("app");
+
         var r = renderer.core.createRenderer(e);
-        var p = new GreyhoundPolicies.NodeDistancePolicy(r,
+        var p = new PlasioLib.Debug.NodeDistancePolicy(r,
                 "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
-        var c = new OrbitalCamera(e, r, function(eye, target) {
+        var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
             console.log("Got new view props", eye, target);
             r.setEyePosition(eye);
             r.setTargetPosition(target);
@@ -20,7 +20,7 @@
         });
 
         r.setClearColor(0, 0, 0);
-        r.addLoader(new GreyhoundPolicies.GreyhoundLoader());
+        r.addLoader(new PlasioLib.Debug.Loader());
 
         var e = p.start();
         e.on("bbox", function(bbox) {
@@ -32,7 +32,8 @@
 
             console.log("Setting offsets to:", off);
             r.setRenderOptions({
-                offsets: off
+                offsets: off,
+                pointSize: 5
             });
         });
     </script>

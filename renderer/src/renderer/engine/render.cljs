@@ -133,6 +133,42 @@
                              (fn [old]
                                (assoc old :values (coerce v (:type old)))))) which-map opts)))
 
+(defn- draw-all-buffers
+  [gl bufs shader base-uniform-map proj mv render-options width height picking?]
+  (let [attrib-loc (partial shaders/get-attrib-location gl shader)
+        stride     (* 4 bytes-per-point)
+        attrib     (fn [nm size offset]
+                     {:location (attrib-loc nm) :components-per-vertex size
+                      :type   data-type/float :stride stride :offset offset})
+        attribs    (if picking?
+                     [(attrib "position" 3 0)]
+                     [(attrib "position" 3 0)
+                      (attrib "color" 3 12)
+                      (attrib "intensity" 1 24)
+                      (attrib "classification" 1 28)])
+        blend-func (if picking?
+                     [bf/one bf/zero]
+                     [bf/src-alpha bf/on-minus-src-alpha])
+        viewport {:x 0 :y 800 :width 1000 :height -800}
+        uniforms (uniforms-with-override base-uniform-map
+                                         (assoc render-options
+                                           :projectionMatrix proj
+                                           :modelViewMatrix  mv
+                                           :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
+    (doseq [b bufs]
+      (let [total-points (.. b -totalPoints)
+            buff-attribs (mapv #(assoc % :buffer b) attribs)]
+        (buffers/draw! gl
+                       :shader shader
+                       :draw-mode draw-mode/points
+                       :viewport viewport
+                       :first 0
+                       :blend-func [blend-func]
+                       :count total-points
+                       :capabilities {capability/depth-test true}
+                       :attributes buff-attribs
+                       :uniforms uniforms)))))
+
 (defn- draw-buffer
   [gl buffer shader base-uniform-map proj mv render-options width height picking?]
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
@@ -150,7 +186,6 @@
                      [bf/one bf/zero]
                      [bf/src-alpha bf/on-minus-src-alpha])
         total-points (.-totalPoints buffer)
-        viewport {:x 0 :y 800 :width 1000 :height -800}
         uniforms (uniforms-with-override base-uniform-map
                                          (assoc render-options
                                            :projectionMatrix proj
@@ -160,13 +195,13 @@
       gl
       :shader shader
       :draw-mode draw-mode/points
-      :viewport viewport
       :first 0
       :blend-func [blend-func]
       :count total-points
       :capabilities {capability/depth-test true}
       :attributes attribs
       :uniforms uniforms)))
+
 
 (defn render-state
   "Render the state in its current form"
@@ -188,9 +223,15 @@
     (buffers/clear-depth-buffer gl 1.0)
 
     ; draw all loaded buffers
-    (doseq [buf (vals (:point-buffers state))]
-      (when-let [gl-buffer (get @bcache (:buffer-key buf))]
-        (draw-buffer gl gl-buffer (:shader state) uniform-map proj mv ro width height false)))))
+    (let [buffers-to-draw (->> state
+                               :point-buffers
+                               vals
+                               (map #(get @bcache (:buffer-key %)))
+                               (remove nil?))]
+      (draw-all-buffers gl buffers-to-draw
+                        (:shader state)
+                        uniform-map
+                        proj mv ro width height false))))
 
 
 (defn- release-pick-buffers [gl bufs]
