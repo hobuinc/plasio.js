@@ -1,6 +1,6 @@
 <html>
 <body>
-    <div id="app" style="width:800px;height:600px;"></div>
+    <div id="app" style="width:1200px;height:600px;"></div>
 
     <script src="renderer/plasio-renderer.js"></script>
     <script src="lib/dist/plasio-lib.js"></script>
@@ -9,8 +9,9 @@
         var e = document.getElementById("app");
 
         var r = renderer.core.createRenderer(e);
-        var p = new PlasioLib.Debug.NodeDistancePolicy(r,
+        var p = new PlasioLib.Greyhound.NodeDistancePolicy(r,
                 "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
+
         var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
             console.log("Got new view props", eye, target);
             r.setEyePosition(eye);
@@ -21,13 +22,18 @@
 
         r.setClearColor(0, 0, 0);
         r.addLoader(new PlasioLib.Debug.Loader());
+        r.addLoader(new PlasioLib.Greyhound.Loader());
 
         var e = p.start();
         e.on("bbox", function(bbox) {
+            var x = bbox.maxs[0] - bbox.mins[0],
+                y = bbox.maxs[1] - bbox.mins[1],
+                z = bbox.maxs[2] - bbox.mins[2];
+        
             var off = [
-                bbox.mins[0] + (bbox.maxs[0] - bbox.mins[0]) / 2,
-                bbox.mins[1] + (bbox.maxs[1] - bbox.mins[1]) / 2,
-                bbox.mins[2] + (bbox.maxs[2] - bbox.mins[2]) / 2
+                bbox.mins[0] + x / 2,
+                bbox.mins[1] + y / 2,
+                bbox.mins[2] + z / 2
             ];
 
             console.log("Setting offsets to:", off);
@@ -35,6 +41,9 @@
                 offsets: off,
                 pointSize: 5
             });
+
+            // reset the state of our camera
+            c.setHint([x, y, z]);
         });
     </script>
 
