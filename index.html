@@ -1,31 +1,67 @@
 <html>
+  <style>
+    body {
+        margin: 0px;
+    }
+    #stats {
+        font-family: 'Consolas', 'Monaco', monospace;
+        color: white;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 2px;
+        position: absolute;
+        top: 5px;
+        right: 5px;
+    }
+  </style>
+
 <body>
-    <div id="app" style="width:1200px;height:600px;"></div>
+    <div id="app" style="width:100%;height:600px;"></div>
+    <div id="stats"></div>
 
     <script src="renderer/plasio-renderer.js"></script>
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
+        var stats = {}
+        var renderStats = function(ps, ds) {
+            stats.ps = ps || stats.ps;
+            stats.ds = ds || stats.ds;
+
+            if (stats.ps && stats.ds) {
+                document.getElementById("stats").innerHTML =
+                    "Pool: active: " + stats.ps.inuse + ", waiting: " + stats.ps.waiting +
+                    ", max:" + stats.ps.max + "| Totals: points: " + stats.ds.totalPoints + ", bytes: " +
+                    stats.ds.totalBytes;
+            }
+        };
+        
         var e = document.getElementById("app");
 
+        var baseSource = PlasioLib.Greyhound;
+
         var r = renderer.core.createRenderer(e);
-        var p = new PlasioLib.Greyhound.NodeDistancePolicy(r,
+        var p = new baseSource.NodeDistancePolicy(r,
                 "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
 
         var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
-            console.log("Got new view props", eye, target);
             r.setEyePosition(eye);
             r.setTargetPosition(target);
-
-            console.log(typeof(eye), typeof(target));
         });
 
         r.setClearColor(0, 0, 0);
-        r.addLoader(new PlasioLib.Debug.Loader());
-        r.addLoader(new PlasioLib.Greyhound.Loader());
+        var loader = new baseSource.Loader();
+        loader.on("pool-stats", function(stats) {
+            renderStats(stats);
 
-        var e = p.start();
-        e.on("bbox", function(bbox) {
+        });
+
+        loader.on("download-stats", function(stats) {
+            renderStats(null, stats);
+        });
+        
+        r.addLoader(loader);
+
+        p.on("bbox", function(bbox) {
             var x = bbox.maxs[0] - bbox.mins[0],
                 y = bbox.maxs[1] - bbox.mins[1],
                 z = bbox.maxs[2] - bbox.mins[2];
@@ -39,12 +75,15 @@
             console.log("Setting offsets to:", off);
             r.setRenderOptions({
                 offsets: off,
-                pointSize: 5
+                pointSize: 2
             });
 
             // reset the state of our camera
             c.setHint([x, y, z]);
         });
+
+        p.start();
+        
     </script>
 
 </body>

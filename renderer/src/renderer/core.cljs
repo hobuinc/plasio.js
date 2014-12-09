@@ -3,8 +3,10 @@
             [cljs-uuid.core :as uuid]
             [renderer.engine :as r]
             [renderer.engine.util :as u]
-            [renderer.log :as l])
-  (:require-macros [cljs.core.async.macros :refer [go]]))
+            [renderer.log :as l]
+            [renderer.events :refer [next-tick]]
+            [cljs.core.async :as async])
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
 (def init-state {:render-target nil
                  :cameras []
@@ -42,16 +44,9 @@
   IPlasioRenderer
   (startup [this elem]
     (l/logi "Doing startup!")
-    (let [rengine (-> (r/make-engine)
-                      (r/init elem state))]
+    (let [rengine (r/make-engine)]
+      (r/attach! rengine elem state)
 
-      (l/logi "Have engine");
-      ;; Add some state listeners to auto-trigger redraw
-      (add-watch state "__watcher"
-                 (fn [_ _ _ new-state]
-                   (l/logi "state changed to:" new-state)
-                   (r/sync-state rengine new-state)))
-      ;; jump start stuff by setting our state from init-state
       (l/logi "Setting up state!")
       (reset! render-engine rengine)
       (reset! state (do-startup init-state))))
@@ -93,9 +88,11 @@
       ; make sure the current value is sent on subscribe
       (go (f (clj->js (get-in @state korks))))
       (add-watch state id
-                 (fn [_ _ _ new-state]
-                   (let [v (get-in new-state korks)]
-                     (go (f (clj->js v))))))
+                 (fn [_ _ os ns]
+                   (let [v (get-in ns korks)
+                         o (get-in os korks)]
+                     (when-not (= v o)
+                       (go (f (clj->js v)))))))
       id))
 
   (remove-prop-listener [this id]

@@ -44,3 +44,5 @@
         obj (reduce #(aget %1 (name %2)) obj ks1)
         nv  (if (ifn? f) (f (aget obj k)) f)]
     (aset obj k nv)))
+
+

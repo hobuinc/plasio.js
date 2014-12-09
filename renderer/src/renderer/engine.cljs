@@ -2,9 +2,9 @@
   "The renderer engine, drawing stuff 24/7"
   (:require [renderer.engine.util :refer [safe-korks join-ks mk-vector
                                           mk-color set-vector tvstr]]
+            [renderer.util :refer [add-framed-watch]]
             [renderer.engine.shaders :as shaders]
             [renderer.engine.model-cache :as mc]
-            [renderer.engine.workers :as w]
             [renderer.engine.render :as r]
             [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
@@ -19,9 +19,10 @@
   (update! [this korks v])
   (sub-cursor [this korks])
   (app-root [this])
+  (source-state [this] [this korks])
   (root [this ks]))
 
-(defrecord StateCursor [root-state ks]
+(defrecord StateCursor [root-state ks sstate]
   ICursor
   (transact! [this korks f]
     (swap! root-state update-in (join-ks ks korks)
@@ -34,11 +35,15 @@
     (swap! root-state assoc-in (join-ks ks korks) v))
   (sub-cursor [this korks]
     (l/logi "Sub-cursor" (str this) ": " ks "->" korks ":" (join-ks ks korks))
-    (StateCursor. root-state (join-ks ks korks)))
+    (StateCursor. root-state (join-ks ks korks) sstate))
   (app-root [this]
     @root-state)
   (root [this ks]
     (get-in @root-state (safe-korks ks)))
+  (source-state [this]
+    sstate)
+  (source-state [this ks]
+    (get-in sstate (safe-korks ks)))
   Object
   (toString [this]
     (str "<StateCursor " ks ">")))
@@ -47,10 +52,8 @@
 (defprotocol IRenderEngine
   "The render engine protocol, implement if you want to use a different rendering
   engine, other than three.js"
-  (init [this elem source-state])
-  (sync-state [this state])
-  (pick-point [this x y])
-  (draw [this]))
+  (attach! [this elem source-state])
+  (pick-point [this x y]))
 
 
 (defn- changes
@@ -118,7 +121,7 @@
   [cursor state-pb]
   (let [gl          (root cursor :gl)
         bcache      (root cursor :loaded-buffers)
-        all-loaders (root cursor [:source-state :loaders])]
+        all-loaders (source-state cursor :loaders)]
     (transact! cursor []
                (fn [pb]
                  (add-remove state-pb pb
@@ -146,9 +149,10 @@
 (defn- sync-local-state
   "Given the current state of the renderer, updates the running state so that all
   needed componenets are created and added to the scene"
-  [cursor new-state]
+  [cursor]
   ;; update point buffers
-  (update-point-buffers (sub-cursor cursor [:point-buffers]) (:point-buffers new-state)))
+  (let [{:keys [point-buffers]} (source-state cursor)]
+    (update-point-buffers (sub-cursor cursor [:point-buffers]) point-buffers)))
 
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]
@@ -156,11 +160,10 @@
     (set! (.-height c) h)
     c))
 
-(defrecord WebGLRenderEngine []
+(defrecord WebGLRenderEngine [state]
   IRenderEngine
-  (init [this elem source-state]
-    (let [update-chan   (async/chan (async/sliding-buffer 1))
-          width         (.-offsetWidth elem)
+  (attach! [this elem source-state]
+    (let [width         (.-offsetWidth elem)
           height        (.-offsetHeight elem)
           canvas        (create-canvas-with-size width height)
           context       (r/get-gl-context canvas)]
@@ -172,37 +175,35 @@
       (let [run-state (atom {:render-target elem
                              :width width
                              :height height
-                             :source-state {}
                              :gl context
                              :shader (shaders/create-shader context)
-                             :picker (r/create-picker context)
+                             :picker (r/create-picker)
                              :loaded-buffers (atom {}) ;; cache of loaded buffers
                              :point-buffers {}})]
         ;; start watching states for changes
-        (add-watch run-state "__internal"
-                   (fn [_ _ _ new-state]
-                     (js/requestAnimationFrame #(r/render-state new-state))))
+        (add-framed-watch
+         run-state "__internal"
+         (fn [_ _ _ new-state]
+           (r/render-state (assoc new-state
+                             :source-state @source-state))))
 
-        (go-loop [new-state (<! update-chan)]
-                 (sync-local-state (StateCursor. run-state []) new-state) ; make sure local stuff is synced
-                 (swap! run-state assoc :source-state new-state)
-                 (recur (<! update-chan)))
-        (assoc this
-               :state-update-chan update-chan
-               :run-state run-state))))
+        (add-framed-watch
+         source-state "__internal-ss"
+         (fn [_ _ _ new-state]
+           (sync-local-state (StateCursor. run-state [] new-state))))
 
-  (sync-state [this state]
-    (async/put! (:state-update-chan this) state))
+        (reset! state
+                {:run-state run-state
+                 :source-state source-state}))))
 
-  (pick-point [{:keys [run-state] :as this} x y]
-    (r/pick-point (:picker @run-state) @run-state x y))
-
-  (draw [this]
-    (async/put! (:state-update-chan this) (:run-state this))))
+  (pick-point [_ x y]
+    (let [rs @(:run-state @state)
+          rs (assoc rs :source-state @(:source-state @state))]
+      (r/pick-point (:picker rs) rs x y))))
 
 
 (defn make-engine
   "Create the default render engine"
   []
-  (WebGLRenderEngine.))
+  (WebGLRenderEngine. (atom nil)))
 

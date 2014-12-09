@@ -7,7 +7,6 @@
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [cljs-uuid "0.0.4"]
                  [cljs-webgl "0.1.5-SNAPSHOT"]
-                 [servant "0.1.3"]
                  [weasel "0.3.0"]]
 
   :plugins [[lein-cljsbuild "1.0.4-SNAPSHOT"]]
