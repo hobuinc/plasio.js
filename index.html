@@ -41,7 +41,7 @@
 
         var r = renderer.core.createRenderer(e);
         var p = new baseSource.NodeDistancePolicy(r,
-                "localhost:8080", "3c51e54a3f0e1b7f4ffd582d4d970162");
+                "localhost:8080", "4da95360946af6a58f36ef92fa65e4cc");
 
         var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
             r.setEyePosition(eye);
@@ -74,8 +74,7 @@
 
             console.log("Setting offsets to:", off);
             r.setRenderOptions({
-                offsets: off,
-                pointSize: 2
+                offsets: off
             });
 
             // reset the state of our camera

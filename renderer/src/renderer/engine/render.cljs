@@ -206,7 +206,6 @@
 (defn render-state
   "Render the state in its current form"
   [{:keys [source-state] :as state}]
-  (println "RRRRRR")
   (let [gl (:gl state)
         bcache (:loaded-buffers state)
         width  (context/get-drawing-buffer-width gl)
@@ -335,7 +334,6 @@
 (defrecord PointPicker [picker-state]
   IPointPicker
   (pick-point [this {:keys [source-state] :as state} client-x client-y]
-    (println "source state is:" source-state)
     (let [gl (:gl state)
           w  (context/get-drawing-buffer-width gl)
           h  (context/get-drawing-buffer-height gl)]
