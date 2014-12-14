@@ -37,11 +37,15 @@
         
         var e = document.getElementById("app");
 
-        var baseSource = PlasioLib.Greyhound;
+        var baseSource = PlasioLib.GreyhoundStatic;
 
         var r = renderer.core.createRenderer(e);
+     /*
         var p = new baseSource.NodeDistancePolicy(r,
                 "localhost:8080", "4da95360946af6a58f36ef92fa65e4cc");
+     */
+        var baseURL = "http://localhost:4999";
+        var p = new baseSource.NodeDistancePolicy(r, baseURL);
 
         var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
             r.setEyePosition(eye);
@@ -49,7 +53,7 @@
         });
 
         r.setClearColor(0, 0, 0);
-        var loader = new baseSource.Loader();
+        var loader = new baseSource.Loader(baseURL);
         loader.on("pool-stats", function(stats) {
             renderStats(stats);
 

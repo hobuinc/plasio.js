@@ -66,29 +66,44 @@
          obj-keys (set (keys obj))
          new-keys (set/difference k obj-keys)
          del-keys (set/difference obj-keys k)
-         unchanged (set/union k obj-keys)]
+         unchanged (set/intersection k obj-keys)]
      [(into [] new-keys) (into [] del-keys) (into [] unchanged)])))
+
+
+(defn- print-them-nicely [added removed unchanged]
+  (let [pid (fn [op id idx] (println " " op " " idx "  " id))]
+    (println "Added:")
+    (doall (map (partial pid "+") added (range)))
+    (println "Removed:")
+    (doall (map (partial pid "-") removed (range)))
+    (println "Unchanged:")
+    (doall (map (partial pid "~") unchanged (range)))))
 
 (defn- add-remove
   "Given a seq of new objects, current state where the new objects eventually end up, a hash function, this function
   calls back the create and destroy functions and finally returns a new object which has the new objects added and removed"
   ([in-ks out-obj create-fn destroy-fn update-fn hash-fn]
-   (let [[added-keys removed-keys unchanged-keys] (changes in-ks out-obj hash-fn)
-         added-map   (into {} (for [k in-ks] [(hash-fn k) k]))
-         added-objects   (select-keys added-map added-keys)
-         removed-objects (select-keys out-obj removed-keys)]
-     ;; first delete all objects that need to go away
-     ;;
-     (doall (map destroy-fn (vals removed-objects)))
-     ;; Now call create-fn on all new keys and add them to hashmap
-     ;;
-     (l/logi "I am going to create on" added-objects)
-     (let [rn (into {} (for [[k v] added-objects] [k (create-fn v)]))
-           cleaned (apply dissoc out-obj removed-keys)]
-       (-> (into {} (for [[k v] cleaned] [k (update-fn v)]))
-           (merge rn)))))
+     (let [[added-keys removed-keys unchanged-keys] (changes in-ks out-obj hash-fn)
+           added-map   (into {} (for [k in-ks] [(hash-fn k) k]))
+           added-objects   (select-keys added-map added-keys)
+           removed-objects (select-keys out-obj removed-keys)]
+
+       (print-them-nicely added-keys removed-keys unchanged-keys)
+
+       ;; first delete all objects that need to go away
+       ;;
+       (let [removed (vals removed-objects)]
+         (doall (map destroy-fn removed)))
+
+       ;; Now call create-fn on all new keys and add them to hashmap
+       ;;
+       (let [rn (into {} (for [[k v] added-objects] [k (create-fn v)]))
+             cleaned (apply dissoc out-obj removed-keys)
+             ret (-> (into {} (for [[k v] cleaned] [k (update-fn v)]))
+                     (merge rn))]
+         ret)))
   ([in-ks out-obj create-fn destroy-fn hash-fn]
-   (add-remove in-ks out-obj create-fn destroy-fn identity hash-fn)))
+     (add-remove in-ks out-obj create-fn destroy-fn identity hash-fn)))
 
 (defn- add-model [cursor cache scene uri pos]
   (transact! cursor []
@@ -140,10 +155,7 @@
                                                         (swap! bcache assoc buffer-id buf)
                                                         (assoc v :buffer-key buffer-id)))))))
                                  {:visible true}))
-                             (fn [{:keys [buffer-key]}]
-                               (when-let [gl-buffer (get @bcache buffer-key)]
-                                 (.deleteBuffer gl gl-buffer)
-                                 (swap! bcache dissoc buffer-key)))
+                             identity
                              identity)))))
 
 (defn- sync-local-state

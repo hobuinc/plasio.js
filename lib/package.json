@@ -22,7 +22,8 @@
     "gulp-util": "~3.0.1",
     "gulp-watch": "~1.0.2",
     "jaguarjs-jsdoc": "0.0.1",
-    "open": "0.0.5"
+    "open": "0.0.5",
+    "sha.js": "^2.3.0"
   },
   "author": "",
   "license": "ISC"
