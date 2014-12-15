@@ -228,7 +228,6 @@
                                vals
                                (map #(get @bcache (:buffer-key %)))
                                (remove nil?))]
-      (println "----->" (count buffers-to-draw) (count (:point-buffers state)) (count @bcache))
       (draw-all-buffers gl buffers-to-draw
                         (:shader state)
                         uniform-map
