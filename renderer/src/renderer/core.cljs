@@ -8,12 +8,9 @@
             [cljs.core.async :as async])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
-(def init-state {:render-target nil
-                 :cameras []
+(def init-state {:cameras []
                  :display {:clear-color [0 0 0]
-                           :render-options {}}
-                 :scale-objects []
-                 :data {:batches []}})
+                           :render-options {}}})
 
 (defn- do-startup [state]
   ;; Add the default camera to our renderer
@@ -38,7 +35,8 @@
   (add-loader [this loader])
   (remove-loader [this loader])
   (set-render-options [this opts])
-  (pick-point [this x y]))
+  (pick-point [this x y])
+  (apply-state [this state]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -108,16 +106,19 @@
              (remove #{id} bufs))))
 
   (add-loader [this loader]
-    (swap! state update-in [:loaders] assoc (.-key loader) loader))
+    (r/add-loader @render-engine loader))
 
-  (remove-loader [this name]
-    (swap! state update-in [:loaders] dissoc name))
+  (remove-loader [this loader]
+    (r/remove-loader @render-engine loader))
 
   (set-render-options [this opts]
     (swap! state update-in [:display :render-options] merge opts))
 
   (pick-point [this x y]
-    (r/pick-point @render-engine x y)))
+    (r/pick-point @render-engine x y))
+
+  (apply-state [this st]
+    (reset! state st)))
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -144,4 +145,5 @@
               :removePointBuffer (partial-js remove-point-buffer r)
               :addLoader (partial-js add-loader r)
               :setRenderOptions (partial-js set-render-options r)
-              :pickPoint (partial-js pick-point r)})))
+              :pickPoint (partial-js pick-point r)
+              :applyState (partial-js apply-state r)})))

@@ -22,70 +22,101 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
-        var stats = {}
-        var renderStats = function(ps, ds) {
-            stats.ps = ps || stats.ps;
-            stats.ds = ds || stats.ds;
+     var commonStartup = function() {
+       var stats = {}
+       var renderStats = function(ps, ds) {
+         stats.ps = ps || stats.ps;
+         stats.ds = ds || stats.ds;
 
-            if (stats.ps && stats.ds) {
-                document.getElementById("stats").innerHTML =
-                    "Pool: active: " + stats.ps.inuse + ", waiting: " + stats.ps.waiting +
-                    ", max:" + stats.ps.max + "| Totals: points: " + stats.ds.totalPoints + ", bytes: " +
-                    stats.ds.totalBytes;
-            }
-        };
-        
-        var e = document.getElementById("app");
+         if (stats.ps && stats.ds) {
+           document.getElementById("stats").innerHTML =
+           "Pool: active: " + stats.ps.inuse + ", waiting: " + stats.ps.waiting +
+                                                       ", max:" + stats.ps.max + "| Totals: points: " +
+                                                       stats.ds.totalPoints + ", bytes: " +
+                                                       stats.ds.totalBytes;
+         }
+       };
 
-        var baseSource = PlasioLib.GreyhoundStatic;
+       var e = document.getElementById("app");
 
-        var r = renderer.core.createRenderer(e);
-     /*
-        var p = new baseSource.NodeDistancePolicy(r,
-                "localhost:8080", "4da95360946af6a58f36ef92fa65e4cc");
-     */
-        var baseURL = "http://localhost:4999";
-        var p = new baseSource.NodeDistancePolicy(r, baseURL);
+       var baseSource = PlasioLib.GreyhoundStatic;
+       var r = renderer.core.createRenderer(e);
+       /*
+       var p = new baseSource.NodeDistancePolicy(r,
+       "localhost:8080", "4da95360946af6a58f36ef92fa65e4cc");
+        */
+       var baseURL = "http://localhost:4999";
+       var p = new baseSource.NodeDistancePolicy(r, baseURL);
+       var loader = new baseSource.Loader(baseURL);
+       r.addLoader(loader);
+       loader.on("pool-stats", function(stats) {
+         renderStats(stats);
+       });
 
-        var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
-            r.setEyePosition(eye);
-            r.setTargetPosition(target);
-        });
+       loader.on("download-stats", function(stats) {
+         renderStats(null, stats);
+       });
 
-        r.setClearColor(0, 0, 0);
-        var loader = new baseSource.Loader(baseURL);
-        loader.on("pool-stats", function(stats) {
-            renderStats(stats);
+       PlasioLib.P2PNode.key = "d498vphryc8lg14i";
+       return { element: e, renderer: r, policy: p };
+     };
 
-        });
+     var ownerStartup = function() {
+       var s = commonStartup();
 
-        loader.on("download-stats", function(stats) {
-            renderStats(null, stats);
-        });
-        
-        r.addLoader(loader);
+       var peer = new PlasioLib.P2PNode("owner");
+       peer.startBroadcast();
 
-        p.on("bbox", function(bbox) {
-            var x = bbox.maxs[0] - bbox.mins[0],
-                y = bbox.maxs[1] - bbox.mins[1],
-                z = bbox.maxs[2] - bbox.mins[2];
-        
-            var off = [
-                bbox.mins[0] + x / 2,
-                bbox.mins[1] + y / 2,
-                bbox.mins[2] + z / 2
-            ];
+       var e = s.element;
+       var r = s.renderer;
+       var p = s.policy;
 
-            console.log("Setting offsets to:", off);
-            r.setRenderOptions({
-                offsets: off
-            });
+       r.addPropertyListener([], function(state) {
+         console.log("state is:", state);
+         peer.broadcastState(state);
+       });
+       
+       var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
+         r.setEyePosition(eye);
+         r.setTargetPosition(target);
+       });
 
-            // reset the state of our camera
-            c.setHint([x, y, z]);
-        });
+       r.setClearColor(0, 0, 0);
 
-        p.start();
+       p.on("bbox", function(bbox) {
+         var x = bbox.maxs[0] - bbox.mins[0],
+         y = bbox.maxs[1] - bbox.mins[1],
+         z = bbox.maxs[2] - bbox.mins[2];
+         
+         var off = [
+           bbox.mins[0] + x / 2,
+           bbox.mins[1] + y / 2,
+           bbox.mins[2] + z / 2
+         ];
+
+         console.log("Setting offsets to:", off);
+         r.setRenderOptions({
+           offsets: off
+         });
+
+         // reset the state of our camera
+         c.setHint([x, y, z]);
+       });
+
+       p.start();
+     };
+
+     var viewerStartup = function() {
+       var s = commonStartup();
+
+       var peer = new PlasioLib.P2PNode("viewer");
+       var e = peer.startAsClient("owner");
+
+       e.on("state", function(state) {
+         console.log("state is:", state);
+         s.renderer.applyState(state);
+       });
+     };
         
     </script>
 

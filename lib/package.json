@@ -23,6 +23,7 @@
     "gulp-watch": "~1.0.2",
     "jaguarjs-jsdoc": "0.0.1",
     "open": "0.0.5",
+    "peerjs": "^0.3.14",
     "sha.js": "^2.3.0"
   },
   "author": "",

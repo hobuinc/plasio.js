@@ -53,7 +53,9 @@
   "The render engine protocol, implement if you want to use a different rendering
   engine, other than three.js"
   (attach! [this elem source-state])
-  (pick-point [this x y]))
+  (pick-point [this x y])
+  (add-loader [this loader])
+  (remove-loader [this loader]))
 
 
 (defn- changes
@@ -136,7 +138,7 @@
   [cursor state-pb]
   (let [gl          (root cursor :gl)
         bcache      (root cursor :loaded-buffers)
-        all-loaders (source-state cursor :loaders)]
+        all-loaders (root cursor :loaders)]
     (transact! cursor []
                (fn [pb]
                  (add-remove state-pb pb
@@ -191,6 +193,7 @@
                              :shader (shaders/create-shader context)
                              :picker (r/create-picker)
                              :loaded-buffers (atom {}) ;; cache of loaded buffers
+                             :loaders {}
                              :point-buffers {}})]
         ;; start watching states for changes
         (add-framed-watch
@@ -211,7 +214,17 @@
   (pick-point [_ x y]
     (let [rs @(:run-state @state)
           rs (assoc rs :source-state @(:source-state @state))]
-      (r/pick-point (:picker rs) rs x y))))
+      (r/pick-point (:picker rs) rs x y)))
+
+  (add-loader [_ loader]
+    (let [key (.-key loader)
+          rs  (:run-state @state)]
+      (swap! rs update-in [:loaders] assoc key loader)))
+
+  (remove-loader [_ loader]
+    (let [key (.-key loader)
+          rs  (:run-state @state)]
+      (swap! rs update-in [:loaders] dissoc key))))
 
 
 (defn make-engine
