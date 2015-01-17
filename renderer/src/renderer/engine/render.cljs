@@ -26,11 +26,13 @@
   (* (/ a 180.0) js/Math.PI))
 
 (defn- projection-matrix [gl cam width height]
+  (println "projection: " width height)
   (let [m (.-proj gl)
         aspect (if (< width height) (/ height width) (/ width height))
         fov  (to-rads (or (:fov cam) 75))
         near (or (:near cam) 0.1)
         far  (or (:far cam) 100000.0)]
+    (println "aspect: " aspect)
     (if (= (:type cam) "perspective")
       (js/mat4.perspective m fov aspect near far)
       (js/mat4.ortho m (/ width -2) (/ width 2) (/ height 2) (/ height -2) near far))))
@@ -149,12 +151,17 @@
         blend-func (if picking?
                      [bf/one bf/zero]
                      [bf/src-alpha bf/on-minus-src-alpha])
-        viewport {:x 0 :y 800 :width 1000 :height -800}
-        uniforms (uniforms-with-override base-uniform-map
-                                         (assoc render-options
-                                           :projectionMatrix proj
-                                           :modelViewMatrix  mv
-                                           :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
+        viewport {:x 0
+                  :y 0
+                  :width width
+                  :height height}
+        uniforms (uniforms-with-override
+                  base-uniform-map
+                  (assoc render-options
+                    :projectionMatrix proj
+                    :modelViewMatrix  mv
+                    :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
+    (println "viewport: " viewport)
     (doseq [b bufs]
       (let [total-points (.. b -totalPoints)
             buff-attribs (mapv #(assoc % :buffer b) attribs)]
@@ -174,7 +181,9 @@
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
         stride     (* 4 bytes-per-point)
         attrib     (fn [nm size offset]
-                     {:buffer buffer :location (attrib-loc nm) :components-per-vertex size
+                     {:buffer buffer
+                      :location (attrib-loc nm)
+                      :components-per-vertex size
                       :type   data-type/float :stride stride :offset offset})
         attribs    (if picking?
                      [(attrib "position" 3 0)]
@@ -185,31 +194,39 @@
         blend-func (if picking?
                      [bf/one bf/zero]
                      [bf/src-alpha bf/on-minus-src-alpha])
+        viewport {:x 0
+                  :y 0
+                  :width width
+                  :height height}
         total-points (.-totalPoints buffer)
-        uniforms (uniforms-with-override base-uniform-map
-                                         (assoc render-options
-                                           :projectionMatrix proj
-                                           :modelViewMatrix  mv
-                                           :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
+        uniforms (uniforms-with-override
+                  base-uniform-map
+                  (assoc render-options
+                    :projectionMatrix proj
+                    :modelViewMatrix  mv
+                    :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
     (buffers/draw!
-      gl
-      :shader shader
-      :draw-mode draw-mode/points
-      :first 0
-      :blend-func [blend-func]
-      :count total-points
-      :capabilities {capability/depth-test true}
-      :attributes attribs
-      :uniforms uniforms)))
+     gl
+     :shader shader
+     :draw-mode draw-mode/points
+     :first 0
+     :viewport viewport
+     :blend-func [blend-func]
+     :count total-points
+     :capabilities {capability/depth-test true}
+     :attributes attribs
+     :uniforms uniforms)))
 
+
+(defn- render-view-size [{:keys [gl]}]
+  [(.-width (.-canvas gl)) (.-height (.-canvas gl))])
 
 (defn render-state
   "Render the state in its current form"
   [{:keys [source-state] :as state}]
   (let [gl (:gl state)
         bcache (:loaded-buffers state)
-        width  (context/get-drawing-buffer-width gl)
-        height (context/get-drawing-buffer-height gl)
+        [width height] (render-view-size state)
         cam (first (filter :active (:cameras source-state)))
         vw (:view source-state)
         dp (:display source-state)
@@ -289,8 +306,7 @@
 (defn- draw-picker [{:keys [source-state] :as state} shader target which]
   (let [gl (:gl state)
         bcache (:loaded-buffers state)
-        width  (context/get-drawing-buffer-width gl)
-        height (context/get-drawing-buffer-height gl)
+        [width height] (render-view-size state)
         cam (first (filter :active (:cameras source-state)))
         vw (:view source-state)
         dp (:display source-state)
@@ -335,8 +351,7 @@
   IPointPicker
   (pick-point [this {:keys [source-state] :as state} client-x client-y]
     (let [gl (:gl state)
-          w  (context/get-drawing-buffer-width gl)
-          h  (context/get-drawing-buffer-height gl)]
+          [w h] (render-view-size state)]
       ;; if we haven't loaded the shader yet, do so now
       ;;
       (when-not (:shader @picker-state)

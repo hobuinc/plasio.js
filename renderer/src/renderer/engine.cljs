@@ -55,7 +55,8 @@
   (attach! [this elem source-state])
   (pick-point [this x y])
   (add-loader [this loader])
-  (remove-loader [this loader]))
+  (remove-loader [this loader])
+  (resize-view! [this w h]))
 
 
 (defn- changes
@@ -174,6 +175,10 @@
     (set! (.-height c) h)
     c))
 
+(defn- resize-canvas-to-size [canvas w h]
+  (set! (.-width canvas) w)
+  (set! (.-height canvas) h))
+
 (defrecord WebGLRenderEngine [state]
   IRenderEngine
   (attach! [this elem source-state]
@@ -224,7 +229,15 @@
   (remove-loader [_ loader]
     (let [key (.-key loader)
           rs  (:run-state @state)]
-      (swap! rs update-in [:loaders] dissoc key))))
+      (swap! rs update-in [:loaders] dissoc key)))
+
+  (resize-view! [_ w h]
+    (let [rs (:run-state @state)
+          gl (:gl @rs)
+          canvas (.-canvas gl)]
+      (js/console.log "reiszing view!" w h)
+      (resize-canvas-to-size canvas w h)
+      (swap! rs merge {:width w :height h}))))
 
 
 (defn make-engine

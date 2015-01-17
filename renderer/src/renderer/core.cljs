@@ -36,7 +36,8 @@
   (remove-loader [this loader])
   (set-render-options [this opts])
   (pick-point [this x y])
-  (apply-state [this state]))
+  (apply-state [this state])
+  (resize-view! [this w h]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -118,7 +119,11 @@
     (r/pick-point @render-engine x y))
 
   (apply-state [this st]
-    (reset! state st)))
+    (reset! state st))
+
+  (resize-view! [this w h]
+    (r/resize-view! @render-engine w h)))
+
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -146,4 +151,5 @@
               :addLoader (partial-js add-loader r)
               :setRenderOptions (partial-js set-render-options r)
               :pickPoint (partial-js pick-point r)
-              :applyState (partial-js apply-state r)})))
+              :applyState (partial-js apply-state r)
+              :setRenderViewSize (partial-js resize-view! r)}))) 

@@ -30,10 +30,10 @@
 
          if (stats.ps && stats.ds) {
            document.getElementById("stats").innerHTML =
-           "Pool: active: " + stats.ps.inuse + ", waiting: " + stats.ps.waiting +
-                                                       ", max:" + stats.ps.max + "| Totals: points: " +
-                                                       stats.ds.totalPoints + ", bytes: " +
-                                                       stats.ds.totalBytes;
+           "Pool: active: " + stats.ps.inuse +
+           ", waiting: " + stats.ps.waiting +
+           ", max:" + stats.ps.max + "| Totals: points: " +
+           stats.ds.totalPoints + ", bytes: " + stats.ds.totalBytes;
          }
        };
 
@@ -56,6 +56,10 @@
        loader.on("download-stats", function(stats) {
          renderStats(null, stats);
        });
+
+       window.onresize = function() {
+         r.setRenderViewSize(window.innerWidth, window.innerHeight);
+       };
 
        PlasioLib.P2PNode.key = "d498vphryc8lg14i";
        return { element: e, renderer: r, policy: p };
@@ -106,10 +110,10 @@
        p.start();
      };
 
-     var viewerStartup = function() {
+     var viewerStartup = function(name) {
        var s = commonStartup();
 
-       var peer = new PlasioLib.P2PNode("viewer");
+       var peer = new PlasioLib.P2PNode(name);
        var e = peer.startAsClient("owner");
 
        e.on("state", function(state) {
@@ -117,6 +121,8 @@
          s.renderer.applyState(state);
        });
      };
+
+     ownerStartup();
         
     </script>
 
