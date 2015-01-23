@@ -57,9 +57,12 @@
          renderStats(null, stats);
        });
 
-       window.onresize = function() {
+       var handleResize = function () {
          r.setRenderViewSize(window.innerWidth, window.innerHeight);
        };
+
+       window.onresize = handleResize;
+       handleResize();
 
        PlasioLib.P2PNode.key = "d498vphryc8lg14i";
        return { element: e, renderer: r, policy: p };
@@ -108,6 +111,7 @@
        });
 
        p.start();
+
      };
 
      var viewerStartup = function(name) {
