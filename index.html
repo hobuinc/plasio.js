@@ -77,9 +77,6 @@
 
 
      var makePeer = function(name) {
-       var s = commonStartup();
-
-       
        var p = new PlasioLib.P2PNode(session, name)
        p.onhandoff = function(f) {
          setTimeout(function() {
