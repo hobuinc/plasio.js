@@ -22,6 +22,9 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
+     var baseDataURL = "http://localhost:4999/"
+     var baseSource = PlasioLib.GreyhoundStatic;
+
      var commonStartup = function() {
        var stats = {}
        var renderStats = function(ps, ds) {
@@ -39,15 +42,8 @@
 
        var e = document.getElementById("app");
 
-       var baseSource = PlasioLib.GreyhoundStatic;
        var r = renderer.core.createRenderer(e);
-       /*
-       var p = new baseSource.NodeDistancePolicy(r,
-       "localhost:8080", "4da95360946af6a58f36ef92fa65e4cc");
-        */
-       var baseURL = "http://localhost:4999";
-       var p = new baseSource.NodeDistancePolicy(r, baseURL);
-       var loader = new baseSource.Loader(baseURL);
+       var loader = new baseSource.Loader(baseDataURL);
        r.addLoader(loader);
        loader.on("pool-stats", function(stats) {
          renderStats(stats);
@@ -64,70 +60,150 @@
        window.onresize = handleResize;
        handleResize();
 
-       PlasioLib.P2PNode.key = "d498vphryc8lg14i";
-       return { element: e, renderer: r, policy: p };
+       return { element: e, renderer: r };
+     };
+
+     var handshakef = null;
+     var ho = function() {
+       if (handshakef) {
+         handshakef();
+       }
+     }
+
+     var session = new PlasioLib.Session("hello-world");
+     session.on("new-owner", function(o) {
+       console.log("new owner", o)
+     });
+
+
+     var makePeer = function(name) {
+       var s = commonStartup();
+
+       
+       var p = new PlasioLib.P2PNode(session, name)
+       p.onhandoff = function(f) {
+         setTimeout(function() {
+           f(true);
+         });
+       };
+
+       return p;
+     };
+
+     var makeNode = function(name) {
+       var s = commonStartup();
+       var peer = makePeer(name);
+
+       handshakef = function() {
+         peer.startHandoff();
+       };
+
+       var activeCamera = null;
+       var activePolicy = null;
+
+       var activePropListener = null;
+
+       peer.onwanthandoffcontrol = function(f) {
+         setTimeout(function() { f(true); });
+       };
+
+       peer.onhandofftransfer = function(f) {
+         var props = {
+           orbital: activeCamera.serialize()
+         };
+
+         // static node policy doesn't need anything to be transferred right now
+
+         activeCamera.stop();
+         activePolicy.stop();
+
+         s.renderer.removePropertyListener(activePropListener);
+
+         activePolicy = activeCamera = activePropListener = null;
+
+         setTimeout(function() { f(props); });
+       };
+
+       peer.onowner = function(startupProps) {
+         console.log("STARTUP", startupProps);
+         
+         var e = s.element;
+         var r = s.renderer;
+
+         activePropListener = r.addPropertyListener([], function(state) {
+           console.log("state is:", state);
+           peer.broadcastState(state);
+         });
+
+         var orbitalProps = null;
+         if (startupProps && startupProps.orbital)
+            orbitalProps = startupProps.orbital;
+
+         console.log("ORBITAL++++++++++++++++++", orbitalProps);
+
+         activeCamera = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
+           r.setEyePosition(eye);
+           r.setTargetPosition(target);
+         }, orbitalProps);
+
+         activePolicy = new baseSource.NodeDistancePolicy(r, baseDataURL);
+
+         activePolicy.on("bbox", function(bbox) {
+           var x = bbox.maxs[0] - bbox.mins[0],
+           y = bbox.maxs[1] - bbox.mins[1],
+           z = bbox.maxs[2] - bbox.mins[2];
+           
+           var off = [
+             bbox.mins[0] + x / 2,
+             bbox.mins[1] + y / 2,
+             bbox.mins[2] + z / 2
+           ];
+
+           console.log("Setting offsets to:", off);
+           r.setRenderOptions({
+             offsets: off
+           });
+
+           // reset the state of our camera only if no orbital props were passed down
+           //
+           if (!orbitalProps)
+            activeCamera.setHint([x, y, z]);
+         });
+
+         activePolicy.start();
+       };
+
+       peer.onviewer = function(e) {
+         // we are just a viewer, and we'd get
+         e.on("state", function(state) {
+           console.log("state is:", state);
+           s.renderer.applyState(state);
+         });
+       };
+
+       return {
+         peer: peer,
+         s: s
+       };
      };
 
      var ownerStartup = function() {
-       var s = commonStartup();
-
-       var peer = new PlasioLib.P2PNode("owner");
-       peer.startBroadcast();
-
-       var e = s.element;
-       var r = s.renderer;
-       var p = s.policy;
-
-       r.addPropertyListener([], function(state) {
-         console.log("state is:", state);
-         peer.broadcastState(state);
-       });
-       
-       var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
-         r.setEyePosition(eye);
-         r.setTargetPosition(target);
-       });
-
-       r.setClearColor(0, 0, 0);
-
-       p.on("bbox", function(bbox) {
-         var x = bbox.maxs[0] - bbox.mins[0],
-         y = bbox.maxs[1] - bbox.mins[1],
-         z = bbox.maxs[2] - bbox.mins[2];
-         
-         var off = [
-           bbox.mins[0] + x / 2,
-           bbox.mins[1] + y / 2,
-           bbox.mins[2] + z / 2
-         ];
-
-         console.log("Setting offsets to:", off);
-         r.setRenderOptions({
-           offsets: off
-         });
-
-         // reset the state of our camera
-         c.setHint([x, y, z]);
-       });
-
-       p.start();
-
+       var node = makeNode("owner");
+       node.peer.startBroadcast();
      };
 
      var viewerStartup = function(name) {
-       var s = commonStartup();
-
-       var peer = new PlasioLib.P2PNode(name);
-       var e = peer.startAsClient("owner");
-
-       e.on("state", function(state) {
-         console.log("state is:", state);
-         s.renderer.applyState(state);
-       });
+       var node = makeNode(name);
+       var e = node.peer.startAsClient("owner");
      };
 
-     ownerStartup();
-        
+     if(window.location.search.length > 0) {
+       viewerStartup("abc");
+     }
+     else {
+       ownerStartup();
+     }
+
     </script>
 
 </body>
