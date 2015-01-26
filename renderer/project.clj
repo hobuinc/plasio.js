@@ -31,6 +31,6 @@
               :compiler {
                          :output-to "target/rel/renderer.js"
                          :output-dir "target/rel"
-                         :externs ["vendor/gl-matrix.js"]
+                         :externs ["vendor/gl-matrix.js" "externs/webgl.js"]
                          :pretty-print false
                          :optimizations :advanced}}]})
