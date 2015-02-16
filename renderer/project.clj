@@ -3,7 +3,7 @@
   :url "http://github.com/verma/plasio.js"
 
   :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2311"]
+                 [org.clojure/clojurescript "0.0-2816"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [cljs-uuid "0.0.4"]
                  [rm-hull/cljs-webgl "0.1.5-SNAPSHOT"]

@@ -2,6 +2,8 @@
   "State renderer"
   (:require [renderer.log :as l]
             [renderer.engine.shaders :as s]
+            [renderer.engine.attribs :as attribs]
+            [renderer.engine.specs :as specs]
             [cljs-webgl.context :as context]
             [cljs-webgl.shaders :as shaders]
             [cljs-webgl.constants.capability :as capability]
@@ -19,7 +21,6 @@
             [cljs-webgl.buffers :as buffers]
             [cljs-webgl.typed-arrays :as ta]))
 
-(def bytes-per-point 8) ; XYZRGBIC
 
 
 (defn- to-rads [a]
@@ -57,19 +58,6 @@
     (set! (.-mvp gl) (js/Array 16))
     gl))
 
-(defn create-buffer
-  "Given a Float32Array point buffer, creates a buffer suitable for rendering, not that points should be in
-  a fixed format: XYZRGBIC (all floats)"
-  [gl points]
-  (let [total-points (/ (.-length points) bytes-per-point)
-        buffer (buffers/create-buffer gl
-                                      points
-                                      buffer-object/array-buffer
-                                      buffer-object/static-draw)]
-    (set! (.-totalPoints buffer) total-points)
-    buffer))
-
-
 (defn- coerce [v typ]
   (let [v (if (or (sequential? v)
                   (= (type v) js/Array)) v [v])]
@@ -90,6 +78,7 @@
       (uniform :projectionMatrix :mat4 identity-matrix)
       (uniform :modelViewMatrix :mat4 identity-matrix)
       (uniform :modelViewProjectionMatrix :mat4 identity-matrix)
+      (uniform :modelMatrix :mat4 identity-matrix)
 
       (uniform :pointSize :float 1.0)
       (uniform :intensityBlend :float 0.0)
@@ -99,6 +88,7 @@
       (uniform :class_f :float 0.0)
       (uniform :map_f :float 0.0)
       (uniform :imap_f :float 0.0)
+      (uniform :overlay_f :float 0.0)
 
       (uniform :intensity_f :float 0.0)
       (uniform :height_f :float 0.0)
@@ -112,7 +102,8 @@
       (uniform :colorClampHigher :float 1)
 
       (uniform :zrange :vec2 [0 1])
-      (uniform :offsets :vec3 [0 0 0])
+      (uniform :uvrange :vec2 [0 1])
+      (uniform :offset :vec3 [0 0 0])
       (uniform :map :tex 0)
       (uniform :klassRange :vec2 [0 1])
       (uniform :do_plane_clipping :int 0)
@@ -123,34 +114,33 @@
       (uniform :projectionMatrix :mat4 identity-matrix)
       (uniform :modelViewMatrix :mat4 identity-matrix)
       (uniform :modelViewProjectionMatrix :mat4 identity-matrix)
+      (uniform :modelMatrix :mat4 identity-matrix)
       (uniform :pointSize :float 1.0)
       (uniform :xyzScale :vec3 [1 1 1])
       (uniform :zrange :vec2 [0 1])
-      (uniform :offsets :vec3 [0 0 0])
+      (uniform :offset :vec3 [0 0 0])
       (uniform :which :vec3 [0 0 0])))
 
 (defn- uniforms-with-override [which-map opts]
-  (vals (reduce (fn [m [k v]]
-                  (update-in m [k]
-                             (fn [old]
-                               (assoc old :values (coerce v (:type old)))))) which-map opts)))
+  (reduce (fn [m [k v]]
+            (update-in m [k]
+                       (fn [old]
+                         (if-let [typ (:type old)]
+                           (assoc old :values (coerce v typ))
+                           (throw (js/Error. (str "Don't know type for field: " k))))))) which-map opts))
 
 (defn- draw-all-buffers
-  [gl bufs shader base-uniform-map proj mv render-options width height picking?]
+  [gl bufs shader base-uniform-map proj mv render-options width height]
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
-        stride     (* 4 bytes-per-point)
+        stride     (* 4 specs/*bytes-per-point*)
         attrib     (fn [nm size offset]
                      {:location (attrib-loc nm) :components-per-vertex size
                       :type   data-type/float :stride stride :offset offset})
-        attribs    (if picking?
-                     [(attrib "position" 3 0)]
-                     [(attrib "position" 3 0)
-                      (attrib "color" 3 12)
-                      (attrib "intensity" 1 24)
-                      (attrib "classification" 1 28)])
-        blend-func (if picking?
-                     [bf/one bf/zero]
-                     [bf/src-alpha bf/on-minus-src-alpha])
+        attribs    [(attrib "position" 3 0)
+                    (attrib "color" 3 12)
+                    (attrib "intensity" 1 24)
+                    (attrib "classification" 1 28)]
+        blend-func [bf/src-alpha bf/one-minus-src-alpha]
         viewport {:x 0
                   :y 0
                   :width width
@@ -161,10 +151,17 @@
                     :projectionMatrix proj
                     :modelViewMatrix  mv
                     :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
-    (println "viewport: " viewport)
-    (doseq [b bufs]
-      (let [total-points (.. b -totalPoints)
-            buff-attribs (mapv #(assoc % :buffer b) attribs)]
+    ;; The only two loaders we know how to handle right now are:
+    ;;      point-buffer - The actual point cloud
+    ;;      image-overlay - The overlay for this point-buffer
+    (doseq [{:keys [point-buffer image-overlay transform]} bufs]
+      (let [total-points (.. point-buffer -totalPoints)
+            buff-attribs (mapv #(assoc % :buffer point-buffer) attribs)
+            textures (when image-overlay [{:texture image-overlay :name "overlay"}])
+            uniforms (uniforms-with-override uniforms
+                                             {:modelMatrix (:model-matrix transform) 
+                                              :offset (:offset transform)
+                                              :uvrange (:uv-range transform)})]
         (buffers/draw! gl
                        :shader shader
                        :draw-mode draw-mode/points
@@ -172,50 +169,46 @@
                        :first 0
                        :blend-func [blend-func]
                        :count total-points
+                       :textures textures
                        :capabilities {capability/depth-test true}
                        :attributes buff-attribs
-                       :uniforms uniforms)))))
+                       :uniforms (vals uniforms))))))
 
-(defn- draw-buffer
-  [gl buffer shader base-uniform-map proj mv render-options width height picking?]
-  (let [attrib-loc (partial shaders/get-attrib-location gl shader)
-        stride     (* 4 bytes-per-point)
+(defn- draw-buffer-for-picking
+  [gl buffer shader base-uniform-map proj mv render-options width height]
+  (let [{:keys [point-buffer transform]} buffer
+        attrib-loc (partial shaders/get-attrib-location gl shader)
+        stride     (* 4 specs/*bytes-per-point*)
         attrib     (fn [nm size offset]
-                     {:buffer buffer
+                     {:buffer point-buffer
                       :location (attrib-loc nm)
                       :components-per-vertex size
                       :type   data-type/float :stride stride :offset offset})
-        attribs    (if picking?
-                     [(attrib "position" 3 0)]
-                     [(attrib "position" 3 0)
-                      (attrib "color" 3 12)
-                      (attrib "intensity" 1 24)
-                      (attrib "classification" 1 28)])
-        blend-func (if picking?
-                     [bf/one bf/zero]
-                     [bf/src-alpha bf/on-minus-src-alpha])
+        attribs    [(attrib "position" 3 0)]
+        blend-func [bf/one bf/zero]
         viewport {:x 0
                   :y 0
                   :width width
                   :height height}
-        total-points (.-totalPoints buffer)
+        total-points (.-totalPoints point-buffer)
         uniforms (uniforms-with-override
                   base-uniform-map
                   (assoc render-options
+                    :offset (:offset transform)
+                    :modelMatrix (:model-matrix transform)
                     :projectionMatrix proj
                     :modelViewMatrix  mv
                     :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
-    (buffers/draw!
-     gl
-     :shader shader
-     :draw-mode draw-mode/points
-     :first 0
-     :viewport viewport
-     :blend-func [blend-func]
-     :count total-points
-     :capabilities {capability/depth-test true}
-     :attributes attribs
-     :uniforms uniforms)))
+    (buffers/draw! gl
+                   :shader shader
+                   :draw-mode draw-mode/points
+                   :first 0
+                   :viewport viewport
+                   :blend-func [blend-func]
+                   :count total-points
+                   :capabilities {capability/depth-test true}
+                   :attributes attribs
+                   :uniforms (vals uniforms))))
 
 
 (defn- render-view-size [{:keys [gl]}]
@@ -225,7 +218,7 @@
   "Render the state in its current form"
   [{:keys [source-state] :as state}]
   (let [gl (:gl state)
-        bcache (:loaded-buffers state)
+        aloader (:attrib-loader state)
         [width height] (render-view-size state)
         cam (first (filter :active (:cameras source-state)))
         vw (:view source-state)
@@ -243,12 +236,13 @@
     (let [buffers-to-draw (->> state
                                :point-buffers
                                vals
-                               (map #(get @bcache (:buffer-key %)))
+                               (map :attribs-id)
+                               (map #(attribs/attribs-in aloader %))
                                (remove nil?))]
       (draw-all-buffers gl buffers-to-draw
                         (:shader state)
                         uniform-map
-                        proj mv ro width height false))))
+                        proj mv ro width height))))
 
 
 (defn- release-pick-buffers [gl bufs]
@@ -305,7 +299,7 @@
 
 (defn- draw-picker [{:keys [source-state] :as state} shader target which]
   (let [gl (:gl state)
-        bcache (:loaded-buffers state)
+        aloader (:attrib-loader state)
         [width height] (render-view-size state)
         cam (first (filter :active (:cameras source-state)))
         vw (:view source-state)
@@ -315,7 +309,7 @@
         proj (projection-matrix gl cam width height)
         mv   (mv-matrix gl eye tar)
         ro (-> (:render-options dp)     ; picker rendering options don't need a ton of options
-               (select-keys [:xyzScale :zrange :offsets])
+               (select-keys [:xyzScale :zrange :offset])
                (assoc :pointSize 20
                       :which which))]
     ;; render to the provided target framebuffer
@@ -324,12 +318,11 @@
     (buffers/clear-color-buffer gl 0.0 0.0 0.0 0.0)
     (buffers/clear-depth-buffer gl 1.0)
 
-    (doseq [buf (vals (:point-buffers state))]
-      (when-let [gl-buffer (get @bcache (:buffer-key buf))]
-        (draw-buffer gl gl-buffer shader
-                     picker-uniform-map
-                     proj mv ro width height
-                     true)))
+    (doseq [{:keys [attribs-id]} (vals (:point-buffers state))]
+      (when-let [buffer (attribs/attribs-in aloader attribs-id)]
+        (draw-buffer-for-picking gl buffer shader
+                                 picker-uniform-map
+                                 proj mv ro width height)))
 
     ;; unbind framebuffer
     (.bindFramebuffer gl fbo/framebuffer nil)))

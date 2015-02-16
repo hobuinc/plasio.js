@@ -34,7 +34,6 @@
         b (safe-korks b)]
     (concat a b)))
 
-
 (defn get-set
   "Gets and sets up the value for give js object"
   [obj korks f]
@@ -46,3 +45,8 @@
     (aset obj k nv)))
 
 
+(defn- map-vals
+  "Map values for the given map using f"
+  [f m]
+  (into {} (for [[k v] m]
+             [k (f [k v])])))

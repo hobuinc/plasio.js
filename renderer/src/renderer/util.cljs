@@ -1,6 +1,7 @@
 (ns renderer.util
   "Utility stuff"
-  (:require [renderer.events :refer [next-tick]]))
+  (:require [renderer.events :refer [next-tick]]
+            [goog.crypt.base64 :as b64]))
 
 (defrecord DirtyAtom [state ff]
   IDeref
@@ -34,4 +35,15 @@
                     #(let [{:keys [old current]} @state]
                        (f a key old current)
                        (swap! state assoc :dirty? false))))))))
+
+(defn encode-id
+  "Encode the given ID and return a string representation of the JSON object"
+  [jsobj]
+  (b64/encodeString (js/JSON.stringify jsobj)))
+
+(defn decode-id
+  "Decode the given ID and return a json object"
+  [s]
+  (js/JSON.parse (b64/decodeString s)))
+
 

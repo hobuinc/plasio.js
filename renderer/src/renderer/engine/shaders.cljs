@@ -28,6 +28,7 @@
   uniform mat4  projectionMatrix;
   uniform mat4  modelViewMatrix;
   uniform mat4  modelViewProjectionMatrix;
+  uniform mat4  modelMatrix;
 
   uniform float pointSize;
   uniform float intensityBlend;
@@ -40,6 +41,7 @@
   uniform float iheight_f;
   uniform float map_f;
   uniform float imap_f;
+  uniform float overlay_f;
 
   uniform vec3 xyzScale;
 
@@ -48,23 +50,28 @@
   uniform float colorClampLower;
   uniform float colorClampHigher;
   uniform vec2  zrange;
-  uniform vec3  offsets;
+  uniform vec2  uvrange;
+  uniform vec3  offset;
   uniform sampler2D map;
   uniform vec2  klassRange;
+
+  uniform sampler2D overlay;
 
   attribute vec3 position;
   attribute vec3 color;
   attribute float intensity;
   attribute float classification;
 
-  varying vec4 col;
+  varying vec3 out_color;
+  varying vec3 out_intensity;
+
   varying vec3 fpos;
 
 
   void main() {
-      fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1);
+      fpos = ((position.xyz - offset) * xyzScale).xzy * vec3(-1, 1, 1);
 
-      vec4 mvPosition = modelViewMatrix * vec4( fpos, 1.0 );
+      vec4 mvPosition = modelViewMatrix * modelMatrix * vec4( fpos, 1.0 );
       gl_Position = projectionMatrix * mvPosition;
       float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
 
@@ -87,20 +94,25 @@
       vec3 height_color = vec3(nheight, nheight, nheight);
       vec3 inv_height_color = vec3(1.0 - nheight, 1.0 - nheight, 1.0 - nheight);
 
+      vec2 uv = vec2(0.5 + (fpos.x - uvrange.x) / (uvrange.y - uvrange.x),
+                     0.5 + (fpos.z - uvrange.x) / (uvrange.y - uvrange.x));
+                     
+      vec3 overlay_color = texture2D(overlay, uv).xyz;
+
       // turn the appropriate channels on
       //
-      vec3 color_source = norm_color * rgb_f +
-                          class_color * class_f +
-                          map_color * map_f +
-                          inv_map_color * imap_f;
-
-      vec3 intensity_source = intensity_color * intensity_f +
-                              height_color * height_f +
-                              inv_height_color * iheight_f;
+      out_color = norm_color * rgb_f +
+              class_color * class_f +
+              map_color * map_f +
+              inv_map_color * imap_f +
+              overlay_color * overlay_f;
+              
+      out_intensity = intensity_color * intensity_f +
+                  height_color * height_f +
+                  inv_height_color * iheight_f;
 
       // blend and return
       gl_PointSize = pointSize;
-      col = vec4(mix(color_source, intensity_source, intensityBlend), 1.0);
   }")
 
 
@@ -110,11 +122,12 @@
    uniform mat4  projectionMatrix;
    uniform mat4  modelViewMatrix;
    uniform mat4  modelViewProjectionMatrix;
+   uniform mat4  modelMatrix;
 
    uniform float pointSize;
    uniform vec3 xyzScale;
    uniform vec2 zrange;
-   uniform vec3 offsets;
+   uniform vec3 offset;
    uniform vec3 which;
 
    attribute vec3 position;
@@ -122,11 +135,12 @@
    varying vec3 xyz;
 
    void main() {
-       vec3 fpos = ((position.xyz - offsets) * xyzScale).xzy * vec3(-1, 1, 1);
-       vec4 mvPosition = modelViewMatrix * vec4(fpos, 1.0);
+       vec3 fpos = ((position.xyz - offset) * xyzScale).xzy * vec3(-1, 1, 1);
+       vec4 worldPos = modelMatrix * vec4(fpos, 1.0);
+       vec4 mvPosition = modelViewMatrix * worldPos;
        gl_Position = projectionMatrix * mvPosition;
        gl_PointSize = pointSize;
-       xyz = which * fpos;
+       xyz = which * worldPos.xyz;
    }")
 
 
@@ -136,8 +150,12 @@
 
   uniform vec4 planes[6];
   uniform int do_plane_clipping;
+  uniform float intensityBlend;
 
-  varying vec4 col;
+  uniform sampler2D overlay;
+
+  varying vec3 out_color;
+  varying vec3 out_intensity;
   varying vec3 fpos;
 
   void main() {
@@ -148,7 +166,7 @@
           }
       }
 
-      gl_FragColor = col;
+      gl_FragColor = vec4(mix(out_color, out_intensity, intensityBlend), 1.0);
   }")
 
 (def frag-shader-picker

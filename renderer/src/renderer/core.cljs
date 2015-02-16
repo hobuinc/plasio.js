@@ -3,6 +3,7 @@
             [cljs-uuid.core :as uuid]
             [renderer.engine :as r]
             [renderer.engine.util :as u]
+            [renderer.util :as ru]
             [renderer.log :as l]
             [renderer.events :refer [next-tick]]
             [cljs.core.async :as async])
@@ -99,12 +100,12 @@
 
   (add-point-buffer [this id]
     ;; TODO: make sure that passed buffer is of javascript array buffer
-    (swap! state update-in [:point-buffers] conj id))
+    (swap! state update-in [:point-buffers] conj (ru/encode-id id)))
 
   (remove-point-buffer [this id]
     (swap! state update-in [:point-buffers]
            (fn [bufs]
-             (remove #{id} bufs))))
+             (remove #{(ru/encode-id id)} bufs))))
 
   (add-loader [this loader]
     (r/add-loader @render-engine loader))
@@ -132,6 +133,12 @@
     (let [c (js->clj args :keywordize-keys true)]
       (clj->js (apply f this c)))))
 
+(defn partial-js-passthrough
+  "Like partial-js but doesn't touch values"
+  [f this]
+  (fn [& args]
+    (apply f this args)))
+
 (defn ^:export createRenderer
   "Given a DOM element, initialize a renderer on it, also returns an object which
   can have methods invoked on it to do stuff with it"
@@ -146,8 +153,8 @@
               :removeAllScaleObjects (partial-js remove-all-scale-objects r)
               :addPropertyListener (partial-js add-prop-listener r)
               :removePropertyListener (partial-js remove-prop-listener r)
-              :addPointBuffer (partial-js add-point-buffer r)
-              :removePointBuffer (partial-js remove-point-buffer r)
+              :addPointBuffer (partial-js-passthrough add-point-buffer r)
+              :removePointBuffer (partial-js-passthrough remove-point-buffer r)
               :addLoader (partial-js add-loader r)
               :setRenderOptions (partial-js set-render-options r)
               :pickPoint (partial-js pick-point r)

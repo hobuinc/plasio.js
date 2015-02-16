@@ -2,15 +2,15 @@
   "The renderer engine, drawing stuff 24/7"
   (:require [renderer.engine.util :refer [safe-korks join-ks mk-vector
                                           mk-color set-vector tvstr]]
-            [renderer.util :refer [add-framed-watch]]
+            [renderer.util :as util :refer [add-framed-watch]]
             [renderer.engine.shaders :as shaders]
             [renderer.engine.model-cache :as mc]
             [renderer.engine.render :as r]
+            [renderer.engine.attribs :as attribs]
             [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
             [clojure.set :as set])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
-
 
 (defprotocol ICursor
   "A cursor represents a chunk of application state, updating this state
@@ -121,43 +121,48 @@
                      (update! cursor [] mesh)))
                nil)))
 
-(defn- loader-for-id [id]
-  (if-let [p (re-find #"^([a-z]+):.*" id)]
-    (second p)
-    (throw (js/Error. (str "Don't know how to get buffers for ID: " id)))))
-
-(defn- load-buffer [loader id]
+(defn- load-resource [loader params]
   (let [c (async/chan)]
-    (.load loader id (fn [err data]
-                       (if err
-                         (async/close! c)
-                         (async/onto-chan c [data]))))
+    (.load loader params (fn [err data]
+                           (if err
+                             (async/close! c)
+                             (async/onto-chan c [data]))))
     c))
+
+(defn- fetch-resource
+  "Try to load the given resource, using the provided loader-id and parameters"
+  [loader params]
+  (go
+   [(keyword (.-provides loader)) (<! (load-resource loader params))]))
+
+(defn- load-buffer-components
+  "Load all components required for an ID, if they fail, just substitute a nil instead"
+  [all-loaders buffer-id]
+  (let [comps (js/Object.keys buffer-id)
+        chans (for [loader-id comps
+                    :let [loader (get all-loaders loader-id)]
+                    :when loader]
+                (fetch-resource loader (aget buffer-id loader-id)))]
+    (async/into {} (async/merge chans))))
 
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
   [cursor state-pb]
-  (let [gl          (root cursor :gl)
-        bcache      (root cursor :loaded-buffers)
-        all-loaders (root cursor :loaders)]
+  (let [gl            (root cursor :gl)
+        attrib-loader (root cursor :attrib-loader)
+        all-loaders   (root cursor :loaders)]
     (transact! cursor []
                (fn [pb]
                  (add-remove state-pb pb
                              (fn [buffer-id]
-                               (let [loader-id (loader-for-id buffer-id)
-                                     loader (get all-loaders loader-id)]
-                                 (if-not loader
-                                   (throw (js/Error. (str "Don't know about a loader for: " loader-id))))
-                                 (go (let [data (<! (load-buffer loader buffer-id))]
-                                       ;; only add buffer if we still need it, the buffer could
-                                       ;; have been removed while we were still downloading
+                               (let [decoded-id (util/decode-id buffer-id)]
+                                 (go (let [loaded-info (<! (load-buffer-components all-loaders decoded-id))]
                                        (transact! cursor [buffer-id]
                                                   (fn [v]
                                                     (when-not (nil? v)
-                                                      (let [buf (r/create-buffer gl data)]
-                                                        (swap! bcache assoc buffer-id buf)
-                                                        (assoc v :buffer-key buffer-id)))))))
-                                 {:visible true}))
+                                                      (let [attribs-id (attribs/reify-attribs attrib-loader gl loaded-info)]
+                                                        (assoc v :attribs-id attribs-id))))))))
+                               {:visible true})
                              identity
                              identity)))))
 
@@ -197,7 +202,7 @@
                              :gl context
                              :shader (shaders/create-shader context)
                              :picker (r/create-picker)
-                             :loaded-buffers (atom {}) ;; cache of loaded buffers
+                             :attrib-loader (attribs/create-attribs-loader)
                              :loaders {}
                              :point-buffers {}})]
         ;; start watching states for changes
@@ -224,6 +229,8 @@
   (add-loader [_ loader]
     (let [key (.-key loader)
           rs  (:run-state @state)]
+      (when-not (.-provides loader)
+        (throw (js/Error. "The loader doesn't advertise what it provides")))
       (swap! rs update-in [:loaders] assoc key loader)))
 
   (remove-loader [_ loader]
