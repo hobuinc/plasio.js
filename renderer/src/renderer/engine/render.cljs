@@ -32,7 +32,7 @@
         aspect (if (< width height) (/ height width) (/ width height))
         fov  (to-rads (or (:fov cam) 75))
         near (or (:near cam) 0.1)
-        far  (or (:far cam) 100000.0)]
+        far  (or (:far cam) 10000.0)]
     (println "aspect: " aspect)
     (if (= (:type cam) "perspective")
       (js/mat4.perspective m fov aspect near far)
@@ -84,11 +84,11 @@
       (uniform :intensityBlend :float 0.0)
       (uniform :maxColorComponent :float 1.0)
 
-      (uniform :rgb_f :float 1.0)
+      (uniform :rgb_f :float 0.0)
       (uniform :class_f :float 0.0)
       (uniform :map_f :float 0.0)
       (uniform :imap_f :float 0.0)
-      (uniform :overlay_f :float 0.0)
+      (uniform :overlay_f :float 1.0)
 
       (uniform :intensity_f :float 0.0)
       (uniform :height_f :float 0.0)
@@ -238,7 +238,7 @@
                                vals
                                (map :attribs-id)
                                (map #(attribs/attribs-in aloader %))
-                               (remove nil?))]
+                               (remove #(or (nil? %) (nil? (:point-buffer %)))))]
       (draw-all-buffers gl buffers-to-draw
                         (:shader state)
                         uniform-map

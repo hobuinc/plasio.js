@@ -39,17 +39,25 @@
 
        var e = document.getElementById("app");
 
-       var baseSource = PlasioLib.GreyhoundStatic;
        var r = renderer.core.createRenderer(e);
        /*
        var p = new baseSource.NodeDistancePolicy(r,
        "localhost:8080", "4da95360946af6a58f36ef92fa65e4cc");
         */
-       var baseURL = "http://localhost:4999";
-       var p = new baseSource.NodeDistancePolicy(r, baseURL);
-       var loaders = new baseSource.getLoaders(baseURL);
+       var baseURL = "http://52.0.151.178";
+       var pipelineId = "c924dbf6d0b1f761618d09e8feb4aa31";
+       
+       var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
+
+       var loaders = {
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId),
+         overlay: new PlasioLib.Loaders.KittyLoader(),
+         transform: new PlasioLib.Loaders.TransformLoader()
+       };
+         
+       var p = new PlasioLib.NodeDistancePolicy(loaders, r, bbox);
        for (var l in loaders) {
-         r.addLoader(loaders[l]);
+         r.addLoader(loaders[l].constructor);
        }
 
        var handleResize = function () {
@@ -86,19 +94,13 @@
          y = bbox.maxs[1] - bbox.mins[1],
          z = bbox.maxs[2] - bbox.mins[2];
          
-         var off = [
-           bbox.mins[0] + x / 2,
-           bbox.mins[1] + y / 2,
-           bbox.mins[2] + z / 2
-         ];
-
-         console.log("Setting offsets to:", off);
-         r.setRenderOptions({
-           offset: off
-         });
-
          // reset the state of our camera
          c.setHint([x, y, z]);
+
+         // update our renderer to set far clip plane to pretty far
+         var farPlane = Math.sqrt(x*x + y*y) * 2;
+         r.updateCamera(0, {far: farPlane});
+         
        });
 
        p.start();

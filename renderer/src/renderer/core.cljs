@@ -25,6 +25,7 @@
   (startup [this elem])
   (set-clear-color [this col] [this r g b])
   (add-camera [this props])
+  (update-camera [this index f])
   (set-eye-position [this x y z] [this pos])
   (set-target-position [this x y z] [this pos])
   (add-scale-object [this uri x y z] [this uri pos])
@@ -53,6 +54,9 @@
 
   (add-camera [this props]
     (swap! state update-in [:cameras] conj props))
+
+  (update-camera [this index props]
+    (swap! state update-in [:cameras index] merge props))
 
   (set-clear-color [this r g b]
     (set-clear-color this [r g b]))
@@ -146,6 +150,7 @@
   (let [r (PlasioRenderer. (atom {}) (atom nil))]
     (startup r elem)
     (clj->js {:addCamera (partial-js add-camera r)
+              :updateCamera (partial-js update-camera r)
               :setClearColor (partial-js set-clear-color r)
               :setEyePosition (partial-js set-eye-position r)
               :setTargetPosition (partial-js set-target-position r)
