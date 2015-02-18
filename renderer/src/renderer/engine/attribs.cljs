@@ -13,18 +13,6 @@
             [cljs-webgl.texture :as texture]))
 
 
-(defn- create-buffer
-  "Given a Float32Array point buffer, creates a buffer suitable for rendering, note that points should be in
-  a fixed format: XYZRGBIC (all floats)"
-  [gl points]
-  (let [total-points (/ (.-length points) specs/*bytes-per-point*)
-        buffer (buffers/create-buffer gl
-                                      points
-                                      buffer-object/array-buffer
-                                      buffer-object/static-draw)]
-    (set! (.-totalPoints buffer) total-points)
-    buffer))
-
 (defn- gen-id []
   (-> (uuid/make-random)
       str))
@@ -34,8 +22,14 @@
 (defmulti reify-attrib first)        ; The type of attribs to load is always the first argument
 (defmulti unreify-attrib first)
 
-(defmethod reify-attrib :point-buffer [[_ buffer]]
-  (create-buffer *gl-context* buffer))
+(defmethod reify-attrib :point-buffer [[_ props]]
+  {:point-size (.. props -pointSize)
+   :total-points (.. props -totalPoints)
+   :attributes (js->clj (.. props -attributes))
+   :gl-buffer (buffers/create-buffer *gl-context*
+                                     (.. props -data)
+                                     buffer-object/array-buffer
+                                     buffer-object/static-draw)})
 
 (defmethod reify-attrib :image-overlay [[_ image]]
   (texture/create-texture *gl-context*

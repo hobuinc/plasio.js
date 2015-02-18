@@ -20,7 +20,7 @@
     (.setAttribute script "src" "http://cdnjs.cloudflare.com/ajax/libs/three.js/r68/three.js")
     (.appendChild js/document.body div)
     (.appendChild js/document.body script)
-    (let [r (PlasioRenderer. (atom {}))]
+    (let [r (PlasioRenderer. (atom {}) (atom nil))]
       (startup r div)
       r)))
 

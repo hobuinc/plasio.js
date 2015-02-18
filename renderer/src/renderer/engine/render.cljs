@@ -132,14 +132,6 @@
 (defn- draw-all-buffers
   [gl bufs shader base-uniform-map proj mv render-options width height]
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
-        stride     (* 4 specs/*bytes-per-point*)
-        attrib     (fn [nm size offset]
-                     {:location (attrib-loc nm) :components-per-vertex size
-                      :type   data-type/float :stride stride :offset offset})
-        attribs    [(attrib "position" 3 0)
-                    (attrib "color" 3 12)
-                    (attrib "intensity" 1 24)
-                    (attrib "classification" 1 28)]
         blend-func [bf/src-alpha bf/one-minus-src-alpha]
         viewport {:x 0
                   :y 0
@@ -155,8 +147,16 @@
     ;;      point-buffer - The actual point cloud
     ;;      image-overlay - The overlay for this point-buffer
     (doseq [{:keys [point-buffer image-overlay transform]} bufs]
-      (let [total-points (.. point-buffer -totalPoints)
-            buff-attribs (mapv #(assoc % :buffer point-buffer) attribs)
+      (let [total-points (:total-points point-buffer)
+            stride       (:point-size point-buffer)
+            gl-buffer    (:gl-buffer point-buffer)
+            attribs      (mapv (fn [[name offset size]]
+                                 {:location (attrib-loc name)
+                                  :components-per-vertex size
+                                  :type data-type/float
+                                  :stride stride
+                                  :offset offset
+                                  :buffer gl-buffer}) (:attributes point-buffer))
             textures (when image-overlay [{:texture image-overlay :name "overlay"}])
             uniforms (uniforms-with-override uniforms
                                              {:modelMatrix (:model-matrix transform) 
@@ -171,26 +171,24 @@
                        :count total-points
                        :textures textures
                        :capabilities {capability/depth-test true}
-                       :attributes buff-attribs
+                       :attributes attribs
                        :uniforms (vals uniforms))))))
 
 (defn- draw-buffer-for-picking
   [gl buffer shader base-uniform-map proj mv render-options width height]
   (let [{:keys [point-buffer transform]} buffer
-        attrib-loc (partial shaders/get-attrib-location gl shader)
-        stride     (* 4 specs/*bytes-per-point*)
-        attrib     (fn [nm size offset]
-                     {:buffer point-buffer
-                      :location (attrib-loc nm)
-                      :components-per-vertex size
-                      :type   data-type/float :stride stride :offset offset})
-        attribs    [(attrib "position" 3 0)]
+        attribs    [{:buffer (:gl-buffer point-buffer)
+                     :location (shaders/get-attrib-location gl shader "position")
+                     :components-per-vertex 3
+                     :type data-type/float
+                     :stride (:point-size point-buffer)
+                     :offset 0}]
         blend-func [bf/one bf/zero]
         viewport {:x 0
                   :y 0
                   :width width
                   :height height}
-        total-points (.-totalPoints point-buffer)
+        total-points (:total-points point-buffer)
         uniforms (uniforms-with-override
                   base-uniform-map
                   (assoc render-options
