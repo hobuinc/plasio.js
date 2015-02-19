@@ -37,13 +37,13 @@
                           :parameters {tparams/texture-min-filter tfilter/linear
                                        tparams/texture-mag-filter tfilter/linear}))
 
-(defn- max-range [mins maxs]
-  ;; we don't really care about Z because it has mostly nothing to do with imagery, for now
-  ;; get all the components out and return a tuple with our range of interest (wider one)
+(defn- range [mins maxs]
+  ;; we don't really care about Z because it has mostly nothing to do with imagery
   (let [nx (aget mins 0) ny (aget mins 1)
         xx (aget maxs 0) xy (aget maxs 1)
-        rx (- xx nx)    ry (- xy ny)]
-    (if (> ry rx) [xy ny] [xx nx])))
+        cx (+ nx (/ (- xx nx) 2))
+        cy (+ ny (/ (- xy ny) 2))]
+    [(- nx cx) (- ny cy) (- xx cx) (- xy cy)])) 
 
 (defn- transalation-matrix [translate]
   (let [x (aget translate 0)
@@ -58,13 +58,12 @@
 (defmethod reify-attrib :transform [[_ transform]]
   ;; Note that this stuff is straight from JS land, so most things here are JS objects
   ;; Much apologies in advance
-  (println (.. transform -position) (.. transform -mins) transform)
   (let [position (.. transform -position)
         position (js/Array (- (aget position 0)) (aget position 2) (aget position 1))
         mins     (.. transform -mins)
         maxs     (.. transform -maxs)
         model-matrix (transalation-matrix position)
-        uv-range     (max-range mins maxs)]
+        uv-range     (range mins maxs)]
     {:model-matrix model-matrix
      :offset       (aget transform "offset")
      :uv-range     uv-range}))

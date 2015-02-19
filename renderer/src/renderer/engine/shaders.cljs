@@ -50,7 +50,7 @@
   uniform float colorClampLower;
   uniform float colorClampHigher;
   uniform vec2  zrange;
-  uniform vec2  uvrange;
+  uniform vec4  uvrange;
   uniform vec3  offset;
   uniform sampler2D map;
   uniform vec2  klassRange;
@@ -94,8 +94,8 @@
       vec3 height_color = vec3(nheight, nheight, nheight);
       vec3 inv_height_color = vec3(1.0 - nheight, 1.0 - nheight, 1.0 - nheight);
 
-      vec2 uv = vec2(0.5 + (fpos.x - uvrange.x) / (uvrange.y - uvrange.x),
-                     0.5 + (fpos.z - uvrange.x) / (uvrange.y - uvrange.x));
+      vec2 uv = vec2(0.5 + (fpos.x - uvrange.x) / (uvrange.z - uvrange.x),
+                     0.5 + (fpos.z - uvrange.y) / (uvrange.w - uvrange.y));
                      
       vec3 overlay_color = texture2D(overlay, uv).xyz;
 

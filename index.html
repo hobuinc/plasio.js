@@ -49,9 +49,10 @@
        
        var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
 
+
        var loaders = {
          point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId),
-         overlay: new PlasioLib.Loaders.KittyLoader(),
+         overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
@@ -79,7 +80,7 @@
        var p = s.policy;
 
        r.addPropertyListener([], function(state) {
-         console.log("state is:", state);
+         //console.log("state is:", state);
        });
        
        var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {

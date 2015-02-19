@@ -27,13 +27,11 @@
   (* (/ a 180.0) js/Math.PI))
 
 (defn- projection-matrix [gl cam width height]
-  (println "projection: " width height)
   (let [m (.-proj gl)
         aspect (if (< width height) (/ height width) (/ width height))
         fov  (to-rads (or (:fov cam) 75))
         near (or (:near cam) 0.1)
         far  (or (:far cam) 10000.0)]
-    (println "aspect: " aspect)
     (if (= (:type cam) "perspective")
       (js/mat4.perspective m fov aspect near far)
       (js/mat4.ortho m (/ width -2) (/ width 2) (/ height 2) (/ height -2) near far))))
@@ -102,7 +100,7 @@
       (uniform :colorClampHigher :float 1)
 
       (uniform :zrange :vec2 [0 1])
-      (uniform :uvrange :vec2 [0 1])
+      (uniform :uvrange :vec4 [0 0 1 1])
       (uniform :offset :vec3 [0 0 0])
       (uniform :map :tex 0)
       (uniform :klassRange :vec2 [0 1])
@@ -162,6 +160,8 @@
                                              {:modelMatrix (:model-matrix transform) 
                                               :offset (:offset transform)
                                               :uvrange (:uv-range transform)})]
+        (println (:uv-range transform))
+
         (buffers/draw! gl
                        :shader shader
                        :draw-mode draw-mode/points
