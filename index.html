@@ -89,6 +89,9 @@
        });
 
        r.setClearColor(0, 0, 0);
+       r.setRenderOptions({
+         pointSize: 3
+       });
 
        p.on("bbox", function(bbox) {
          var x = bbox.maxs[0] - bbox.mins[0],

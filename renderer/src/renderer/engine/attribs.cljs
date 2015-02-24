@@ -6,6 +6,7 @@
   (:require [renderer.engine.util :as u]
             [renderer.engine.specs :as specs]
             [cljs-uuid.core :as uuid]
+            [cljs-webgl.constants.webgl :as webgl]
             [cljs-webgl.constants.buffer-object :as buffer-object]
             [cljs-webgl.constants.texture-parameter-name :as tparams]
             [cljs-webgl.constants.texture-filter :as tfilter]
@@ -31,11 +32,14 @@
                                      buffer-object/array-buffer
                                      buffer-object/static-draw)})
 
-(defmethod reify-attrib :image-overlay [[_ image]]
-  (texture/create-texture *gl-context*
-                          :image image
-                          :parameters {tparams/texture-min-filter tfilter/linear
-                                       tparams/texture-mag-filter tfilter/linear}))
+(defmethod reify-attrib :image-overlay [[_ props]]
+  (let [image (.. props -image)
+        need-flip (.. props -needFlip)]
+    (texture/create-texture *gl-context*
+                            :image image
+                            :pixel-store-modes {webgl/unpack-flip-y-webgl need-flip}
+                            :parameters {tparams/texture-min-filter tfilter/linear
+                                         tparams/texture-mag-filter tfilter/linear})))
 
 (defn- range [mins maxs]
   ;; we don't really care about Z because it has mostly nothing to do with imagery
