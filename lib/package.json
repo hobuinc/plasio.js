@@ -16,6 +16,7 @@
     "open": "0.0.5",
     "peerjs": "^0.3.14",
     "sha.js": "^2.3.0",
+    "sphericalmercator": "^1.0.3",
     "webpack": "^1.5.3"
   },
   "author": "",

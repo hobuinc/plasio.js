@@ -4,3 +4,4 @@
 /etcd/
 npm-debug.log
 node_modules/
+node.core
