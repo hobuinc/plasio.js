@@ -94,8 +94,8 @@
       vec3 height_color = vec3(nheight, nheight, nheight);
       vec3 inv_height_color = vec3(1.0 - nheight, 1.0 - nheight, 1.0 - nheight);
 
-      vec2 uv = vec2(0.5 + (fpos.x - uvrange.x) / (uvrange.z - uvrange.x),
-                     0.5 + (fpos.z - uvrange.y) / (uvrange.w - uvrange.y));
+      vec2 uv = vec2(1.0 - (fpos.x - uvrange.x) / (uvrange.z - uvrange.x),
+                     1.0 - (fpos.z - uvrange.y) / (uvrange.w - uvrange.y));
                      
       vec3 overlay_color = texture2D(overlay, uv).xyz;
 
@@ -106,6 +106,8 @@
               map_color * map_f +
               inv_map_color * imap_f +
               overlay_color * overlay_f;
+
+     //out_color = vec3(uv, 0.0);
               
       out_intensity = intensity_color * intensity_f +
                   height_color * height_f +
