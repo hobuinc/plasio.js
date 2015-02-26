@@ -46,8 +46,12 @@
         */
        var baseURL = "http://52.0.151.178";
        var pipelineId = "fcfedb6356926fa616c3fd25e46794a4";
+
+       var baseURL = "http://54.198.162.84";
+       var pipelineId = "2046708610c00ca59cce01315cd514bf";
        
-       var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
+       // var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
+       var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
 
 
        var loaders = {
@@ -56,7 +60,7 @@
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
-       var p = new PlasioLib.NodeDistancePolicy(loaders, r, bbox);
+       var p = new PlasioLib.QuadTreeNodePolicy(loaders, r, bbox);
        for (var l in loaders) {
          r.addLoader(loaders[l].constructor);
        }

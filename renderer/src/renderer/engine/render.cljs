@@ -160,8 +160,6 @@
                                              {:modelMatrix (:model-matrix transform) 
                                               :offset (:offset transform)
                                               :uvrange (:uv-range transform)})]
-        (println (:uv-range transform))
-
         (buffers/draw! gl
                        :shader shader
                        :draw-mode draw-mode/points
