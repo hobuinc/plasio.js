@@ -24,17 +24,17 @@
 (defmulti unreify-attrib first)
 
 (defmethod reify-attrib :point-buffer [[_ props]]
-  {:point-size (.. props -pointSize)
-   :total-points (.. props -totalPoints)
-   :attributes (js->clj (.. props -attributes))
+  {:point-size (aget props "pointSize")
+   :total-points (aget props "totalPoints")
+   :attributes (js->clj (aget props "attributes"))
    :gl-buffer (buffers/create-buffer *gl-context*
-                                     (.. props -data)
+                                     (aget props "data")
                                      buffer-object/array-buffer
                                      buffer-object/static-draw)})
 
 (defmethod reify-attrib :image-overlay [[_ props]]
-  (let [image (.. props -image)
-        need-flip (.. props -needFlip)]
+  (let [image (aget props "image")
+        need-flip (aget props "needFlip")]
     (texture/create-texture *gl-context*
                             :image image
                             :pixel-store-modes {webgl/unpack-flip-y-webgl need-flip}
@@ -62,10 +62,10 @@
 (defmethod reify-attrib :transform [[_ transform]]
   ;; Note that this stuff is straight from JS land, so most things here are JS objects
   ;; Much apologies in advance
-  (let [position (.. transform -position)
+  (let [position (aget transform "position")
         position (js/Array (- (aget position 0)) (aget position 2) (aget position 1))
-        mins     (.. transform -mins)
-        maxs     (.. transform -maxs)
+        mins     (aget transform "mins")
+        maxs     (aget transform "maxs")
         model-matrix (transalation-matrix position)
         uv-range     (range mins maxs)]
     {:model-matrix model-matrix

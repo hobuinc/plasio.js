@@ -133,7 +133,7 @@
   "Try to load the given resource, using the provided loader-id and parameters"
   [loader params]
   (go
-   [(keyword (.-provides loader)) (<! (load-resource loader params))]))
+   [(keyword (aget loader "provides")) (<! (load-resource loader params))]))
 
 (defn- load-buffer-components
   "Load all components required for an ID, if they fail, just substitute a nil instead"
@@ -229,7 +229,7 @@
   (add-loader [_ loader]
     (let [key (.-key loader)
           rs  (:run-state @state)]
-      (when-not (.-provides loader)
+      (when-not (aget loader "provides")
         (throw (js/Error. "The loader doesn't advertise what it provides")))
       (swap! rs update-in [:loaders] assoc key loader)))
 
