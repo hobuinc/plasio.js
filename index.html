@@ -44,18 +44,26 @@
        var p = new baseSource.NodeDistancePolicy(r,
        "localhost:8080", "4da95360946af6a58f36ef92fa65e4cc");
         */
-       var baseURL = "http://52.0.151.178";
-       var pipelineId = "fcfedb6356926fa616c3fd25e46794a4";
 
-       var baseURL = "http://54.198.162.84";
-       var pipelineId = "2046708610c00ca59cce01315cd514bf";
+       var baseURL = "http://52.4.221.249:8080";
+       var pipelineId = "mini-shred";
+
+       var baseURL = "http://52.5.134.222:8080";
+       var pipelineId = "ia-nineteen";
        
        // var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
-       var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
+       //var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
+       // var bbox = [-10214432.963804673, 5087648.60266133, -10175297.205322662, 5126784.361143343];
+
+         var bbox = [
+             // Whole state in web-mercator.
+             -10796577.371225, 4902908.135781,
+             -10015953.953824, 5375808.896799
+         ]
 
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, 17, true),
          overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };

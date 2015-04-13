@@ -41,7 +41,15 @@ gulp.task('build-gh-loader', ['lint'], function() {
         .pipe(gulp.dest("."));
 });
 
-gulp.task('build-all', ['build-gh-loader']);
+gulp.task('build-decompress', ['lint'], function() {
+    return gulp.src('workers/decompress.js')
+        .pipe(browserify())
+        .on("error", gutil.log)
+        .on("error", gutil.beep)
+        .pipe(gulp.dest("."));
+});
+gulp.task('build-all', ['build-gh-loader', 'build-decompress']);
+
 
 gulp.task('watch', ['build-all'], function() {
     // watch all our dirs and reload if any build stuff changes
