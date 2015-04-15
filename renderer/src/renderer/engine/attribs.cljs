@@ -59,6 +59,9 @@
        0 0 1 0
        x y z 1)))
 
+(defn point-cloud-space [arr]
+  (js/Array (- (aget arr 0)) (aget arr 2) (aget arr 1)))
+
 (defmethod reify-attrib :transform [[_ transform]]
   ;; Note that this stuff is straight from JS land, so most things here are JS objects
   ;; Much apologies in advance
@@ -70,6 +73,8 @@
         uv-range     (range mins maxs)]
     {:model-matrix model-matrix
      :offset       (aget transform "offset")
+     :mins         (point-cloud-space mins)
+     :maxs         (point-cloud-space maxs)
      :uv-range     uv-range}))
 
 (defmethod unreify-attrib :point-buffer [[_ buffer]]

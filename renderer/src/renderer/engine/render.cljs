@@ -210,6 +210,68 @@
 (defn- render-view-size [{:keys [gl]}]
   [(.-width (.-canvas gl)) (.-height (.-canvas gl))])
 
+(defn normalize-plane [arr]
+  (let [f (/ 1.0 (js/vec3.length arr))
+        normalized  (js/Array
+                     (* (aget arr 0) f)
+                     (* (aget arr 1) f)
+                     (* (aget arr 2) f)
+                     (* (aget arr 3) f))]
+    normalized))
+
+(defn cull-planes [mvp]
+  (let [g    (fn [f op1 op2]
+               (f (aget mvp op1) (aget mvp op2)))
+        mg   (fn [f m a b]
+               (f (* m (aget mvp a)) (aget mvp b)))]
+    (map normalize-plane
+         [(js/Array (g + 3 0) (g + 7 4) (g + 11 8) (g + 15 12)) ; left
+          (js/Array (g - 3 0) (g - 7 4) (g - 11 8) (g - 15 12)) ; right
+
+          (js/Array (g + 3 1) (g + 7 5) (g + 11 9) (g + 15 13)) ; top
+          (js/Array (g - 3 1) (g - 7 5) (g - 11 9) (g - 15 13)) ; bottom
+
+          (js/Array (g + 3 2) (g + 7 6) (g + 11 10) (g + 15 14)) ; near
+          (js/Array (g - 3 2) (g - 7 6) (g - 11 10) (g - 15 14)) ; far
+          ])))
+
+(defn- tap [v]
+  (println "+++++++++++++++++++++ tap:" v)
+  v)
+
+(defn point-inside? [plane p]
+  (let [v (+ (js/vec3.dot plane p) (aget plane 3))]
+    (> v 0)))
+
+(defn points-inside-plane? [points plane]
+  (some identity
+        (map #(point-inside? plane %) points)))
+
+(defn- world->eye [mv p]
+  (let [p (js/Array (aget p 0)
+                    (aget p 1)
+                    (aget p 2) 1)]
+    (js/vec4.transformMat4 (js/Array 0 0 0 0) p mv)))
+
+(defn all-points [mins maxs]
+  (letfn [(corner [x y z]
+            (let [p (js/Array
+                     (aget (if (zero? x) mins maxs) 0)
+                     (aget (if (zero? y) mins maxs) 1)
+                     (aget (if (zero? z) mins maxs) 2))]
+              p))]
+    [(corner 0 0 0) (corner 0 0 1) (corner 0 1 0)
+     (corner 0 1 1) (corner 1 0 0) (corner 1 0 1)
+     (corner 1 1 0) (corner 1 1 1)]))
+
+(defn in-frustum? [planes mv a]
+  (let [{:keys [mins maxs]} a
+        mins (world->eye mv mins)
+        maxs (world->eye mv maxs)
+        points (all-points mins maxs)]
+    (every? identity
+          (map #(points-inside-plane? points %) planes))))
+
 (defn render-state
   "Render the state in its current form"
   [{:keys [source-state] :as state}]
@@ -223,6 +285,8 @@
         tar (or (:target vw) [0 0 0])
         proj (projection-matrix gl cam width height)
         mv   (mv-matrix gl eye tar)
+        mvp  (mvp-matrix gl mv proj)
+        planes (cull-planes proj)
         ro (:render-options dp)]
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
@@ -234,7 +298,8 @@
                                vals
                                (map :attribs-id)
                                (map #(attribs/attribs-in aloader %))
-                               (remove #(or (nil? %) (nil? (:point-buffer %)))))]
+                               (remove #(or (nil? %) (nil? (:point-buffer %))))
+                               (filter #(in-frustum? planes mv (:transform %))))]
       (draw-all-buffers gl buffers-to-draw
                         (:shader state)
                         uniform-map
