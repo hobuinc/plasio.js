@@ -1,0 +1,142 @@
+<html>
+  <style>
+   body {
+       margin: 0px;
+   }
+
+   #stats {
+       font-family: 'Consolas', 'Monaco', monospace;
+       color: white;
+       background-color: rgba(0, 0, 0, 0.5);
+       padding: 2px;
+       position: absolute;
+       top: 5px;
+       right: 5px;
+   }
+   #brand {
+       position: fixed;
+       bottom: 5px;
+       right: 5px;
+       opacity: 0.5;
+   }
+  </style>
+
+<body>
+    <div id="app" style="width:100%;height:600px;"></div>
+    <div id="stats"></div>
+    <div id="brand">
+        <a href="http://hobu.co" target="_blank">
+            <img src="/hobu.png" width="50">
+        </a>
+    </div>
+
+    <script src="plasio-renderer.js"></script>
+    <script src="lib/dist/plasio-lib.js"></script>
+
+    <script>
+     var commonStartup = function() {
+       var stats = {}
+       var renderStats = function(ps, ds) {
+         stats.ps = ps || stats.ps;
+         stats.ds = ds || stats.ds;
+
+         if (stats.ps && stats.ds) {
+           document.getElementById("stats").innerHTML =
+           "Pool: active: " + stats.ps.inuse +
+           ", waiting: " + stats.ps.waiting +
+           ", max:" + stats.ps.max + "| Totals: points: " +
+           stats.ds.totalPoints + ", bytes: " + stats.ds.totalBytes;
+         }
+       };
+
+       var e = document.getElementById("app");
+
+       var r = renderer.core.createRenderer(e);
+       var baseURL = "http://data.iowalidar.com";
+       var pipelineId = "ia-nineteen";
+
+        var bbox = [
+            // Whole state in web-mercator.
+            -10796577.371225, 4902908.135781,
+            -10015953.953824, 5375808.896799
+        ]
+
+
+       var loaders = {
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, 17, true),
+         overlay: new PlasioLib.Loaders.MapboxLoader(),
+         transform: new PlasioLib.Loaders.TransformLoader()
+       };
+
+       var p = new PlasioLib.QuadTreeNodePolicy(loaders, r, bbox);
+       for (var l in loaders) {
+         r.addLoader(loaders[l].constructor);
+       }
+
+       var handleResize = function () {
+         r.setRenderViewSize(window.innerWidth, window.innerHeight);
+       };
+
+       window.onresize = handleResize;
+       handleResize();
+
+       PlasioLib.P2PNode.key = "d498vphryc8lg14i";
+       return { element: e, renderer: r, policy: p };
+     };
+
+     var ownerStartup = function() {
+       var s = commonStartup();
+
+       var e = s.element;
+       var r = s.renderer;
+       var p = s.policy;
+
+       r.addPropertyListener([], function(state) {
+         //console.log("state is:", state);
+       });
+
+       var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
+         r.setEyePosition(eye);
+         r.setTargetPosition(target);
+       });
+
+       r.setClearColor(0.1, 0, 0);
+       r.setRenderOptions({
+         pointSize: 1
+       });
+
+       p.on("bbox", function(bbox) {
+         var x = bbox.maxs[0] - bbox.mins[0],
+         y = bbox.maxs[1] - bbox.mins[1],
+         z = bbox.maxs[2] - bbox.mins[2];
+
+         // reset the state of our camera
+         c.setHint([x, y, z]);
+
+         // update our renderer to set far clip plane to pretty far
+         var farPlane = Math.sqrt(x*x + y*y) * 2;
+         r.updateCamera(0, {far: farPlane});
+
+       });
+
+       p.start();
+
+     };
+
+     ownerStartup();
+
+    </script>
+
+    <script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+                (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+                m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+                })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+                ga('create', 'UA-61919717-1', 'auto');
+                ga('send', 'pageview');
+
+    </script>
+
+</body>
+</html>
