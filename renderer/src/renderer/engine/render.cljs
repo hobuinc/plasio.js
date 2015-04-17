@@ -13,6 +13,7 @@
             [cljs-webgl.constants.framebuffer-object :as fbo]
             [cljs-webgl.constants.texture-filter :as tf]
             [cljs-webgl.constants.texture-parameter-name :as tpn]
+            [cljs-webgl.constants.texture-wrap-mode :as twm]
             [cljs-webgl.constants.pixel-format :as pf]
             [cljs-webgl.constants.draw-mode :as draw-mode]
             [cljs-webgl.constants.data-type :as data-type]
@@ -144,9 +145,10 @@
     ;; The only two loaders we know how to handle right now are:
     ;;      point-buffer - The actual point cloud
     ;;      image-overlay - The overlay for this point-buffer
+
     (doseq [{:keys [point-buffer image-overlay transform]} bufs]
       (let [total-points (:total-points point-buffer)
-            stride       (:point-size point-buffer)
+            stride       (:point-stride point-buffer)
             gl-buffer    (:gl-buffer point-buffer)
             attribs      (mapv (fn [[name offset size]]
                                  {:location (attrib-loc name)
@@ -155,11 +157,23 @@
                                   :stride stride
                                   :offset offset
                                   :buffer gl-buffer}) (:attributes point-buffer))
+
+            ;; when we have overlay image, pull it out
             textures (when image-overlay [{:texture image-overlay :name "overlay"}])
-            uniforms (uniforms-with-override uniforms
-                                             {:modelMatrix (:model-matrix transform) 
-                                              :offset (:offset transform)
-                                              :uvrange (:uv-range transform)})]
+
+            ;; determine overrides for this buffer
+            uniform-map (merge {:modelMatrix (:model-matrix transform) 
+                                :offset (:offset transform)
+                                :uvrange (:uv-range transform)}
+
+                               ;; along with basic stuff, if we have a point size override, apply that
+                               (when-let [ps (:point-size point-buffer)]
+                                 {:pointSize ps}))
+
+            ;; convert them to a uniform structure which webgl understands
+            uniforms (uniforms-with-override uniforms uniform-map)]
+
+        ;; draw this buffer
         (buffers/draw! gl
                        :shader shader
                        :draw-mode draw-mode/points
@@ -179,7 +193,7 @@
                      :location (shaders/get-attrib-location gl shader "position")
                      :components-per-vertex 3
                      :type data-type/float
-                     :stride (:point-size point-buffer)
+                     :stride (:point-stride point-buffer)
                      :offset 0}]
         blend-func [bf/one bf/zero]
         viewport {:x 0
@@ -327,6 +341,8 @@
     (.bindTexture gl texture-target/texture-2d rt)
     (.texParameteri gl texture-target/texture-2d tpn/texture-mag-filter tf/nearest) 
     (.texParameteri gl texture-target/texture-2d tpn/texture-min-filter tf/nearest)
+    (.texParameteri gl texture-target/texture-2d tpn/texture-wrap-s twm/clamp-to-edge)
+    (.texParameteri gl texture-target/texture-2d tpn/texture-wrap-t twm/clamp-to-edge)
     (.texImage2D gl
                  texture-target/texture-2d 0 pf/rgba
                  width height
@@ -404,6 +420,7 @@
 (defrecord PointPicker [picker-state]
   IPointPicker
   (pick-point [this {:keys [source-state] :as state} client-x client-y]
+    (println "picking point:" client-x client-y)
     (let [gl (:gl state)
           [w h] (render-view-size state)]
       ;; if we haven't loaded the shader yet, do so now

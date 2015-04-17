@@ -24,7 +24,8 @@
 (defmulti unreify-attrib first)
 
 (defmethod reify-attrib :point-buffer [[_ props]]
-  {:point-size (aget props "pointSize")
+  {:point-stride (aget props "pointStride")
+   :point-size (aget props "pointSize")
    :total-points (aget props "totalPoints")
    :attributes (js->clj (aget props "attributes"))
    :gl-buffer (buffers/create-buffer *gl-context*
