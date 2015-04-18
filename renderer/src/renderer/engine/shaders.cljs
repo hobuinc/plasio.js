@@ -11,8 +11,12 @@
 (declare frag-shader-picker)
 
 (defn create-shader [gl]
+  ;; make sure that needed extensions are addeded
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader)
-        fs (shaders/create-shader gl shader/fragment-shader frag-shader)]
+        fs (shaders/create-shader gl shader/fragment-shader
+                                  (if (.getExtension gl "EXT_frag_depth")
+                                    (str "#define have_frag_depth\n\n" frag-shader)
+                                    frag-shader))]
     (shaders/create-program gl vs fs)))
 
 
@@ -113,8 +117,8 @@
                   height_color * height_f +
                   inv_height_color * iheight_f;
 
-      // blend and return
-      gl_PointSize = pointSize;
+      gl_PointSize = (1.0 / tan(1.308/2.0)) * pointSize / (-mvPosition.z);
+      gl_PointSize = gl_PointSize * 1000.0 / 2.0; 
   }")
 
 
@@ -148,6 +152,10 @@
 
 (def frag-shader
   "
+#if defined have_frag_depth
+#extension GL_EXT_frag_depth : enable
+#endif
+
   precision mediump float;
 
   uniform vec4 planes[6];
@@ -168,6 +176,17 @@
           }
       }
 
+
+      float a = pow(2.0*(gl_PointCoord.x - 0.5), 2.0);
+  	  float b = pow(2.0*(gl_PointCoord.y - 0.5), 2.0);
+      float c = 1.0 - (a + b);
+
+   	  if(c < 0.0){
+   	      discard;
+   	  }      
+#if defined have_frag_depth
+      gl_FragDepthEXT = gl_FragCoord.z + 0.002*(1.0-pow(c, 1.0)) * gl_FragCoord.w;
+#endif
       gl_FragColor = vec4(mix(out_color, out_intensity, intensityBlend), 1.0);
   }")
 
