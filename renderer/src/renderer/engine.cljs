@@ -56,7 +56,8 @@
   (pick-point [this x y])
   (add-loader [this loader])
   (remove-loader [this loader])
-  (resize-view! [this w h]))
+  (resize-view! [this w h])
+  (add-post-render [this f]))
 
 
 (defn- changes
@@ -244,7 +245,11 @@
           canvas (.-canvas gl)]
       (js/console.log "reiszing view!" w h)
       (resize-canvas-to-size canvas w h)
-      (swap! rs merge {:width w :height h}))))
+      (swap! rs merge {:width w :height h})))
+
+  (add-post-render [_ f]
+    (let [rs (:run-state @state)]
+      (swap! rs update-in [:post-render] conj f))))
 
 
 (defn make-engine

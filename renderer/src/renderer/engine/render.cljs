@@ -313,11 +313,15 @@
                                (map :attribs-id)
                                (map #(attribs/attribs-in aloader %))
                                (remove #(or (nil? %) (nil? (:point-buffer %))))
-                               (filter #(in-frustum? planes mv (:transform %))))]
+                               #_(filter #(in-frustum? planes mv (:transform %))))]
       (draw-all-buffers gl buffers-to-draw
                         (:shader state)
                         uniform-map
-                        proj mv ro width height))))
+                        proj mv ro width height))
+
+    ; if there are any post render callback, call that
+    (doseq [cb (:post-render state)]
+      (cb gl mvp mv proj))))
 
 
 (defn- release-pick-buffers [gl bufs]

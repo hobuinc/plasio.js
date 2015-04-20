@@ -39,7 +39,8 @@
   (set-render-options [this opts])
   (pick-point [this x y])
   (apply-state [this state])
-  (resize-view! [this w h]))
+  (resize-view! [this w h])
+  (add-post-render [this f]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -127,7 +128,10 @@
     (reset! state st))
 
   (resize-view! [this w h]
-    (r/resize-view! @render-engine w h)))
+    (r/resize-view! @render-engine w h))
+
+  (add-post-render [this f]
+    (r/add-post-render @render-engine f)))
 
 
 (defn partial-js
@@ -164,4 +168,5 @@
               :setRenderOptions (partial-js set-render-options r)
               :pickPoint (partial-js pick-point r)
               :applyState (partial-js apply-state r)
-              :setRenderViewSize (partial-js resize-view! r)}))) 
+              :setRenderViewSize (partial-js resize-view! r)
+              :addPostRender (partial-js-passthrough add-post-render r)}))) 
