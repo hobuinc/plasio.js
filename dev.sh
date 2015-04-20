@@ -4,6 +4,10 @@
 SESSION_NAME=plasio
 PWD=`pwd`
 
+# move vendor stuff to dist
+mkdir -p lib/dist
+cp vendor/laz-perf.js lib/dist/
+
 tmux has-session -t $SESSION_NAME
 if [ $? != 0 ] ; then
     tmux new-session -d -s $SESSION_NAME -c $PWD/lib 'npm run dev'
