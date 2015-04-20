@@ -1,5 +1,5 @@
 .DS_Store
-gh-loader.js
-decompress.js
+/gh-loader.js
+/decompress.js
 node_modules/
 dist/
