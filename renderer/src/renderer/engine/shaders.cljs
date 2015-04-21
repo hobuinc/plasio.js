@@ -117,6 +117,7 @@
                   height_color * height_f +
                   inv_height_color * iheight_f;
 
+      //gl_PointSize = 2.0;
       gl_PointSize = (1.0 / tan(1.308/2.0)) * pointSize / (-mvPosition.z);
       gl_PointSize = gl_PointSize * 1000.0 / 2.0; 
   }")
