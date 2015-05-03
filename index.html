@@ -68,7 +68,7 @@
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
-       var p = new PlasioLib.QuadTreeNodePolicy(loaders, r, bbox);
+       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox);
        for (var l in loaders) {
          r.addLoader(loaders[l].constructor);
        }

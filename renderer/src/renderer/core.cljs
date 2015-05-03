@@ -9,7 +9,7 @@
             [cljs.core.async :as async])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
 
-(def init-state {:cameras []
+(def init-state {:view {:cameras []}
                  :display {:clear-color [0 0 0]
                            :render-options {}}})
 
@@ -17,9 +17,9 @@
   ;; Add the default camera to our renderer
   ;;
   (-> state
-      (update-in [:cameras] conj {:active true
-                                  :type "perspective"
-                                  :fov 70})))
+      (update-in [:view :cameras] conj {:active true
+                                        :type "perspective"
+                                        :fov 70})))
 
 (defprotocol IPlasioRenderer
   (startup [this elem])
@@ -54,10 +54,10 @@
       (reset! state (do-startup init-state))))
 
   (add-camera [this props]
-    (swap! state update-in [:cameras] conj props))
+    (swap! state update-in [:view :cameras] conj props))
 
   (update-camera [this index props]
-    (swap! state update-in [:cameras index] merge props))
+    (swap! state update-in [:view :cameras index] merge props))
 
   (set-clear-color [this r g b]
     (set-clear-color this [r g b]))

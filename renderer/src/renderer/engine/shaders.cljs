@@ -58,6 +58,8 @@
   uniform vec3  offset;
   uniform sampler2D map;
   uniform vec2  klassRange;
+  uniform vec2  pointSizeAttenuation; // (actual size contribution, attenuated size contribution)
+  uniform vec2  screen; // screen dimensions
 
   uniform sampler2D overlay;
 
@@ -117,9 +119,8 @@
                   height_color * height_f +
                   inv_height_color * iheight_f;
 
-      //gl_PointSize = 2.0;
-      gl_PointSize = (1.0 / tan(1.308/2.0)) * pointSize / (-mvPosition.z);
-      gl_PointSize = gl_PointSize * 1000.0 / 2.0; 
+      float attenuatedPointSize = ((1.0 / tan(1.308/2.0)) * pointSize / (-mvPosition.z)) * screen.y / 2.0;
+      gl_PointSize = dot(vec2(pointSize, attenuatedPointSize), pointSizeAttenuation);
   }")
 
 
@@ -160,7 +161,7 @@
   precision mediump float;
 
   uniform vec4 planes[6];
-  uniform int do_plane_clipping;
+  uniform int do_plane_clipping, circularPoints;
   uniform float intensityBlend;
 
   uniform sampler2D overlay;
@@ -178,16 +179,19 @@
       }
 
 
-      float a = pow(2.0*(gl_PointCoord.x - 0.5), 2.0);
-  	  float b = pow(2.0*(gl_PointCoord.y - 0.5), 2.0);
-      float c = 1.0 - (a + b);
+        if (circularPoints > 0) {
+        float a = pow(2.0*(gl_PointCoord.x - 0.5), 2.0);
+        float b = pow(2.0*(gl_PointCoord.y - 0.5), 2.0);
+        float c = 1.0 - (a + b);
 
-   	  if(c < 0.0){
-   	      discard;
-   	  }      
+        if(c < 0.0){
+            discard;
+        }      
+
 #if defined have_frag_depth
-      gl_FragDepthEXT = gl_FragCoord.z + 0.002*(1.0-pow(c, 1.0)) * gl_FragCoord.w;
+        gl_FragDepthEXT = gl_FragCoord.z + 0.002*(1.0-pow(c, 1.0)) * gl_FragCoord.w;
 #endif
+      }
       gl_FragColor = vec4(mix(out_color, out_intensity, intensityBlend), 1.0);
   }")
 

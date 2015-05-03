@@ -105,7 +105,10 @@
       (uniform :offset :vec3 [0 0 0])
       (uniform :map :tex 0)
       (uniform :klassRange :vec2 [0 1])
+      (uniform :pointSizeAttenuation :vec2 [1 0])
+      (uniform :screen :vec2 [1000 1000]) ;; not really but something
       (uniform :do_plane_clipping :int 0)
+      (uniform :circularPoints :int 0)
       (uniform :planes :vec4 (repeat 24 0))))
 
 (def ^:private picker-uniform-map
@@ -139,6 +142,7 @@
         uniforms (uniforms-with-override
                   base-uniform-map
                   (assoc render-options
+                    :screen [width height]
                     :projectionMatrix proj
                     :modelViewMatrix  mv
                     :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
@@ -233,8 +237,10 @@
                      (* (aget arr 3) f))]
     normalized))
 
-(defn cull-planes [mvp]
-  (let [g    (fn [f op1 op2]
+(defn cull-planes [proj mv]
+  (let [mvi  (js/mat4.invert js/mat4.create mv)
+        mvp  (js/mat4.multiply js/mat4.create proj mvi) ;; this is actually P*Vi (P = Projection, Vi = Inverse View)
+        g    (fn [f op1 op2]
                (f (aget mvp op1) (aget mvp op2)))
         mg   (fn [f m a b]
                (f (* m (aget mvp a)) (aget mvp b)))]
@@ -278,13 +284,26 @@
      (corner 0 1 1) (corner 1 0 0) (corner 1 0 1)
      (corner 1 1 0) (corner 1 1 1)]))
 
-(defn in-frustum? [planes mv a]
+(defn- pp [[nx ny nz _] [x1 y1 z1] [x2 y2 z2]]
+  [(if (> nx 0) x1 x2)
+   (if (> ny 0) y1 y2)
+   (if (> nz 0) z1 z2)])
+
+(defn- plane-distances [mins maxs plane]
+  (let [p1 (pp plane mins maxs)
+        p2 (pp plane maxs mins)
+        [nx ny nz d] plane
+        dist (fn [[x y z]]
+               (+ (* x nx) (* y ny) (* z nz) d))]
+    [(dist p1) (dist p2)]))
+
+(defn intersects-frustum? [planes mv a]
   (let [{:keys [mins maxs]} a
         mins (world->eye mv mins)
-        maxs (world->eye mv maxs)
-        points (all-points mins maxs)]
-    (every? identity
-          (map #(points-inside-plane? points %) planes))))
+        maxs (world->eye mv maxs)]
+    (not (some #(let [[d1 d2] %]
+                  (and (< d1 0) (< d2 0)))
+               (map plane-distances (repeat mins) (repeat maxs) planes)))))
 
 (defn render-state
   "Render the state in its current form"
@@ -292,7 +311,7 @@
   (let [gl (:gl state)
         aloader (:attrib-loader state)
         [width height] (render-view-size state)
-        cam (first (filter :active (:cameras source-state)))
+        cam (first (filter :active (get-in source-state [:view :cameras])))
         vw (:view source-state)
         dp (:display source-state)
         eye (or (:eye vw) [0 0 0])
@@ -300,7 +319,7 @@
         proj (projection-matrix gl cam width height)
         mv   (mv-matrix gl eye tar)
         mvp  (mvp-matrix gl mv proj)
-        planes (cull-planes proj)
+        planes (cull-planes proj mv)
         ro (:render-options dp)]
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
@@ -313,7 +332,9 @@
                                (map :attribs-id)
                                (map #(attribs/attribs-in aloader %))
                                (remove #(or (nil? %) (nil? (:point-buffer %))))
-                               #_(filter #(in-frustum? planes mv (:transform %))))]
+                               #_(filter #(intersects-frustum? planes mv (:transform %))))]
+      (println (count buffers-to-draw) "/" (count (:point-buffers state)))
+      
       (draw-all-buffers gl buffers-to-draw
                         (:shader state)
                         uniform-map
@@ -382,7 +403,7 @@
   (let [gl (:gl state)
         aloader (:attrib-loader state)
         [width height] (render-view-size state)
-        cam (first (filter :active (:cameras source-state)))
+        cam (first (filter :active (get-in source-state [:view :cameras])))
         vw (:view source-state)
         dp (:display source-state)
         eye (or (:eye vw) [0 0 0])
