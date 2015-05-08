@@ -100,7 +100,8 @@
          transform: new PlasioLib.Loaders.TransformLoader()
        };
 
-       var p = new PlasioLib.QuadTreeNodePolicy(loaders, r, bbox);
+       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox);
+       //var p = new PlasioLib.QuadTreeNodePolicy(loaders, r, bbox);
        for (var l in loaders) {
          r.addLoader(loaders[l].constructor);
        }
@@ -130,7 +131,7 @@
        var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
          r.setEyePosition(eye);
          r.setTargetPosition(target);
-       });
+       }, camParams);
 
        r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
