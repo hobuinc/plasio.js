@@ -48,7 +48,7 @@
        var baseURL = "http://52.4.221.249:8080";
        var pipelineId = "mini-shred";
 
-       var baseURL = "http://data.iowalidar.com";
+       var baseURL = "http://greyhound.iowalidar.com";
        var pipelineId = "ia-nineteen";
        
        // var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
@@ -80,8 +80,26 @@
        window.onresize = handleResize;
        handleResize();
 
+       console.log(history);
+
        PlasioLib.P2PNode.key = "d498vphryc8lg14i";
        return { element: e, renderer: r, policy: p };
+     };
+
+     var decomposeCamParameters = function() {
+         var q = window.location.search;
+         if (q.length === 0) return null;
+
+         q = q.slice(1);
+         var s = q.split("&").reduce(function(a, v) {
+             var p = v.split("=");
+             var k = p[0], v = JSON.parse(decodeURIComponent(p[1]));
+             a[k] = v;
+             return a;
+         }, {});
+
+
+         return s;
      };
 
      var ownerStartup = function() {
@@ -91,14 +109,20 @@
        var r = s.renderer;
        var p = s.policy;
 
-       r.addPropertyListener([], function(state) {
-         //console.log("state is:", state);
-       });
-       
+       var camParams = decomposeCamParameters();
+
+       console.log("Camera parameters:", camParams);
+
        var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
          r.setEyePosition(eye);
          r.setTargetPosition(target);
-       });
+       }, camParams);
+
+       // do some history setup
+       window.onpopstate = function(event) {
+           console.log("STATE!!!!");
+           c.applyState(event.state);
+       };
 
        r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
@@ -119,8 +143,19 @@
          
        });
 
-       p.start();
+       p.on("view-changed", function() {
+           var state = c.serialize();
 
+           var kv = function(k, first) {
+               return (first ? "?" : "&") + encodeURIComponent(k) + "=" + encodeURIComponent(JSON.stringify(state[k]));
+           };
+
+           var s = kv('distance', true) + kv('elevation') + kv('azimuth') + kv('maxDistance') + kv('distance') + kv('target');
+
+           history.pushState(state, "Viewing stuffs", s);
+       });
+
+       p.start();
      };
 
      ownerStartup();

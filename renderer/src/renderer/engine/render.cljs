@@ -132,7 +132,7 @@
                            (throw (js/Error. (str "Don't know type for field: " k))))))) which-map opts))
 
 (defn- draw-all-buffers
-  [gl bufs shader base-uniform-map proj mv render-options width height]
+  [gl bufs shader base-uniform-map proj mv render-options width height draw-bbox?]
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
         blend-func [bf/src-alpha bf/one-minus-src-alpha]
         viewport {:x 0
@@ -142,53 +142,81 @@
         uniforms (uniforms-with-override
                   base-uniform-map
                   (assoc render-options
-                    :screen [width height]
-                    :projectionMatrix proj
-                    :modelViewMatrix  mv
-                    :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
+                         :screen [width height]
+                         :projectionMatrix proj
+                         :modelViewMatrix  mv
+                         :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
     ;; The only two loaders we know how to handle right now are:
     ;;      point-buffer - The actual point cloud
     ;;      image-overlay - The overlay for this point-buffer
 
     (doseq [{:keys [point-buffer image-overlay transform]} bufs]
-      (let [total-points (:total-points point-buffer)
-            stride       (:point-stride point-buffer)
-            gl-buffer    (:gl-buffer point-buffer)
-            attribs      (mapv (fn [[name offset size]]
-                                 {:location (attrib-loc name)
-                                  :components-per-vertex size
-                                  :type data-type/float
-                                  :stride stride
-                                  :offset offset
-                                  :buffer gl-buffer}) (:attributes point-buffer))
+      ;; if we have a loaded point buffer for this buffer, lets render it, we may still want to draw
+      ;; the bbox if the point-buffer is not valid yet
+      ;;
+      (when point-buffer
+        (let [total-points (:total-points point-buffer)
+              stride       (:point-stride point-buffer)
+              gl-buffer    (:gl-buffer point-buffer)
+              attribs      (mapv (fn [[name offset size]]
+                                   {:location (attrib-loc name)
+                                    :components-per-vertex size
+                                    :type data-type/float
+                                    :stride stride
+                                    :offset offset
+                                    :buffer gl-buffer}) (:attributes point-buffer))
 
-            ;; when we have overlay image, pull it out
-            textures (when image-overlay [{:texture image-overlay :name "overlay"}])
+              ;; when we have overlay image, pull it out
+              textures (when image-overlay [{:texture image-overlay :name "overlay"}])
 
-            ;; determine overrides for this buffer
-            uniform-map (merge {:modelMatrix (:model-matrix transform) 
-                                :offset (:offset transform)
-                                :uvrange (:uv-range transform)}
+              ;; determine overrides for this buffer
+              uniform-map (merge {:modelMatrix (:model-matrix transform) 
+                                  :offset (:offset transform)
+                                  :uvrange (:uv-range transform)}
 
-                               ;; along with basic stuff, if we have a point size override, apply that
-                               (when-let [ps (:point-size point-buffer)]
-                                 {:pointSize ps}))
+                                 ;; along with basic stuff, if we have a point size override, apply that
+                                 (when-let [ps (:point-size point-buffer)]
+                                   {:pointSize ps}))
 
-            ;; convert them to a uniform structure which webgl understands
-            uniforms (uniforms-with-override uniforms uniform-map)]
+              ;; convert them to a uniform structure which webgl understands
+              uniforms (uniforms-with-override uniforms uniform-map)]
 
-        ;; draw this buffer
-        (buffers/draw! gl
-                       :shader shader
-                       :draw-mode draw-mode/points
-                       :viewport viewport
-                       :first 0
-                       :blend-func [blend-func]
-                       :count total-points
-                       :textures textures
-                       :capabilities {capability/depth-test true}
-                       :attributes attribs
-                       :uniforms (vals uniforms))))))
+          ;; draw this buffer
+          (buffers/draw! gl
+                         :shader shader
+                         :draw-mode draw-mode/points
+                         :viewport viewport
+                         :first 0
+                         :blend-func [blend-func]
+                         :count total-points
+                         :textures textures
+                         :capabilities {capability/depth-test true}
+                         :attributes attribs
+                         :uniforms (vals uniforms))))
+
+      ;; if we're supposed to render the bbox, render that too
+      (when draw-bbox?
+        ;; render the bounding box
+        (when-let [params (:bbox-params transform)]
+          (buffers/draw! gl
+                         :shader (:shader params)
+                         :draw-mode draw-mode/lines
+                         :viewport viewport
+                         :first 0
+                         :count 24
+                         :capabilities {capability/depth-test false}
+                         ;; this uniform setup is a little weird because this is what it looks like behind the scenes, we're
+                         ;; setting raw uniforms here
+                         :uniforms [{:name "m" :type :mat4 :values (:model-matrix transform)}
+                                    {:name "v" :type :mat4 :values mv}
+                                    {:name "p" :type :mat4 :values proj}]
+                         ;; just one attribute
+                         :attributes [{:location (:position-location params)
+                                       :components-per-vertex 3
+                                       :type data-type/float
+                                       :stride 12
+                                       :offset 0
+                                       :buffer (:buffer params)}]))))))
 
 (defn- draw-buffer-for-picking
   [gl buffer shader base-uniform-map proj mv render-options width height]
@@ -331,14 +359,14 @@
                                vals
                                (map :attribs-id)
                                (map #(attribs/attribs-in aloader %))
-                               (remove #(or (nil? %) (nil? (:point-buffer %))))
-                               #_(filter #(intersects-frustum? planes mv (:transform %))))]
+                               (remove #(or (nil? %))))]
       (println (count buffers-to-draw) "/" (count (:point-buffers state)))
       
       (draw-all-buffers gl buffers-to-draw
                         (:shader state)
                         uniform-map
-                        proj mv ro width height))
+                        proj mv ro width height
+                        true))
 
     ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]

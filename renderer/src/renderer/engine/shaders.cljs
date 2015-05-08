@@ -10,6 +10,9 @@
 (declare vertex-shader-picker)
 (declare frag-shader-picker)
 
+(declare bbox-vertex-shader)
+(declare bbox-fragment-shader)
+
 (defn create-shader [gl]
   ;; make sure that needed extensions are addeded
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader)
@@ -24,6 +27,17 @@
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader-picker)
         fs (shaders/create-shader gl shader/fragment-shader frag-shader-picker)]
     (shaders/create-program gl vs fs)))
+
+
+(def ^:private bbox-shader (atom nil))
+
+(defn create-get-bbox-shader [gl]
+  (if-let [s @bbox-shader]
+    s
+    (let [vs (shaders/create-shader gl shader/vertex-shader bbox-vertex-shader)
+          fs (shaders/create-shader gl shader/fragment-shader bbox-fragment-shader)
+          s  (shaders/create-program gl vs fs)]
+      (reset! bbox-shader s))))
 
 (def vertex-shader
   "
@@ -243,3 +257,9 @@
    void main() {
        float s = xyz.x + xyz.y + xyz.z;
 	   gl_FragColor = encode_float(s); }")
+
+(def bbox-vertex-shader
+  "attribute vec3 pos; uniform mat4 p, v, m; void main() { gl_Position = p * v * m * vec4(pos, 1.0); }")
+
+(def bbox-fragment-shader
+  "void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }")

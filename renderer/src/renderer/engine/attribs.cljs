@@ -5,14 +5,15 @@
 (ns renderer.engine.attribs
   (:require [renderer.engine.util :as u]
             [renderer.engine.specs :as specs]
+            [renderer.engine.shaders :as sh]
             [cljs-uuid.core :as uuid]
             [cljs-webgl.constants.webgl :as webgl]
             [cljs-webgl.constants.buffer-object :as buffer-object]
             [cljs-webgl.constants.texture-parameter-name :as tparams]
             [cljs-webgl.constants.texture-filter :as tfilter]
             [cljs-webgl.buffers :as buffers]
-            [cljs-webgl.texture :as texture]))
-
+            [cljs-webgl.texture :as texture]
+            [cljs-webgl.shaders :as shaders]))
 
 (defn- gen-id []
   (-> (uuid/make-random)
@@ -42,7 +43,7 @@
                             :parameters {tparams/texture-min-filter tfilter/linear
                                          tparams/texture-mag-filter tfilter/linear})))
 
-(defn- range [mins maxs]
+(defn- -range [mins maxs]
   ;; we don't really care about Z because it has mostly nothing to do with imagery
   (let [nx (aget mins 0) ny (aget mins 1)
         xx (aget maxs 0) xy (aget maxs 1)
@@ -63,6 +64,8 @@
 (defn point-cloud-space [arr]
   (js/Array (- (aget arr 0)) (aget arr 2) (aget arr 1)))
 
+(declare setup-bbox)
+
 (defmethod reify-attrib :transform [[_ transform]]
   ;; Note that this stuff is straight from JS land, so most things here are JS objects
   ;; Much apologies in advance
@@ -71,12 +74,15 @@
         mins     (aget transform "mins")
         maxs     (aget transform "maxs")
         model-matrix (transalation-matrix position)
-        uv-range     (range mins maxs)]
+        uv-range     (-range mins maxs)]
     {:model-matrix model-matrix
      :offset       (aget transform "offset")
      :mins         (point-cloud-space mins)
      :maxs         (point-cloud-space maxs)
-     :uv-range     uv-range}))
+     :uv-range     uv-range
+     :bbox-params  (setup-bbox position
+                               (point-cloud-space mins)
+                               (point-cloud-space maxs))}))
 
 (defmethod unreify-attrib :point-buffer [[_ buffer]]
   (.deleteBuffer *gl-context* buffer))
@@ -85,8 +91,8 @@
   (.deleteTexture *gl-context* image))
 
 (defmethod unreify-attrib :transform [[_ transform]]
-  ;; nothing to do here
-  )
+  (when-let [b (get-in buffer [:bbox-params :buffer])]
+    (.deleteBuffer *gl-context* b)))
 
 (defprotocol IAttribLoader
   (reify-attribs [this context attribs])
@@ -118,3 +124,52 @@
 
 (defn create-attribs-loader []
   (AttribCache. (atom {})))
+
+
+;; some methods which need more work
+;;
+(declare gen-point-buffer)
+
+(defn- setup-bbox
+  "setup what we need to render bounding boxes for a rendered volume"
+  [pos mins maxs]
+  ;; generate a list of points as we need them rendering lines
+  (let [point-buffer (gen-point-buffer pos mins maxs)
+        ;; create a web-gl buffer out of them
+        gl-buffer (buffers/create-buffer *gl-context*
+                                         point-buffer
+                                         buffer-object/array-buffer
+                                         buffer-object/static-draw)
+        shader (sh/create-get-bbox-shader *gl-context*)
+        position-location (shaders/get-attrib-location *gl-context* shader "pos")]
+    {:buffer gl-buffer
+     :shader shader
+     :position-location position-location}))
+
+
+(defn gen-point-buffer [pos mins maxs]
+  (let [mins (mapv #(- %1 (aget pos %2)) mins (range))
+        maxs (mapv #(- %1 (aget pos %2)) maxs (range))
+
+        arr (js/Float32Array. (* 12 3 2))
+        ;; A simple function which picks elements out of either mins or max depending whether
+        ;; for the given index the bit is turned on or off
+        coord (fn [index]
+                (js/Array
+                 (get (if (bit-test index 2) maxs mins) 0)
+                 (get (if (bit-test index 1) maxs mins) 1)
+                 (get (if (bit-test index 0) maxs mins) 2)))
+        ;; pairs of lines that we need for rendering our bounding boxes
+        ;; 0 -> 000 -> mins, 7 -> 111 -> maxs
+        pairs [[0 1] [0 2] [0 4] [1 3] [1 5]
+               [5 7] [5 4] [6 7] [6 4] [6 2]
+               [3 2] [3 7]]]
+    (doall
+     (map (fn [[s e] i]
+            (let [s (coord s)
+                  e (coord e)
+                  off (* i 6)]
+              (.set arr s off)
+              (.set arr e (+ off 3))))
+          pairs (range)))
+    arr))

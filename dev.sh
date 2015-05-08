@@ -14,6 +14,7 @@ if [ $? != 0 ] ; then
     tmux split-window -v -t $SESSION_NAME -c $PWD/workers 'gulp watch'
     tmux split-window -v -t $SESSION_NAME -c $PWD/renderer 'lein cljsbuild auto dev'
     tmux split-window -v -t $SESSION_NAME 'env PORT=3000 http-server'
+    tmux select-layout -t $SESSION_NAME even-vertical
 fi
 
 tmux attach -t $SESSION_NAME
