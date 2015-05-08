@@ -36,6 +36,13 @@
                        (f a key old current)
                        (swap! state assoc :dirty? false))))))))
 
+(defn tap
+  ([v]
+   (tap v "tap"))
+  ([v n]
+   (println "----------------------------- " n " :: " v)
+   v))
+
 (defn encode-id
   "Encode the given ID and return a string representation of the JSON object"
   [jsobj]

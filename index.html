@@ -135,7 +135,8 @@
          z = bbox.maxs[2] - bbox.mins[2];
          
          // reset the state of our camera
-         c.setHint([x, y, z]);
+         if (!camParams)
+               c.setHint([x, y, z]);
 
          // update our renderer to set far clip plane to pretty far
          var farPlane = Math.sqrt(x*x + y*y) * 2;

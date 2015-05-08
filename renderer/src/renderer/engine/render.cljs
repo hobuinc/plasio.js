@@ -1,6 +1,7 @@
 (ns renderer.engine.render
   "State renderer"
   (:require [renderer.log :as l]
+            [renderer.util :refer [tap]]
             [renderer.engine.shaders :as s]
             [renderer.engine.attribs :as attribs]
             [renderer.engine.specs :as specs]
@@ -21,7 +22,6 @@
             [cljs-webgl.constants.shader :as shader]
             [cljs-webgl.buffers :as buffers]
             [cljs-webgl.typed-arrays :as ta]))
-
 
 
 (defn- to-rads [a]
@@ -283,10 +283,6 @@
           (js/Array (g - 3 2) (g - 7 6) (g - 11 10) (g - 15 14)) ; far
           ])))
 
-(defn- tap [v]
-  (println "+++++++++++++++++++++ tap:" v)
-  v)
-
 (defn point-inside? [plane p]
   (let [v (+ (js/vec3.dot plane p) (aget plane 3))]
     (> v 0)))
@@ -366,7 +362,7 @@
                         (:shader state)
                         uniform-map
                         proj mv ro width height
-                        true))
+                        false))
 
     ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
