@@ -87,7 +87,7 @@
       (uniform :class_f :float 0.0)
       (uniform :map_f :float 0.0)
       (uniform :imap_f :float 0.0)
-      (uniform :overlay_f :float 1.0)
+      (uniform :overlay_f :float 0.0)
 
       (uniform :intensity_f :float 0.0)
       (uniform :height_f :float 0.0)
@@ -163,7 +163,7 @@
                                     :components-per-vertex size
                                     :type data-type/float
                                     :stride stride
-                                    :offset offset
+                                    :offset (* 4 offset)
                                     :buffer gl-buffer}) (:attributes point-buffer))
 
               ;; when we have overlay image, pull it out

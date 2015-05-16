@@ -91,7 +91,7 @@
   (.deleteTexture *gl-context* image))
 
 (defmethod unreify-attrib :transform [[_ transform]]
-  (when-let [b (get-in buffer [:bbox-params :buffer])]
+  (when-let [b (get-in transform [:bbox-params :buffer])]
     (.deleteBuffer *gl-context* b)))
 
 (defprotocol IAttribLoader
