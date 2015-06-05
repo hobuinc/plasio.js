@@ -57,18 +57,20 @@
        var baseURL = "http://52.0.223.227";
        var pipelineId = "nepal";
 
+       var baseURL = "http://54.157.130.127";
+       var pipelineId = "iowa-link";
+
        
        // var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
        //var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
        // var bbox = [-10214432.963804673, 5087648.60266133, -10175297.205322662, 5126784.361143343];
 
-         /*
          var bbox = [
              // Whole state in web-mercator.
-             -10796577.371225, 4902908.135781,
-             -10015953.953824, 5375808.896799
+             -10796577.371225, 4902908.135781, 0,
+             -10015953.953824, 5375808.896799, 1000
          ]
-         */
+         /*
          var bbox = [
              348327,
              3067668,
@@ -77,15 +79,18 @@
              3068647,
              1399.52
          ]
+         */
+
+       var MAX_DEPTH = 21
 
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, 15, true, true),
-         //overlay: new PlasioLib.Loaders.MapboxLoader(),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true),
+         overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
-       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox, 10, 15);
+       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox, 10, MAX_DEPTH);
        for (var l in loaders) {
          r.addLoader(loaders[l].constructor);
        }
@@ -144,7 +149,8 @@
        r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
          pointSize: 1,
-         rgb_f: 1.0,
+         rgb_f: 0.0,
+         overlay_f: 1.0,
          maxColorComponent: (1 << 16)
        });
 
