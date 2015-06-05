@@ -57,7 +57,8 @@
        var baseURL = "http://52.0.223.227";
        var pipelineId = "nepal";
 
-       var baseURL = "http://54.157.130.127";
+       //var baseURL = "http://54.157.130.127";
+       var baseURL = "http://dh1bhcvxlzpg1.cloudfront.net";
        var pipelineId = "iowa-link";
 
        
@@ -81,7 +82,7 @@
          ]
          */
 
-       var MAX_DEPTH = 21
+       var MAX_DEPTH = 22
 
 
        var loaders = {
@@ -90,7 +91,7 @@
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
-       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox, 10, MAX_DEPTH);
+       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox, 20, MAX_DEPTH);
        for (var l in loaders) {
          r.addLoader(loaders[l].constructor);
        }
@@ -131,6 +132,11 @@
        var r = s.renderer;
        var p = s.policy;
 
+
+       // for playing in repl
+       window.s = s;
+
+         
        var camParams = decomposeCamParameters();
 
        console.log("Camera parameters:", camParams);
@@ -148,7 +154,7 @@
 
        r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
-         pointSize: 1,
+         pointSize: 2,
          rgb_f: 0.0,
          overlay_f: 1.0,
          maxColorComponent: (1 << 16)
