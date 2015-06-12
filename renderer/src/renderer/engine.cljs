@@ -3,6 +3,7 @@
   (:require [renderer.engine.util :refer [safe-korks join-ks mk-vector
                                           mk-color set-vector tvstr]]
             [renderer.util :as util :refer [add-framed-watch]]
+            [renderer.engine.util :as eutil]
             [renderer.engine.shaders :as shaders]
             [renderer.engine.model-cache :as mc]
             [renderer.engine.render :as r]
@@ -167,13 +168,34 @@
                              identity
                              identity)))))
 
+(defn update-line-segments
+  [cursor state-segments]
+  (println "Updating line segments")
+  (let [gl (root cursor :gl)]
+    (transact! cursor []
+               (fn [segments]
+                 (let [p
+                       (add-remove state-segments segments
+                                   (fn [[_ start end col]]
+                                     ;; line buffer creation is sync op, so we don't have to delegate stuff to
+                                     ;; attrib loaders etc.  Just create the buffer and move on
+                                     ;;
+                                     {:buffer (eutil/make-line-buffer gl start end)
+                                      :color col})
+                                   identity
+                                   first)]
+                   (println "Lines state!")
+                   (println p)
+                   p)))))
+
 (defn- sync-local-state
   "Given the current state of the renderer, updates the running state so that all
   needed componenets are created and added to the scene"
   [cursor]
   ;; update point buffers
-  (let [{:keys [point-buffers]} (source-state cursor)]
-    (update-point-buffers (sub-cursor cursor [:point-buffers]) point-buffers)))
+  (let [{:keys [point-buffers line-segments]} (source-state cursor)]
+    (update-point-buffers (sub-cursor cursor [:point-buffers]) point-buffers)
+    (update-line-segments (sub-cursor cursor [:line-segments]) line-segments)))
 
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]

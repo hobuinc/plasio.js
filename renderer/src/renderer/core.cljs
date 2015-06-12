@@ -40,7 +40,10 @@
   (pick-point [this x y])
   (apply-state [this state])
   (resize-view! [this w h])
-  (add-post-render [this f]))
+  (add-post-render [this f])
+  (add-line-segment [this id start-pos end-pos color])
+  (remove-line-segment [this id])
+  (remove-all-line-segments [this]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -131,8 +134,21 @@
     (r/resize-view! @render-engine w h))
 
   (add-post-render [this f]
-    (r/add-post-render @render-engine f)))
+    (r/add-post-render @render-engine f))
 
+  (add-line-segment [this id start end col]
+    (swap! state update-in [:line-segments] conj [id start end col]))
+
+  (remove-line-segment [this id]
+    (swap! state update-in [:line-segments]
+           (fn [lines]
+             (remove #(-> %
+                          first
+                          (= id))
+                     lines))))
+
+  (remove-all-line-segments [this]
+    (swap! state assoc :line-segments '())))
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -169,4 +185,7 @@
               :pickPoint (partial-js pick-point r)
               :applyState (partial-js apply-state r)
               :setRenderViewSize (partial-js resize-view! r)
-              :addPostRender (partial-js-passthrough add-post-render r)}))) 
+              :addPostRender (partial-js-passthrough add-post-render r)
+              :addLineSegment (partial-js add-line-segment r)
+              :removeLineSegment (partial-js remove-line-segment r)
+              :removeAllLineSegments (partial-js remove-all-line-segments r)}))) 

@@ -1,5 +1,9 @@
 (ns renderer.engine.util
-  "Utility functions for everyone")
+  "Utility functions for everyone"
+  (:require [cljs-webgl.constants.buffer-object :as buffer-object]
+            [cljs-webgl.constants.texture-parameter-name :as tparams]
+            [cljs-webgl.constants.texture-filter :as tfilter]
+            [cljs-webgl.buffers :as buffers]))
 
 
 (defn mk-vector
@@ -50,3 +54,12 @@
   [f m]
   (into {} (for [[k v] m]
              [k (f [k v])])))
+
+(defn make-line-buffer [gl start end]
+  (let [buf (->> (concat start end)
+                 (apply array)
+                 (js/Float32Array.))]
+    (buffers/create-buffer gl
+                           buf
+                           buffer-object/array-buffer
+                           buffer-object/static-draw)))

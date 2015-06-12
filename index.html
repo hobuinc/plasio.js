@@ -51,15 +51,19 @@
        var baseURL = "http://52.4.221.249:8080";
        var pipelineId = "mini-shred";
 
-       var baseURL = "http://greyhound.iowalidar.com";
+       var baseURL = "http://data.iowalidar.com";
        var pipelineId = "ia-nineteen";
 
+         /*
        var baseURL = "http://52.0.223.227";
        var pipelineId = "nepal";
+            */
 
        //var baseURL = "http://54.157.130.127";
+         /*
        var baseURL = "http://dh1bhcvxlzpg1.cloudfront.net";
        var pipelineId = "iowa-link";
+            */
 
        
        // var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
@@ -82,7 +86,7 @@
          ]
          */
 
-       var MAX_DEPTH = 22
+       var MAX_DEPTH = 19
 
 
        var loaders = {
@@ -185,6 +189,24 @@
            var s = kv('distance', true) + kv('elevation') + kv('azimuth') + kv('maxDistance') + kv('distance') + kv('target');
 
            history.pushState(state, "Viewing stuffs", s);
+       });
+
+
+       var mode = new PlasioLib.Modes.LinePicker(e, r);
+
+       document.addEventListener("keydown", function(evt) {
+           console.log("keydown");
+           if (evt.keyCode === 16) {
+               c.enableControls(false);
+               mode.activate();
+           }
+       });
+
+       document.addEventListener("keyup", function(evt) {
+           if (evt.keyCode === 16) {
+               c.enableControls(true);
+               mode.deactivate();
+           }
        });
 
        p.start();

@@ -364,6 +364,29 @@
                         proj mv ro width height
                         false))
 
+    ;; draw any lines we may need, don't z-test or write to z
+    (let [line-shader (s/create-get-line-shader gl)
+          position-loc (shaders/get-attrib-location gl line-shader "position")]
+      (doseq [[_ l] (:line-segments state)]
+        (println l)
+        (.lineWidth gl 5)
+        (buffers/draw! gl
+                       :shader line-shader
+                       :draw-mode draw-mode/lines
+                       :viewport {:x 0 :y 0 :width width :height height}
+                       :first 0
+                       :blend-func [bf/one bf/zero] ; no contribution from what we have on screen, blindly color this
+                       :count 2
+                       :capabilities {capability/depth-test false}
+                       :attributes [{:location position-loc
+                                     :components-per-vertex 3
+                                     :type data-type/float
+                                     :stride 12
+                                     :buffer (:buffer l)}]
+                       :uniforms [{:name "mv" :type :mat4 :values mv}
+                                  {:name "p" :type :mat4 :values proj}
+                                  {:name "color" :type :vec3 :values (ta/float32 (mapv #(/ % 255) (:color l)))}])))
+
     ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
       (cb gl mvp mv proj))))
@@ -469,7 +492,6 @@
 (defrecord PointPicker [picker-state]
   IPointPicker
   (pick-point [this {:keys [source-state] :as state} client-x client-y]
-    (println "picking point:" client-x client-y)
     (let [gl (:gl state)
           [w h] (render-view-size state)]
       ;; if we haven't loaded the shader yet, do so now

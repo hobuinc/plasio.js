@@ -13,6 +13,9 @@
 (declare bbox-vertex-shader)
 (declare bbox-fragment-shader)
 
+(declare line-vertex-shader)
+(declare line-fragment-shader)
+
 (defn create-shader [gl]
   ;; make sure that needed extensions are addeded
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader)
@@ -38,6 +41,15 @@
           fs (shaders/create-shader gl shader/fragment-shader bbox-fragment-shader)
           s  (shaders/create-program gl vs fs)]
       (reset! bbox-shader s))))
+
+(let [line-shader (atom nil)]
+  (defn create-get-line-shader [gl]
+    (or @line-shader
+        (let [vs (shaders/create-shader gl shader/vertex-shader line-vertex-shader)
+              fs (shaders/create-shader gl shader/fragment-shader line-fragment-shader)
+              s  (shaders/create-program gl vs fs)]
+          (reset! line-shader s)
+          s))))
 
 (def vertex-shader
   "
@@ -263,3 +275,25 @@
 
 (def bbox-fragment-shader
   "void main() { gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0); }")
+
+
+;; Shader to draw lines, line coordinates are expected to be in world space
+;; not point cloud space
+(def line-vertex-shader
+  "precision mediump float;
+
+   uniform mat4  mv,p;
+   attribute vec3 position;
+
+   void main() {
+       gl_Position = p * mv * vec4(position, 1.0);
+   }")
+
+(def line-fragment-shader
+  "
+  precision mediump float;
+
+  uniform vec3 color;
+  void main() {
+      gl_FragColor = vec4(color, 1.0);
+  }")
