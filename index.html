@@ -125,12 +125,11 @@
 
        r.addPropertyListener(["line-segments"], function(l) {
            if (!l) return;
-           
-           console.log("what lines", lines);
-           var start = l[0][1];
-           var end = l[0][2];
 
-           lines = [[start, end]];
+           lines = l.map(function(_l) {
+               return [_l[1], _l[2], _l[3]];
+           });
+           
            console.log("lines:", lines);
        });
 
