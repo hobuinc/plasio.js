@@ -58,7 +58,8 @@
   (add-loader [this loader])
   (remove-loader [this loader])
   (resize-view! [this w h])
-  (add-post-render [this f]))
+  (add-post-render [this f])
+  (project-to-image [this mat which res]))
 
 
 (defn- changes
@@ -271,7 +272,16 @@
 
   (add-post-render [_ f]
     (let [rs (:run-state @state)]
-      (swap! rs update-in [:post-render] conj f))))
+      (swap! rs update-in [:post-render] conj f)))
+
+  (project-to-image [_ mat which res]
+    ;; the mat here is used as a model view matrix, so make sure you know what you're passing
+    ;; basically this will be passed down as projection matrix with view matrix being identity
+    ;; which is the same as passing down mat view, the user is free to align this matrix whichever
+    ;; way they prefer
+    (let [rs @(:run-state @state)
+          rs (assoc rs :source-state @(:source-state @state))]
+      (r/project-to-image rs mat which res))))
 
 
 (defn make-engine

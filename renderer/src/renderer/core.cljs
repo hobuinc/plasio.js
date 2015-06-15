@@ -43,7 +43,8 @@
   (add-post-render [this f])
   (add-line-segment [this id start-pos end-pos color])
   (remove-line-segment [this id])
-  (remove-all-line-segments [this]))
+  (remove-all-line-segments [this])
+  (project-to-image [this projection-view-matrix coordinate-index resolution]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -148,7 +149,11 @@
                      lines))))
 
   (remove-all-line-segments [this]
-    (swap! state assoc :line-segments '())))
+    (swap! state assoc :line-segments '()))
+
+  (project-to-image [this mat which res]
+    ;; projection using matrix mat, picks _which_ coordinate (0, 1, 2) and res is the output image size
+    (r/project-to-image @render-engine mat which res)))
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -188,4 +193,5 @@
               :addPostRender (partial-js-passthrough add-post-render r)
               :addLineSegment (partial-js add-line-segment r)
               :removeLineSegment (partial-js remove-line-segment r)
-              :removeAllLineSegments (partial-js remove-all-line-segments r)}))) 
+              :removeAllLineSegments (partial-js remove-all-line-segments r)
+              :projectToImage (partial-js project-to-image r)})))

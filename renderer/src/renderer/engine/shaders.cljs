@@ -177,7 +177,6 @@
        xyz = which * worldPos.xyz;
    }")
 
-
 (def frag-shader
   "
 #if defined have_frag_depth

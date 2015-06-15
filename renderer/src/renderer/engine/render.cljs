@@ -57,8 +57,14 @@
     (set! (.-mvp gl) (js/Array 16))
     gl))
 
+(defn typed-array? [v]
+  (let [t (type v)]
+    (or (= t js/Float32Array)
+        (= t js/Uint8Array))))
+
 (defn- coerce [v typ]
   (let [v (if (or (sequential? v)
+                  (typed-array? v)
                   (= (type v) js/Array)) v [v])]
     (cond
       (#{:mat4 :float :vec4 :vec3 :vec2 } typ)  (ta/float32 v)
@@ -368,7 +374,6 @@
     (let [line-shader (s/create-get-line-shader gl)
           position-loc (shaders/get-attrib-location gl line-shader "position")]
       (doseq [[_ l] (:line-segments state)]
-        (println l)
         (.lineWidth gl 5)
         (buffers/draw! gl
                        :shader line-shader
@@ -385,7 +390,7 @@
                                      :buffer (:buffer l)}]
                        :uniforms [{:name "mv" :type :mat4 :values mv}
                                   {:name "p" :type :mat4 :values proj}
-                                  {:name "color" :type :vec3 :values (ta/float32 (mapv #(/ % 255) (:color l)))}])))
+                                  {:name "color" :type :vec3 :values (ta/float32 (map #(/ % 255) (:color l)))}])))
 
     ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
@@ -476,14 +481,62 @@
     ;; unbind framebuffer
     (.bindFramebuffer gl fbo/framebuffer nil)))
 
-(defn- read-pixel [gl target x y]
-  (let [buf (js/Uint8Array. 4)]
-    (.bindFramebuffer gl fbo/framebuffer (:fb target))
-    (.readPixels gl x y 1 1 pf/rgba dt/unsigned-byte buf)
+(defn- read-pixels
+  ([gl target x y]
+   (read-pixels gl target x y 1 1))
+
+  ([gl target x y width height]
+   (let [buf (js/Uint8Array. (* 4 width height))]
+     (.bindFramebuffer gl fbo/framebuffer (:fb target))
+     (.readPixels gl x y width height pf/rgba dt/unsigned-byte buf)
+     (.bindFramebuffer gl fbo/framebuffer nil)
+
+     (js/Float32Array. (.-buffer buf)))))
+
+(defn- mv-mat []
+  (let [m (js/mat4.create)
+        m (js/mat4.identity m)
+        m (js/mat4.rotateX m m 1.5705)
+        m (js/mat4.translate m m (array 0 0 -1000))]
+    m))
+
+
+(defn project-to-image [{:keys [source-state] :as state} proj which res]
+  ;; create an offscreen buffer, render to it, read pixels and destroy all the things
+  ;;
+  (let [gl (:gl state)
+        target-buffer (create-fb-buffer gl res res)
+        shader (s/create-picker-shader gl)
+        aloader (:attrib-loader state)
+        mv identity-matrix
+        dp (:display source-state)
+        which (case which
+                0 [1 0 0]
+                1 [0 0 1]
+                [0 1 0])
+        ro (-> (:render-options dp)     ; picker rendering options don't need a ton of options
+               (select-keys [:xyzScale :zrange :offset])
+               (assoc :pointSize 1
+                      :which which))]
+
+    (js/console.log "projecting!" proj mv dp which)
+    (.bindFramebuffer gl fbo/framebuffer (:fb target-buffer))
+
+    (buffers/clear-color-buffer gl 0.0 0.0 0.0 0.0)
+    (buffers/clear-depth-buffer gl 1.0)
+
+    (doseq [{:keys [attribs-id]} (vals (:point-buffers state))]
+      (when-let [buffer (attribs/attribs-in aloader attribs-id)]
+        (draw-buffer-for-picking gl buffer shader
+                                 picker-uniform-map
+                                 proj mv ro res res)))
+
     (.bindFramebuffer gl fbo/framebuffer nil)
 
-    (let [as-float (js/Float32Array. (.-buffer buf))]
-      (aget as-float 0))))
+    (let [pxs (read-pixels gl target-buffer 0 0 res res)]
+      (release-pick-buffers gl [target-buffer])
+      pxs)))
+
 
 (defprotocol IPointPicker
   (pick-point [this state x y]))
@@ -521,10 +574,11 @@
 
       ;; finally read from all three buffers
       (let [x client-x
-            y (- h client-y)]
-        [(read-pixel gl (:x @picker-state) x y)
-         (read-pixel gl (:y @picker-state) x y)
-         (read-pixel gl (:z @picker-state) x y)]))))
+            y (- h client-y)
+            rp (fn [k] (aget (read-pixels gl
+                                          (k @picker-state)
+                                          x y) 0))]
+        [(rp :x) (rp :y) (rp :z)]))))
 
 
 (defn create-picker []

@@ -52,9 +52,3 @@
   "Decode the given ID and return a json object"
   [s]
   (js/JSON.parse (b64/decodeString s)))
-
-(defn random-id
-  "Generate a random id"
-  (-> (js/Math.random)
-      (.toFixed 32)
-      (subs 2)))
