@@ -2,6 +2,7 @@
   "State renderer"
   (:require [renderer.log :as l]
             [renderer.util :refer [tap]]
+            [renderer.engine.util :as util]
             [renderer.engine.shaders :as s]
             [renderer.engine.attribs :as attribs]
             [renderer.engine.specs :as specs]
@@ -16,6 +17,7 @@
             [cljs-webgl.constants.texture-parameter-name :as tpn]
             [cljs-webgl.constants.texture-wrap-mode :as twm]
             [cljs-webgl.constants.pixel-format :as pf]
+            [cljs-webgl.texture :as texture]
             [cljs-webgl.constants.draw-mode :as draw-mode]
             [cljs-webgl.constants.data-type :as data-type]
             [cljs-webgl.constants.buffer-object :as buffer-object]
@@ -46,12 +48,13 @@
         target (apply array target)]
     (js/mat4.lookAt m eye target up-vector)))
 
-(defn- mvp-matrix [gl mv proj]
+(defn- mvp-matrix [gl proj mv]
   (let [m (.-mvp gl)]
-    (js/mat4.multiply m mv proj)))
+    (js/mat4.multiply m proj mv)))
 
 (defn get-gl-context [elem]
-  (let [gl (context/get-context elem)]
+  (let [gl (context/get-context elem {:alpha true
+                                      :premultiplied-alpha false})]
     (set! (.-proj gl) (js/Array 16))
     (set! (.-mv gl) (js/Array 16))
     (set! (.-mvp gl) (js/Array 16))
@@ -151,7 +154,7 @@
                          :screen [width height]
                          :projectionMatrix proj
                          :modelViewMatrix  mv
-                         :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
+                         :modelViewProjectionMatrix (mvp-matrix gl proj mv)))]
     ;; The only two loaders we know how to handle right now are:
     ;;      point-buffer - The actual point cloud
     ;;      image-overlay - The overlay for this point-buffer
@@ -246,7 +249,7 @@
                     :modelMatrix (:model-matrix transform)
                     :projectionMatrix proj
                     :modelViewMatrix  mv
-                    :modelViewProjectionMatrix (mvp-matrix gl mv proj)))]
+                    :modelViewProjectionMatrix (mvp-matrix gl proj mv)))]
     (buffers/draw! gl
                    :shader shader
                    :draw-mode draw-mode/points
@@ -348,14 +351,14 @@
         tar (or (:target vw) [0 0 0])
         proj (projection-matrix gl cam width height)
         mv   (mv-matrix gl eye tar)
-        mvp  (mvp-matrix gl mv proj)
+        mvp  (mvp-matrix gl proj mv)
         planes (cull-planes proj mv)
         ro (:render-options dp)]
-    ; clear buffer
+                                        ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
 
-    ; draw all loaded buffers
+                                        ; draw all loaded buffers
     (let [buffers-to-draw (->> state
                                :point-buffers
                                vals
@@ -373,6 +376,8 @@
     ;; draw any lines we may need, don't z-test or write to z
     (let [line-shader (s/create-get-line-shader gl)
           position-loc (shaders/get-attrib-location gl line-shader "position")]
+      ;; first draw lines
+      ;;
       (doseq [[_ l] (:line-segments state)]
         (.lineWidth gl 5)
         (buffers/draw! gl
@@ -380,7 +385,7 @@
                        :draw-mode draw-mode/lines
                        :viewport {:x 0 :y 0 :width width :height height}
                        :first 0
-                       :blend-func [bf/one bf/zero] ; no contribution from what we have on screen, blindly color this
+                       :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
                        :count 2
                        :capabilities {capability/depth-test false}
                        :attributes [{:location position-loc
@@ -390,9 +395,33 @@
                                      :buffer (:buffer l)}]
                        :uniforms [{:name "mv" :type :mat4 :values mv}
                                   {:name "p" :type :mat4 :values proj}
-                                  {:name "color" :type :vec3 :values (ta/float32 (map #(/ % 255) (:color l)))}])))
+                                  {:name "color" :type :vec3 :values (ta/float32 (map #(/ % 255) (:color l)))}]))
+      ;; we need to draw nice looking end-points, but that can be only done in ortho space
+      ;;
+      (when-let [ls (seq (:line-segments state))]
+        ;; transform all points to screen space and then show them using line handles
+        (let [to-screen (fn [x y z]
+                          [(* (/ (+ x 1) 2) width)
+                           (* (/ (- 1 y) 2) height)
+                           z])
+              points (mapcat (fn [[_ {:keys [start end]}]]
+                               (let [s (apply array start)
+                                     e (apply array end)
+                                     ts (js/vec3.transformMat4 s s mvp)
+                                     te (js/vec3.transformMat4 e e mvp)]
+                                 ;; for each line segment, emit two points in screen space
+                                 ;; start and end
+                                 [(to-screen (aget s 0) (aget s 1) (aget s 2))
+                                  (to-screen (aget e 0) (aget e 1) (aget e 2))])) ls)
+              points (filter (fn [[x y z]]
+                               (and (< z 1.0)
+                                    (> x 0)
+                                    (< x width)
+                                    (> y 0)
+                                    (< y height))) points)]
+          (util/draw-line-handle gl points width height))))
 
-    ; if there are any post render callback, call that
+                                        ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
       (cb gl mvp mv proj))))
 
@@ -464,7 +493,7 @@
         mv   (mv-matrix gl eye tar)
         ro (-> (:render-options dp)     ; picker rendering options don't need a ton of options
                (select-keys [:xyzScale :zrange :offset])
-               (assoc :pointSize 20
+               (assoc :pointSize 10
                       :which which))]
     ;; render to the provided target framebuffer
     (.bindFramebuffer gl fbo/framebuffer (:fb target))
@@ -487,11 +516,15 @@
 
   ([gl target x y width height]
    (let [buf (js/Uint8Array. (* 4 width height))]
+     (read-pixels gl target x y width height (.-buffer buf))))
+
+  ([gl target x y width height buffer]
+   (let [buf (js/Uint8Array. buffer)]
      (.bindFramebuffer gl fbo/framebuffer (:fb target))
      (.readPixels gl x y width height pf/rgba dt/unsigned-byte buf)
      (.bindFramebuffer gl fbo/framebuffer nil)
 
-     (js/Float32Array. (.-buffer buf)))))
+     (js/Float32Array. buffer))))
 
 (defn- mv-mat []
   (let [m (js/mat4.create)
@@ -546,39 +579,64 @@
   IPointPicker
   (pick-point [this {:keys [source-state] :as state} client-x client-y]
     (let [gl (:gl state)
-          [w h] (render-view-size state)]
-      ;; if we haven't loaded the shader yet, do so now
+          [w h] (render-view-size state)
+          dirt (:dirt @picker-state)
+          ;; dirty flag keeps track of whether we need to re-render the buffers
+          clean? (and (identical? (:display dirt) (:display source-state))
+                      (identical? (:point-buffers dirt) (:point-buffers state))
+                      (= (:width dirt) w)
+                      (= (:height dirt) h))]
+
+      ;; if we're not clean, we gotta re-render the points
       ;;
-      (when-not (:shader @picker-state)
-        (let [shader (s/create-picker-shader gl)]
-          (swap! picker-state assoc :shader shader)))
-      
-      ;; first determine if the size of the display has changed on us
-      ;;
-      (when (or (not= w (:width @picker-state))
-                (not= h (:height @picker-state)))
-       ;; the size of the view changed on us, re-create the buffers
-       (release-pick-buffers gl (select-keys @picker-state [:x :y :z]))
-       (let [bufs (create-pick-buffers gl w h)]
-         (swap! picker-state assoc
-                :width w
-                :height h
-                :x (:x bufs)
-                :y (:y bufs)
-                :z (:z bufs))))
-      ;; now go ahead and render the three buffers and read the point
-      (let [shader (:shader @picker-state)]
-        (draw-picker state shader (:x @picker-state) [1 0 0])
-        (draw-picker state shader (:y @picker-state) [0 1 0])
-        (draw-picker state shader (:z @picker-state) [0 0 1]))
+      (when-not clean?
+        ;; first make sure we update our dirt state
+        (swap! picker-state assoc :dirt {:display (:display source-state)
+                                         :point-buffers (:point-buffers state)
+                                         :width w
+                                         :height h})
+        
+        ;; if we haven't loaded the shader yet, do so now
+        ;;
+        (when-not (:shader @picker-state)
+          (let [shader (s/create-picker-shader gl)]
+            (swap! picker-state assoc :shader shader)))
+        
+        ;; first determine if the size of the display has changed on us
+        ;;
+        (when (or (not= w (:width @picker-state))
+                  (not= h (:height @picker-state)))
+          ;; the size of the view changed on us, re-create the buffers
+          (release-pick-buffers gl (select-keys @picker-state [:x :y :z]))
+          (let [bufs (create-pick-buffers gl w h)
+                read-buffer-size (* 4 w h)]
+            (swap! picker-state assoc
+                   :width w
+                   :height h
+                   :rx (js/Float32Array. read-buffer-size)
+                   :ry (js/Float32Array. read-buffer-size)
+                   :rz (js/Float32Array. read-buffer-size)
+                   :x (:x bufs)
+                   :y (:y bufs)
+                   :z (:z bufs))))
+        ;; now go ahead and render the three buffers and read the point
+        (let [shader (:shader @picker-state)]
+          (draw-picker state shader (:x @picker-state) [1 0 0])
+          (draw-picker state shader (:y @picker-state) [0 1 0])
+          (draw-picker state shader (:z @picker-state) [0 0 1])
+
+          ;; read all textures unti our buffers
+          (read-pixels gl (:x @picker-state) 0 0 w h (.-buffer (:rx @picker-state)))
+          (read-pixels gl (:y @picker-state) 0 0 w h (.-buffer (:ry @picker-state)))
+          (read-pixels gl (:z @picker-state) 0 0 w h (.-buffer (:rz @picker-state))))) 
 
       ;; finally read from all three buffers
       (let [x client-x
             y (- h client-y)
-            rp (fn [k] (aget (read-pixels gl
-                                          (k @picker-state)
-                                          x y) 0))]
-        [(rp :x) (rp :y) (rp :z)]))))
+            off (+ x (* y w))
+            rp (fn [k]
+                 (aget (k @picker-state) off))]
+        [(rp :rx) (rp :ry) (rp :rz)]))))
 
 
 (defn create-picker []

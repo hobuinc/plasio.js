@@ -171,7 +171,6 @@
 
 (defn update-line-segments
   [cursor state-segments]
-  (println "Updating line segments")
   (let [gl (root cursor :gl)]
     (transact! cursor []
                (fn [segments]
@@ -182,21 +181,12 @@
                                      ;; attrib loaders etc.  Just create the buffer and move on
                                      ;;
                                      {:buffer (eutil/make-line-buffer gl start end)
+                                      :start start
+                                      :end end
                                       :color col})
                                    identity
                                    first)]
-                   (println "Lines state!")
-                   (println p)
                    p)))))
-
-(defn- sync-local-state
-  "Given the current state of the renderer, updates the running state so that all
-  needed componenets are created and added to the scene"
-  [cursor]
-  ;; update point buffers
-  (let [{:keys [point-buffers line-segments]} (source-state cursor)]
-    (update-point-buffers (sub-cursor cursor [:point-buffers]) point-buffers)
-    (update-line-segments (sub-cursor cursor [:line-segments]) line-segments)))
 
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]
@@ -220,7 +210,8 @@
       (.appendChild elem canvas)
 
       ;; setup whatever we can
-      (let [run-state (atom {:render-target elem
+      (let [run-state (atom {:render-count 0
+                             :render-target elem
                              :width width
                              :height height
                              :gl context
@@ -238,8 +229,19 @@
 
         (add-framed-watch
          source-state "__internal-ss"
-         (fn [_ _ _ new-state]
-           (sync-local-state (StateCursor. run-state [] new-state))))
+         (fn [_ _ old-state new-state]
+           (let [cursor (StateCursor. run-state [] new-state)]
+             ;; if buffers changed, update them
+             (when-not (identical? (:point-buffers old-state) (:point-buffers new-state))
+               (update-point-buffers (sub-cursor cursor [:point-buffers]) (:point-buffers new-state)))
+
+             ;; if line segments changed update them
+             (when-not (identical? (:line-segments old-state) (:line-segments new-state))
+               (update-line-segments (sub-cursor cursor [:line-segments]) (:line-segments new-state)))
+
+             ;; something still changed, so we need to make sure that renderer is updated, we do this
+             ;; by increasing our render count
+             (swap! run-state update-in [:render-count] inc))))
 
         (reset! state
                 {:run-state run-state
