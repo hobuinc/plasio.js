@@ -88,13 +88,13 @@
 (defn- add-remove
   "Given a seq of new objects, current state where the new objects eventually end up, a hash function, this function
   calls back the create and destroy functions and finally returns a new object which has the new objects added and removed"
-  ([in-ks out-obj create-fn destroy-fn update-fn hash-fn]
+  ([in-ks out-obj create-fn destroy-fn hash-fn]
      (let [[added-keys removed-keys unchanged-keys] (changes in-ks out-obj hash-fn)
            added-map   (into {} (for [k in-ks] [(hash-fn k) k]))
            added-objects   (select-keys added-map added-keys)
            removed-objects (select-keys out-obj removed-keys)]
 
-       #_(print-them-nicely added-keys removed-keys unchanged-keys)
+       (print-them-nicely added-keys removed-keys unchanged-keys)
 
        ;; first delete all objects that need to go away
        ;;
@@ -105,11 +105,12 @@
        ;;
        (let [rn (into {} (for [[k v] added-objects] [k (create-fn v)]))
              cleaned (apply dissoc out-obj removed-keys)
-             ret (-> (into {} (for [[k v] cleaned] [k (update-fn v)]))
-                     (merge rn))]
+             ;; make sure when you call update, you give it the new input data
+             ret (merge cleaned rn)]
          ret)))
-  ([in-ks out-obj create-fn destroy-fn hash-fn]
-     (add-remove in-ks out-obj create-fn destroy-fn identity hash-fn)))
+
+  ([in-ks out-obj create-fn destroy-fn]
+   (add-remove in-ks out-obj create-fn destroy-fn identity)))
 
 (defn- add-model [cursor cache scene uri pos]
   (transact! cursor []
@@ -166,7 +167,6 @@
                                                       (let [attribs-id (attribs/reify-attribs attrib-loader gl loaded-info)]
                                                         (assoc v :attribs-id attribs-id))))))))
                                {:visible true})
-                             identity
                              identity)))))
 
 (defn update-line-segments
@@ -184,8 +184,7 @@
                                       :start start
                                       :end end
                                       :color col})
-                                   identity
-                                   first)]
+                                   identity)]
                    p)))))
 
 (defn- create-canvas-with-size [w h]

@@ -42,6 +42,7 @@
   (resize-view! [this w h])
   (add-post-render [this f])
   (add-line-segment [this id start-pos end-pos color])
+  (update-line-segment [this id start-pos end-pos color])
   (remove-line-segment [this id])
   (remove-all-line-segments [this])
   (project-to-image [this projection-view-matrix coordinate-index resolution]))
@@ -94,7 +95,7 @@
   (add-prop-listener [this korks f]
     (let [id (str (uuid/make-random))
           korks (map keyword (u/safe-korks korks))]
-      ; make sure the current value is sent on subscribe
+                                        ; make sure the current value is sent on subscribe
       (go (f (clj->js (get-in @state korks))))
       (add-watch state id
                  (fn [_ _ os ns]
@@ -139,6 +140,22 @@
 
   (add-line-segment [this id start end col]
     (swap! state update-in [:line-segments] conj [id start end col]))
+
+  (update-line-segment [this id start end col]
+    (swap! state update-in [:line-segments]
+           (fn [segments]
+             ;; find the item we're interested in
+             (let [[a b] (split-with (fn [[this-id _ _ _]]
+                                       (not= id this-id))
+                                     segments)]
+               (if-let [item (first b)]
+                 (do
+                   (let [[_ os oe ocol] item
+                         updated(concat a
+                                        [[id (or start os) (or end oe) (or col ocol)]]
+                                        (rest b))]
+                     updated))
+                 segments)))))
 
   (remove-line-segment [this id]
     (swap! state update-in [:line-segments]
@@ -194,4 +211,5 @@
               :addLineSegment (partial-js add-line-segment r)
               :removeLineSegment (partial-js remove-line-segment r)
               :removeAllLineSegments (partial-js remove-all-line-segments r)
+              :updateLineSegment (partial-js update-line-segment r)
               :projectToImage (partial-js project-to-image r)})))
