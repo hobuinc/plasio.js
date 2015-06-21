@@ -69,6 +69,9 @@
   (into {} (for [[k v] m]
              [k (f [k v])])))
 
+(defn release-line-buffer [gl buffer]
+  (.deleteBuffer gl buffer))
+
 (defn make-line-buffer [gl start end]
   (let [buf (->> (concat start end)
                  (apply array)

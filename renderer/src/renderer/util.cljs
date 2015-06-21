@@ -23,17 +23,44 @@
 (defn add-framed-watch [a key f]
   (let [state (atom {:dirty? false
                      :old nil
-                     :current nil})]
+                     :new nil})]
     (add-watch a key
                (fn [_ _ ov nv]
-                 (swap! state assoc
-                        :old ov
-                        :current nv)
+                 ;; retain old state if we already have it
+                 ;; while within a frame we don't care what all transitions we go through
+                 ;; we only care and notify the transition from the first one to the last one
+
+                 (let [old-state (or (:old @state)
+                                     ov)
+                       new-state nv]
+                   (swap! state assoc
+                          :old old-state
+                          :new new-state)
+                   (when-not (:dirty? @state)
+                     (swap! state assoc :dirty? true)
+                     (next-tick
+                      (fn []
+                        (f a key (:old @state) (:new @state))
+                        (swap! state assoc
+                               :dirty? false
+                               :old nil
+                               :new nil))))))))
+  
+  #_(let [state (atom {:dirty? false
+                     :transitions []})]
+    (add-watch a key
+               (fn [_ _ ov nv]
+                 (swap! state update-in :transitions conj [ov nv])
                  (when-not (:dirty? @state)
                    (swap! state assoc :dirty? true)
                    (next-tick
-                    #(let [{:keys [old current]} @state]
-                       (f a key old current)
+                    #(when-let [txs (-> @state
+                                        :transitions
+                                        seq)]
+                       (doseq [[old current] txs]
+                         (f a key old current))
+
+                       ;; since we fired all transitions, we set ourselves clean
                        (swap! state assoc :dirty? false))))))))
 
 (defn tap

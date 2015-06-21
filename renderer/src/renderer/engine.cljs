@@ -94,7 +94,7 @@
            added-objects   (select-keys added-map added-keys)
            removed-objects (select-keys out-obj removed-keys)]
 
-       (print-them-nicely added-keys removed-keys unchanged-keys)
+       #_(print-them-nicely added-keys removed-keys unchanged-keys)
 
        ;; first delete all objects that need to go away
        ;;
@@ -184,6 +184,11 @@
                                       :start start
                                       :end end
                                       :color col})
+
+                                   (fn [{:keys [buffer] :as line}]
+                                     (println "remove" line)
+                                     (eutil/release-line-buffer gl buffer))
+                                   
                                    identity)]
                    p)))))
 

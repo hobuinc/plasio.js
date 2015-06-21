@@ -26,6 +26,7 @@
 
     <script>
      var dp = null; // do profile, function that does profile stuff for us
+     var clearLines = null; // clear lines
      var lines = [];
 
      var commonStartup = function() {
@@ -57,10 +58,11 @@
        var baseURL = "http://data.iowalidar.com";
        var pipelineId = "ia-nineteen";
 
-         /*
+       var baseURL = "http://data-link.iowalidar.com";
+       var pipelineId = "iowa-dyn";
+
        var baseURL = "http://52.0.223.227";
        var pipelineId = "nepal";
-            */
 
        //var baseURL = "http://54.157.130.127";
          /*
@@ -73,12 +75,13 @@
        //var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
        // var bbox = [-10214432.963804673, 5087648.60266133, -10175297.205322662, 5126784.361143343];
 
+         /*
          var bbox = [
              // Whole state in web-mercator.
              -10796577.371225, 4902908.135781, 0,
              -10015953.953824, 5375808.896799, 1000
          ]
-         /*
+            */
          var bbox = [
              348327,
              3067668,
@@ -87,13 +90,12 @@
              3068647,
              1399.52
          ]
-         */
 
-       var MAX_DEPTH = 19
+       var MAX_DEPTH = 14;
 
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true, true, true),
          overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
@@ -121,7 +123,7 @@
 
             var p = new PlasioLib.Features.Profiler(r);
             p.profileLines(lines, bbox);
-        }
+        };
 
        r.addPropertyListener(["line-segments"], function(l) {
            if (!l) return;
@@ -180,7 +182,7 @@
            c.applyState(event.state);
        };
 
-       r.setClearColor(0.8, 0, 0);
+       r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
          pointSize: 2,
          rgb_f: 0.0,
@@ -218,6 +220,12 @@
 
        var mode = new PlasioLib.Modes.LinePicker(e, r);
 
+        clearLines = function() {
+            console.log("clearing lines!");
+            mode.resetState();
+        };
+
+
        document.addEventListener("keydown", function(evt) {
            console.log("keydown");
            if (evt.keyCode === 16) {
@@ -241,6 +249,9 @@
 
     <button style="position:absolute;top:10px;right:10px;z-index:10000"
             onclick="javascript:dp()">Do Profile</button>
+
+    <button style="position:absolute;top:10px;right:80px;z-index:10000"
+            onclick="javascript:clearLines()">Clear Lines</button>
 
 </body>
 </html>
