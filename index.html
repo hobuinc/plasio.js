@@ -70,18 +70,20 @@
        var pipelineId = "iowa-link";
             */
 
+         var baseURL = "http://data-link.iowalidar.com";
+         var pipelineId = "iowa-dyn";
+
        
        // var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
        //var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
        // var bbox = [-10214432.963804673, 5087648.60266133, -10175297.205322662, 5126784.361143343];
 
-         /*
          var bbox = [
              // Whole state in web-mercator.
              -10796577.371225, 4902908.135781, 0,
              -10015953.953824, 5375808.896799, 1000
          ]
-            */
+         /*
          var bbox = [
              348327,
              3067668,
@@ -90,12 +92,13 @@
              3068647,
              1399.52
          ]
+         */
 
-       var MAX_DEPTH = 14;
+       var MAX_DEPTH = 20;
 
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true, true, true),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true),
          overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
@@ -172,8 +175,7 @@
        console.log("Camera parameters:", camParams);
 
        var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
-         r.setEyePosition(eye);
-         r.setTargetPosition(target);
+           r.setEyeAndTargetPosition(eye, target);
        }, camParams);
 
        // do some history setup
@@ -189,6 +191,10 @@
          overlay_f: 1.0,
          maxColorComponent: (1 << 16)
        });
+
+         r.addPropertyListener([], function(p) {
+             console.log(p);
+         });
 
        p.on("bbox", function(bbox) {
          var x = bbox.maxs[0] - bbox.mins[0],

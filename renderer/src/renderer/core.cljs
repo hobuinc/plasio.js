@@ -28,17 +28,19 @@
   (update-camera [this index f])
   (set-eye-position [this x y z] [this pos])
   (set-target-position [this x y z] [this pos])
+  (set-eye-and-target-position [this eye target])
   (add-scale-object [this uri x y z] [this uri pos])
   (remove-all-scale-objects [this])
   (add-prop-listener [this korks f])
   (remove-prop-listener [this id])
-  (add-point-buffer [this id])
-  (remove-point-buffer [this id])
+  (add-point-buffer-batch [this ids])
+  (remove-point-buffer-batch [this ids])
+  (add-remove-point-buffers [this to-add-ids to-remove-ids])
   (add-loader [this loader])
   (remove-loader [this loader])
   (set-render-options [this opts])
   (pick-point [this x y])
-  (apply-state [this state])
+  (apply-state [this state applier-id])
   (resize-view! [this w h])
   (add-post-render [this f])
   (add-line-segment [this id start-pos end-pos color])
@@ -47,8 +49,17 @@
   (remove-all-line-segments [this])
   (project-to-image [this projection-view-matrix coordinate-index resolution]))
 
-(defrecord PlasioRenderer [state render-engine]
-  IPlasioRenderer
+
+(defn- my-swap! [atom f & args]
+  (let [stripper (fn [st]
+                   (let [new-state (apply f st args)]
+                     (dissoc new-state
+                             ;; all ids we want to be stripped out when we mutate state
+                             :x-applier-id)))]
+    (swap! atom stripper)))
+
+(defrecord PlasioRenderer [state render-engine history-size]
+  IPlasioRenderer 
   (startup [this elem]
     (l/logi "Doing startup!")
     (let [rengine (r/make-engine)]
@@ -59,22 +70,22 @@
       (reset! state (do-startup init-state))))
 
   (add-camera [this props]
-    (swap! state update-in [:view :cameras] conj props))
+    (my-swap! state update-in [:view :cameras] conj props))
 
   (update-camera [this index props]
-    (swap! state update-in [:view :cameras index] merge props))
+    (my-swap! state update-in [:view :cameras index] merge props))
 
   (set-clear-color [this r g b]
     (set-clear-color this [r g b]))
 
   (set-clear-color [this col]
-    (swap! state assoc-in [:display :clear-color] col))
+    (my-swap! state assoc-in [:display :clear-color] col))
 
   (set-eye-position [this x y z]
     (set-eye-position this [x y z]))
 
   (set-eye-position [this pos]
-    (swap! state assoc-in [:view :eye] pos))
+    (my-swap! state assoc-in [:view :eye] pos))
 
   (set-target-position [this x y z]
     (set-target-position this [x y z]))
@@ -84,13 +95,17 @@
     (add-scale-object this uri [x y z]))
 
   (add-scale-object [this uri pos]
-    (swap! state update-in [:scale-objects] conj [uri pos]))
+    (my-swap! state update-in [:scale-objects] conj [uri pos]))
 
   (remove-all-scale-objects [this]
-    (swap! state assoc-in [:scale-objects] []))
+    (my-swap! state assoc-in [:scale-objects] []))
 
   (set-target-position [this pos]
-    (swap! state assoc-in [:view :target] pos))
+    (my-swap! state assoc-in [:view :target] pos))
+
+  (set-eye-and-target-position [this eye target]
+    (my-swap! state update-in [:view]
+              assoc :eye eye :target target))
 
   (add-prop-listener [this korks f]
     (let [id (str (uuid/make-random))
@@ -101,21 +116,38 @@
                  (fn [_ _ os ns]
                    (let [v (get-in ns korks)
                          o (get-in os korks)]
-                     (when-not (= v o)
+                     (when-not (identical? v o)
                        (go (f (clj->js v)))))))
       id))
 
   (remove-prop-listener [this id]
     (remove-watch state id))
 
-  (add-point-buffer [this id]
+  (add-point-buffer-batch [this ids]
     ;; TODO: make sure that passed buffer is of javascript array buffer
-    (swap! state update-in [:point-buffers] conj (ru/encode-id id)))
+    (my-swap! state update-in [:point-buffers]
+              concat
+              (map ru/encode-id (vec ids))))
 
-  (remove-point-buffer [this id]
-    (swap! state update-in [:point-buffers]
+  (remove-point-buffer-batch [this ids]
+    (my-swap! state update-in [:point-buffers]
            (fn [bufs]
-             (remove #{(ru/encode-id id)} bufs))))
+             (let [to-remove (->> ids
+                                  vec
+                                  (map ru/encode-id)
+                                  set)]
+               (remove to-remove bufs)))))
+
+  (add-remove-point-buffers [this to-add-ids to-remove-ids]
+    (my-swap! state update-in [:point-buffers]
+              (fn [bufs]
+                (let [to-remove-set (->> to-remove-ids
+                                         vec
+                                         (map ru/encode-id)
+                                         set)]
+                  (->> bufs
+                       (remove to-remove-set)
+                       (concat (map ru/encode-id (vec to-add-ids))))))))
 
   (add-loader [this loader]
     (r/add-loader @render-engine loader))
@@ -124,13 +156,14 @@
     (r/remove-loader @render-engine loader))
 
   (set-render-options [this opts]
-    (swap! state update-in [:display :render-options] merge opts))
+    (my-swap! state update-in [:display :render-options] merge opts))
 
   (pick-point [this x y]
     (r/pick-point @render-engine x y))
 
-  (apply-state [this st]
-    (reset! state st))
+  (apply-state [this st applier-id]
+    (reset! state (assoc st
+                         :x-applier-id applier-id)))
 
   (resize-view! [this w h]
     (r/resize-view! @render-engine w h))
@@ -139,10 +172,10 @@
     (r/add-post-render @render-engine f))
 
   (add-line-segment [this id start end col]
-    (swap! state update-in [:line-segments] conj [id start end col]))
+    (my-swap! state update-in [:line-segments] conj [id start end col]))
 
   (update-line-segment [this id start end col]
-    (swap! state update-in [:line-segments]
+    (my-swap! state update-in [:line-segments]
            (fn [segments]
              ;; find the item we're interested in
              (let [[a b] (split-with (fn [[this-id _ _ _]]
@@ -158,7 +191,7 @@
                  segments)))))
 
   (remove-line-segment [this id]
-    (swap! state update-in [:line-segments]
+    (my-swap! state update-in [:line-segments]
            (fn [lines]
              (remove #(-> %
                           first
@@ -166,7 +199,7 @@
                      lines))))
 
   (remove-all-line-segments [this]
-    (swap! state assoc :line-segments '()))
+    (my-swap! state assoc :line-segments '()))
 
   (project-to-image [this mat which res]
     ;; projection using matrix mat, picks _which_ coordinate (0, 1, 2) and res is the output image size
@@ -188,20 +221,23 @@
 (defn ^:export createRenderer
   "Given a DOM element, initialize a renderer on it, also returns an object which
   can have methods invoked on it to do stuff with it"
-  [elem]
-  (let [r (PlasioRenderer. (atom {}) (atom nil))]
+  [elem history-size]
+  (let [history-size (or history-size 1000)
+        r (PlasioRenderer. (atom {}) (atom nil) history-size)]
     (startup r elem)
     (clj->js {:addCamera (partial-js add-camera r)
               :updateCamera (partial-js update-camera r)
               :setClearColor (partial-js set-clear-color r)
               :setEyePosition (partial-js set-eye-position r)
               :setTargetPosition (partial-js set-target-position r)
+              :setEyeAndTargetPosition (partial-js set-eye-and-target-position r)
               :addScaleObject (partial-js add-scale-object r)
               :removeAllScaleObjects (partial-js remove-all-scale-objects r)
               :addPropertyListener (partial-js add-prop-listener r)
               :removePropertyListener (partial-js remove-prop-listener r)
-              :addPointBuffer (partial-js-passthrough add-point-buffer r)
-              :removePointBuffer (partial-js-passthrough remove-point-buffer r)
+              :addPointBufferBatch (partial-js-passthrough add-point-buffer-batch r)
+              :removePointBufferBatch (partial-js-passthrough remove-point-buffer-batch r)
+              :addRemovePointBuffers (partial-js-passthrough add-remove-point-buffers r)
               :addLoader (partial-js add-loader r)
               :setRenderOptions (partial-js set-render-options r)
               :pickPoint (partial-js pick-point r)
