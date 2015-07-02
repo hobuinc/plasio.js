@@ -100,6 +100,12 @@
 
   uniform sampler2D overlay;
 
+  uniform int sceneOverlaysCount;
+
+  uniform sampler2D sceneOverlays[8];
+  uniform float sceneOverlayBlendContributions[8];
+  uniform vec4 sceneOverlayBounds[8];
+
   attribute vec3 position;
   attribute vec3 color;
   attribute float intensity;
@@ -149,6 +155,32 @@
               map_color * map_f +
               inv_map_color * imap_f +
               overlay_color * overlay_f;
+
+     // we now need to blend in the scene overlay colors
+     //
+     if (sceneOverlaysCount > 0) {
+        for (int i = 0 ; i < 8; i ++) {
+            if (i >= sceneOverlaysCount)
+                break;
+  
+            // only if this vertex is in our bounds do we care to shade it
+            //
+            vec4 bounds = sceneOverlayBounds[i]; // bounds are x1z1x2z2 packing
+            float contribution = sceneOverlayBlendContributions[i];
+            if (contribution > 0.00 &&
+                fpos.x >= bounds.x && fpos.x < bounds.z &&
+                fpos.z >= bounds.y && fpos.z < bounds.w) {
+                    // this vertex is in our view, lets shade it, first we need to figure the texture
+                    // coordinates
+                    //
+                    vec2 uuvv = vec2((fpos.x - bounds.x) / (bounds.z - bounds.x),
+                                     (fpos.z - bounds.y) / (bounds.w - bounds.y));
+
+                    vec3 overlayColor = texture2D(sceneOverlays[i], uuvv).rgb;
+                    out_color = mix(out_color, overlayColor, contribution);
+            }
+        }
+     }
 
      //out_color = vec3(uv, 0.0);
               

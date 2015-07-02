@@ -161,3 +161,15 @@
                                    :type data-type/float
                                    :stride 12
                                    :buffer gl-buffer}]))))
+
+
+(defn create-texture [gl image]
+  (texture/create-texture gl
+                          :image image
+                          :generate-mipmaps? true
+                          :pixel-store-modes {webgl/unpack-flip-y-webgl true}
+                          :parameters {tparams/texture-min-filter tfilter/linear-mipmap-nearest
+                                       tparams/texture-mag-filter tfilter/linear}))
+
+(defn destroy-texture [gl texture]
+  (.deleteTexture gl texture))
