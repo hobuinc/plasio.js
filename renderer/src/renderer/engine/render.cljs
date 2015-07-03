@@ -218,7 +218,7 @@
               (let [overlay-val (apply array indices)
                     uniform-loc (shaders/get-uniform-location gl shader "sceneOverlays")]
                 (js/console.log overlay-val)
-                (.uniform1iv gl uniform-loc overlay-val))
+                (.uniform1iv gl uniform-loc (ta/int32 overlay-val)))
 
               ;; the supporting uniforms are also sort of complex to set, so lets just do that using the raw
               ;; gl api
@@ -229,8 +229,9 @@
                     uniform-loc-bounds (shaders/get-uniform-location gl shader "sceneOverlayBounds")]
                 (js/console.log blend-contributions)
                 (js/console.log all-bounds)
-                (.uniform1fv gl uniform-loc-conts blend-contributions)
-                (.uniform1fv gl uniform-loc-bounds all-bounds))))
+                (.uniform1fv gl uniform-loc-conts (ta/float32 blend-contributions))
+                (.uniform4fv gl uniform-loc-bounds (ta/float32 all-bounds)))))
+
           
 
           ;; draw this buffer

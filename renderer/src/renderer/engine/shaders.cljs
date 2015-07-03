@@ -119,8 +119,9 @@
 
   void main() {
       fpos = ((position.xyz - offset) * xyzScale).xzy * vec3(-1, 1, 1);
+      vec4 wpos = modelMatrix * vec4(fpos, 1.0);
 
-      vec4 mvPosition = modelViewMatrix * modelMatrix * vec4( fpos, 1.0 );
+      vec4 mvPosition = modelViewMatrix * wpos;
       gl_Position = projectionMatrix * mvPosition;
       float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
 
@@ -168,13 +169,13 @@
             vec4 bounds = sceneOverlayBounds[i]; // bounds are x1z1x2z2 packing
             float contribution = sceneOverlayBlendContributions[i];
             if (contribution > 0.00 &&
-                fpos.x >= bounds.x && fpos.x < bounds.z &&
-                fpos.z >= bounds.y && fpos.z < bounds.w) {
+                wpos.x >= bounds.x && wpos.x < bounds.z &&
+                wpos.z >= bounds.y && wpos.z < bounds.w) {
                     // this vertex is in our view, lets shade it, first we need to figure the texture
                     // coordinates
                     //
-                    vec2 uuvv = vec2((fpos.x - bounds.x) / (bounds.z - bounds.x),
-                                     (fpos.z - bounds.y) / (bounds.w - bounds.y));
+                    vec2 uuvv = vec2((wpos.x - bounds.x) / (bounds.z - bounds.x),
+                                     (wpos.z - bounds.y) / (bounds.w - bounds.y));
 
                     vec3 overlayColor = texture2D(sceneOverlays[i], uuvv).rgb;
                     out_color = mix(out_color, overlayColor, contribution);
@@ -182,8 +183,6 @@
         }
      }
 
-     //out_color = vec3(uv, 0.0);
-              
       out_intensity = intensity_color * intensity_f +
                   height_color * height_f +
                   inv_height_color * iheight_f;

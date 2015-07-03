@@ -131,8 +131,10 @@
          overlay = function() {
              var image = new Image();
              image.onload = function() {
-                 r.addOverlay("1234", [-1000, -1000, 1000, 1000], image);
-             }
+                 r.addOverlay("1234", [-40000, -20000, 40000, 20000], image);
+                 r.addOverlay("123", [-60000, -60000, -40000, -40000], image);
+             };
+             
              image.crossOrigin = "";
              image.src = "https://placekitten.com/512/512";
          };
