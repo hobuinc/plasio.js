@@ -26,6 +26,7 @@
 
     <script>
      var dp = null; // do profile, function that does profile stuff for us
+     var overlay = null;
      var clearLines = null; // clear lines
      var lines = [];
 
@@ -58,11 +59,13 @@
        var baseURL = "http://data.iowalidar.com";
        var pipelineId = "ia-nineteen";
 
-       var baseURL = "http://data-link.iowalidar.com";
+       var baseURL = "http://data-dyn.iowalidar.com";
        var pipelineId = "iowa-dyn";
 
+         /*
        var baseURL = "http://52.0.223.227";
        var pipelineId = "nepal";
+            */
 
        //var baseURL = "http://54.157.130.127";
          /*
@@ -75,13 +78,12 @@
        //var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
        // var bbox = [-10214432.963804673, 5087648.60266133, -10175297.205322662, 5126784.361143343];
 
-         /*
          var bbox = [
              // Whole state in web-mercator.
              -10796577.371225, 4902908.135781, 0,
              -10015953.953824, 5375808.896799, 1000
-         ]
-            */
+         ];
+         /*
          var bbox = [
              348327,
              3067668,
@@ -90,12 +92,13 @@
              3068647,
              1399.52
          ]
+         */
 
        var MAX_DEPTH = 14;
 
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true, true, true),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true),
          overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
@@ -124,6 +127,17 @@
             var p = new PlasioLib.Features.Profiler(r);
             p.profileLines(lines, bbox);
         };
+
+         overlay = function() {
+             var image = new Image();
+             image.onload = function() {
+                 r.addOverlay("1234", [-40000, -20000, 40000, 20000], image);
+                 r.addOverlay("123", [-60000, -60000, -40000, -40000], image);
+             };
+             
+             image.crossOrigin = "";
+             image.src = "https://placekitten.com/512/512";
+         };
 
        r.addPropertyListener(["line-segments"], function(l) {
            if (!l) return;
@@ -246,6 +260,9 @@
 
      ownerStartup();
     </script>
+
+    <button style="position:absolute;top:10px;right:180px;z-index:10000"
+            onclick="javascript:overlay();">Add Overlay</button>
 
     <button style="position:absolute;top:10px;right:10px;z-index:10000"
             onclick="javascript:dp()">Do Profile</button>

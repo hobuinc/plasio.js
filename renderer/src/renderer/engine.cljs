@@ -59,7 +59,9 @@
   (remove-loader [this loader])
   (resize-view! [this w h])
   (add-post-render [this f])
-  (project-to-image [this mat which res]))
+  (project-to-image [this mat which res])
+  (add-overlay [this id bounds image])
+  (remove-overlay [this id]))
 
 
 (defn- changes
@@ -223,7 +225,8 @@
                              :picker (r/create-picker)
                              :attrib-loader (attribs/create-attribs-loader)
                              :loaders {}
-                             :point-buffers {}})]
+                             :point-buffers {}
+                             :screen-overlays {}})]
         ;; start watching states for changes
         (add-framed-watch
          run-state "__internal"
@@ -287,7 +290,21 @@
     ;; way they prefer
     (let [rs @(:run-state @state)
           rs (assoc rs :source-state @(:source-state @state))]
-      (r/project-to-image rs mat which res))))
+      (r/project-to-image rs mat which res)))
+
+  (add-overlay [_ id bounds image]
+    (let [rs (:run-state @state)
+          gl (:gl @rs)
+          texture (eutil/create-texture gl image)]
+      (swap! rs update-in [:scene-overlays] assoc id {:id id
+                                                      :bounds bounds
+                                                      :texture texture})))
+
+  (remove-overlay [_ id]
+    (let [rs (:run-state @state)]
+      (when-let [overlay (get-in rs [:scene-overlays id])]
+        (eutil/destroy-texture (:gl rs) (:texture overlay))
+        (swap! rs update-in [:scene-overlays] dissoc id)))))
 
 
 (defn make-engine

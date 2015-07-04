@@ -14,6 +14,8 @@
             [cljs-webgl.constants.data-type :as dt]
             [cljs-webgl.constants.framebuffer-object :as fbo]
             [cljs-webgl.constants.texture-filter :as tf]
+            [cljs-webgl.constants.texture-target :as tt]
+            [cljs-webgl.constants.texture-unit :as tu]
             [cljs-webgl.constants.texture-parameter-name :as tpn]
             [cljs-webgl.constants.texture-wrap-mode :as twm]
             [cljs-webgl.constants.pixel-format :as pf]
@@ -118,7 +120,8 @@
       (uniform :screen :vec2 [1000 1000]) ;; not really but something
       (uniform :do_plane_clipping :int 0)
       (uniform :circularPoints :int 0)
-      (uniform :planes :vec4 (repeat 24 0))))
+      (uniform :planes :vec4 (repeat 24 0))
+      (uniform :sceneOverlaysCount :int 0)))
 
 (def ^:private picker-uniform-map
   (-> {}
@@ -141,7 +144,7 @@
                            (throw (js/Error. (str "Don't know type for field: " k))))))) which-map opts))
 
 (defn- draw-all-buffers
-  [gl bufs shader base-uniform-map proj mv render-options width height draw-bbox?]
+  [gl bufs scene-overlays shader base-uniform-map proj mv render-options width height draw-bbox?]
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
         blend-func [bf/src-alpha bf/one-minus-src-alpha]
         viewport {:x 0
@@ -187,22 +190,62 @@
                                  (when-let [ps (:point-size point-buffer)]
                                    {:pointSize ps}))
 
-              ;; convert them to a uniform structure which webgl understands
-              uniforms (uniforms-with-override uniforms uniform-map)]
+              ;; figure out our overlays
+              overlays (->> scene-overlays
+                            (take 8)
+                            seq)]
+          ;; cljs.webgl cannot currently handle mutliple texture units, lets set them up here
+          ;;
+          (when overlays
+            ;; we have a shader limit of 8 overlays at this time
+            ;; TODO, Auto Detect texture unit count
+            (let [base-index 1
+                  indices (take (count overlays)
+                                (iterate inc base-index))] ;; base index is 1 since we want to leave texture0 untouched
+              ;; activate all textures
+              (doall
+               (map
+                (fn [texture-unit ovr]
+                  (.activeTexture gl (+ tu/texture0 texture-unit))
+                  (.bindTexture gl tt/texture-2d (:texture ovr)))
+                indices
+                overlays))
+
+              ;; set the texture unit back to 0
+              (.activeTexture gl tu/texture0)
+
+              ;; we need to now set sampler information in our sceneOverlays struct
+              (let [overlay-val (apply array indices)
+                    uniform-loc (shaders/get-uniform-location gl shader "sceneOverlays")]
+                (.uniform1iv gl uniform-loc (ta/int32 overlay-val)))
+
+              ;; the supporting uniforms are also sort of complex to set, so lets just do that using the raw
+              ;; gl api
+              (let [blend-contributions (apply array (repeat 8 1.0))
+                    all-bounds (apply array
+                                      (mapcat :bounds overlays))
+                    uniform-loc-conts (shaders/get-uniform-location gl shader "sceneOverlayBlendContributions")
+                    uniform-loc-bounds (shaders/get-uniform-location gl shader "sceneOverlayBounds")]
+                (.uniform1fv gl uniform-loc-conts (ta/float32 blend-contributions))
+                (.uniform4fv gl uniform-loc-bounds (ta/float32 all-bounds)))))
+
+          
 
           ;; draw this buffer
-          (buffers/draw! gl
-                         :shader shader
-                         :draw-mode draw-mode/points
-                         :viewport viewport
-                         :first 0
-                         :blend-func [blend-func]
-                         :count total-points
-                         :textures textures
-                         :capabilities {capability/depth-test true}
-                         :attributes attribs
-                         :uniforms (vals uniforms))))
-
+          (let [uniforms (uniforms-with-override uniforms
+                                                 (assoc uniform-map
+                                                        :sceneOverlaysCount (count overlays)))]
+            (buffers/draw! gl
+                           :shader shader
+                           :draw-mode draw-mode/points
+                           :viewport viewport
+                           :first 0
+                           :blend-func [blend-func]
+                           :count total-points
+                           :textures textures
+                           :capabilities {capability/depth-test true}
+                           :attributes attribs
+                           :uniforms (vals uniforms))))) 
       ;; if we're supposed to render the bbox, render that too
       (when draw-bbox?
         ;; render the bounding box
@@ -368,6 +411,8 @@
       (println (count buffers-to-draw) "/" (count (:point-buffers state)))
       
       (draw-all-buffers gl buffers-to-draw
+                        (-> (:scene-overlays state)
+                            vals)
                         (:shader state)
                         uniform-map
                         proj mv ro width height

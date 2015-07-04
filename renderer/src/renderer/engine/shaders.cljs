@@ -100,6 +100,12 @@
 
   uniform sampler2D overlay;
 
+  uniform int sceneOverlaysCount;
+
+  uniform sampler2D sceneOverlays[8];
+  uniform float sceneOverlayBlendContributions[8];
+  uniform vec4 sceneOverlayBounds[8];
+
   attribute vec3 position;
   attribute vec3 color;
   attribute float intensity;
@@ -113,8 +119,9 @@
 
   void main() {
       fpos = ((position.xyz - offset) * xyzScale).xzy * vec3(-1, 1, 1);
+      vec4 wpos = modelMatrix * vec4(fpos, 1.0);
 
-      vec4 mvPosition = modelViewMatrix * modelMatrix * vec4( fpos, 1.0 );
+      vec4 mvPosition = modelViewMatrix * wpos;
       gl_Position = projectionMatrix * mvPosition;
       float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
 
@@ -150,8 +157,32 @@
               inv_map_color * imap_f +
               overlay_color * overlay_f;
 
-     //out_color = vec3(uv, 0.0);
-              
+     // we now need to blend in the scene overlay colors
+     //
+     if (sceneOverlaysCount > 0) {
+        for (int i = 0 ; i < 8; i ++) {
+            if (i >= sceneOverlaysCount)
+                break;
+  
+            // only if this vertex is in our bounds do we care to shade it
+            //
+            vec4 bounds = sceneOverlayBounds[i]; // bounds are x1z1x2z2 packing
+            float contribution = sceneOverlayBlendContributions[i];
+            if (contribution > 0.00 &&
+                wpos.x >= bounds.x && wpos.x < bounds.z &&
+                wpos.z >= bounds.y && wpos.z < bounds.w) {
+                    // this vertex is in our view, lets shade it, first we need to figure the texture
+                    // coordinates
+                    //
+                    vec2 uuvv = vec2((wpos.x - bounds.x) / (bounds.z - bounds.x),
+                                     (wpos.z - bounds.y) / (bounds.w - bounds.y));
+
+                    vec3 overlayColor = texture2D(sceneOverlays[i], uuvv).rgb;
+                    out_color = mix(out_color, overlayColor, contribution);
+            }
+        }
+     }
+
       out_intensity = intensity_color * intensity_f +
                   height_color * height_f +
                   inv_height_color * iheight_f;

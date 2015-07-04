@@ -45,7 +45,9 @@
   (update-line-segment [this id start-pos end-pos color])
   (remove-line-segment [this id])
   (remove-all-line-segments [this])
-  (project-to-image [this projection-view-matrix coordinate-index resolution]))
+  (project-to-image [this projection-view-matrix coordinate-index resolution])
+  (add-overlay [this id bounds image])
+  (remove-overlay [this id]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -170,7 +172,21 @@
 
   (project-to-image [this mat which res]
     ;; projection using matrix mat, picks _which_ coordinate (0, 1, 2) and res is the output image size
-    (r/project-to-image @render-engine mat which res)))
+    (r/project-to-image @render-engine mat which res))
+
+
+  (add-overlay [this id bounds image]
+    ;; add an overlay at the specified bounds, note that these bounds are not in point cloud space
+    ;; but in world coordinates, where Y goes up and orgin is right at the middle of the point cloud
+    ;;
+    ;; TODO: At this point the overlays are passed down directly to the renderer.  They do not affect the
+    ;; state.  Eventually it would be nice to gave the renderer call back into the features so that the renderer
+    ;; could drive these things.
+    ;;
+    (r/add-overlay @render-engine id bounds image))
+
+  (remove-overlay [this id]
+    (r/remove-overlay @render-engine id)))
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -212,4 +228,6 @@
               :removeLineSegment (partial-js remove-line-segment r)
               :removeAllLineSegments (partial-js remove-all-line-segments r)
               :updateLineSegment (partial-js update-line-segment r)
-              :projectToImage (partial-js project-to-image r)})))
+              :projectToImage (partial-js project-to-image r)
+              :addOverlay (partial-js add-overlay r)
+              :removeOverlay (partial-js remove-overlay r)})))
