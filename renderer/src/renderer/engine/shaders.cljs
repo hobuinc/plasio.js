@@ -174,11 +174,11 @@
                     // this vertex is in our view, lets shade it, first we need to figure the texture
                     // coordinates
                     //
-                    vec2 uuvv = vec2((wpos.x - bounds.x) / (bounds.z - bounds.x),
+                    vec2 uuvv = vec2(1.0 - (wpos.x - bounds.x) / (bounds.z - bounds.x),
                                      (wpos.z - bounds.y) / (bounds.w - bounds.y));
 
-                    vec3 overlayColor = texture2D(sceneOverlays[i], uuvv).rgb;
-                    out_color = mix(out_color, overlayColor, contribution);
+                    vec4 overlayColor = texture2D(sceneOverlays[i], uuvv);
+                    out_color = mix(out_color, overlayColor.rgb, overlayColor.a * contribution);
             }
         }
      }

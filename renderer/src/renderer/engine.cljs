@@ -302,8 +302,8 @@
 
   (remove-overlay [_ id]
     (let [rs (:run-state @state)]
-      (when-let [overlay (get-in rs [:scene-overlays id])]
-        (eutil/destroy-texture (:gl rs) (:texture overlay))
+      (when-let [overlay (get-in @rs [:scene-overlays id])]
+        (eutil/destroy-texture (:gl @rs) (:texture overlay))
         (swap! rs update-in [:scene-overlays] dissoc id)))))
 
 
