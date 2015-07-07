@@ -62,10 +62,8 @@
        var baseURL = "http://data-dyn.iowalidar.com";
        var pipelineId = "iowa-dyn";
 
-         /*
        var baseURL = "http://52.0.223.227";
        var pipelineId = "nepal";
-            */
 
        //var baseURL = "http://54.157.130.127";
          /*
@@ -73,17 +71,22 @@
        var pipelineId = "iowa-link";
             */
 
+       var baseURL = "http://misc.greyhound.io";
+       var pipelineId = "new-york-city";
+
        
        // var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
        //var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
        // var bbox = [-10214432.963804673, 5087648.60266133, -10175297.205322662, 5126784.361143343];
 
+         /*
          var bbox = [
              // Whole state in web-mercator.
              -10796577.371225, 4902908.135781, 0,
              -10015953.953824, 5375808.896799, 1000
          ];
-         /*
+         */
+
          var bbox = [
              348327,
              3067668,
@@ -92,9 +95,19 @@
              3068647,
              1399.52
          ]
-         */
 
-       var MAX_DEPTH = 14;
+         // new york
+         var bbox = [
+             -8267096,
+             4938189,
+             -226,
+             -8204144,
+             5000518,
+             900
+         ];
+         
+
+       var MAX_DEPTH = 20;
 
 
        var loaders = {
@@ -103,7 +116,7 @@
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
-       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox, 20, MAX_DEPTH);
+       var p = new PlasioLib.CircularFrustumLODNodePolicy(loaders, r, bbox, 20, MAX_DEPTH);
        for (var l in loaders) {
          r.addLoader(loaders[l].constructor);
        }
