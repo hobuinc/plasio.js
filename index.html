@@ -21,7 +21,7 @@
        var DECOMPRESS_WORKER_PATH="/workers/decompress.js"
     </script>
 
-    <script src="renderer/plasio-renderer.js"></script>
+    <script src="renderer/target/dev/renderer.js"></script>
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
@@ -62,6 +62,11 @@
        var baseURL = "http://data-dyn.iowalidar.com";
        var pipelineId = "iowa-dyn";
 
+
+       // Autzen as an oct tree
+       var baseURL = "http://misc.greyhound.io";
+       var pipelineId = "autzen-oct";
+
          /*
        var baseURL = "http://52.0.223.227";
        var pipelineId = "nepal";
@@ -94,12 +99,23 @@
          ]
          */
 
-       var MAX_DEPTH = 14;
+
+       // Autzen oct tree bounds
+         var bbox = [
+             635577,
+             848882,
+             406,
+             639004,
+             853538,
+             616
+         ];
+
+       var MAX_DEPTH = 10;
 
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true),
-         overlay: new PlasioLib.Loaders.MapboxLoader(),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true, true),
+         //overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
@@ -206,9 +222,9 @@
        r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
          pointSize: 2,
-         rgb_f: 0.0,
-         overlay_f: 1.0,
-         maxColorComponent: (1 << 16)
+         rgb_f: 1.0,
+         overlay_f: 0.0,
+         maxColorComponent: 255
        });
 
        p.on("bbox", function(bbox) {

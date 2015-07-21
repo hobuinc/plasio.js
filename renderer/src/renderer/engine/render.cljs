@@ -25,7 +25,8 @@
             [cljs-webgl.constants.buffer-object :as buffer-object]
             [cljs-webgl.constants.shader :as shader]
             [cljs-webgl.buffers :as buffers]
-            [cljs-webgl.typed-arrays :as ta]))
+            [cljs-webgl.typed-arrays :as ta]
+            [cljsjs.gl-matrix]))
 
 
 (defn- to-rads [a]
@@ -416,7 +417,7 @@
                         (:shader state)
                         uniform-map
                         proj mv ro width height
-                        false))
+                        true))
 
     ;; draw any lines we may need, don't z-test or write to z
     (let [line-shader (s/create-get-line-shader gl)

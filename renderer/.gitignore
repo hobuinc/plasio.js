@@ -10,3 +10,5 @@ plasio-renderer.js
 .lein-deps-sum
 .lein-repl-history
 .lein-plugins/
+.idea/
+*.iml

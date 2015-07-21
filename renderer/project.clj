@@ -2,14 +2,15 @@
   :description "State transactional 3D renderer for plasio.js"
   :url "http://github.com/verma/plasio.js"
 
-  :dependencies [[org.clojure/clojure "1.6.0"]
-                 [org.clojure/clojurescript "0.0-2816"]
+  :dependencies [[org.clojure/clojure "1.7.0"]
+                 [org.clojure/clojurescript "0.0-3308"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
                  [cljs-uuid "0.0.4"]
                  [rm-hull/cljs-webgl "0.1.5-SNAPSHOT"]
-                 [weasel "0.3.0"]]
+                 [weasel "0.3.0"]
+                 [cljsjs/gl-matrix "2.3.0-jenanwise-0"]]
 
-  :plugins [[lein-cljsbuild "1.0.4-SNAPSHOT"]]
+  :plugins [[lein-cljsbuild "1.0.6"]]
   :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.1.3"]]
                    :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
                    :plugins [[com.cemerick/austin "0.1.5"]]}}
@@ -18,19 +19,18 @@
 
   :cljsbuild {
     :builds [{:id "dev"
-              :notify-command ["./scripts/post-compile.sh" "target/dev"]
               :source-paths ["src"]
               :compiler {:output-to "target/dev/renderer.js"
+			 :main renderer.core
+			 :asset-path "renderer/target/dev"
                          :output-dir "target/dev"
-                         :externs ["vendor/gl-matrix.js"]
                          :pretty-print true
-                         :optimizations :whitespace}}
+                         :optimizations :none}}
              {:id "release"
-              :notify-command ["./scripts/post-compile.sh" "target/rel"]
               :source-paths ["src"]
               :compiler {
                          :output-to "target/rel/renderer.js"
                          :output-dir "target/rel"
-                         :externs ["vendor/gl-matrix.js" "externs/webgl.js"]
+                         :externs ["externs/webgl.js"]
                          :pretty-print false
                          :optimizations :advanced}}]})
