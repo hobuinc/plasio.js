@@ -51,7 +51,7 @@
         cy (+ ny (/ (- xy ny) 2))]
     [(- nx cx) (- ny cy) (- xx cx) (- xy cy)])) 
 
-(defn- transalation-matrix [translate]
+(defn- translation-matrix [translate]
   (let [x (aget translate 0)
         y (aget translate 1)
         z (aget translate 2)]
@@ -73,7 +73,7 @@
         position (js/Array (- (aget position 0)) (aget position 2) (aget position 1))
         mins     (aget transform "mins")
         maxs     (aget transform "maxs")
-        model-matrix (transalation-matrix position)
+        model-matrix (translation-matrix position)
         uv-range     (-range mins maxs)]
     {:model-matrix model-matrix
      :offset       (aget transform "offset")
