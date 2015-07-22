@@ -417,7 +417,7 @@
                         (:shader state)
                         uniform-map
                         proj mv ro width height
-                        false))
+                        true))
 
     ;; draw any lines we may need, don't z-test or write to z
     (let [line-shader (s/create-get-line-shader gl)
