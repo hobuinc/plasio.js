@@ -10,7 +10,7 @@
   "devDependencies": {
     "buffer": "~2.7.0",
     "expose-loader": "^0.6.0",
-    "gl-matrix": "^2.1.0",
+    "gl-matrix": "^2.3.1",
     "greyhound.js": "0.0.7",
     "jaguarjs-jsdoc": "0.0.1",
     "lodash": "^3.3.1",
