@@ -47,7 +47,11 @@
   (remove-all-line-segments [this])
   (project-to-image [this projection-view-matrix coordinate-index resolution])
   (add-overlay [this id bounds image])
-  (remove-overlay [this id]))
+  (remove-overlay [this id])
+  (add-label [this id position text])
+  (remove-label [this id])
+  (update-label [this id position text])
+  (remove-all-labels [this]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -153,7 +157,7 @@
                (if-let [item (first b)]
                  (do
                    (let [[_ os oe ocol] item
-                         updated(concat a
+                         updated (concat a
                                         [[id (or start os) (or end oe) (or col ocol)]]
                                         (rest b))]
                      updated))
@@ -186,7 +190,43 @@
     (r/add-overlay @render-engine id bounds image))
 
   (remove-overlay [this id]
-    (r/remove-overlay @render-engine id)))
+    (r/remove-overlay @render-engine id))
+
+
+  (add-label [this id position text]
+    (swap! state update-in [:text-labels]
+           (fnil conj [])
+           [id position text]))
+
+  (update-label [this id position text]
+    (swap! state update-in [:text-labels]
+           (fn [labels]
+             ;; find the item we're interested in
+             (let [[a b] (split-with (fn [[this-id _ _]]
+                                       (not= id this-id))
+                                     labels)]
+               (if-let [item (first b)]
+                 (do
+                   (let [[_ pos t] item
+                         updated (concat a
+                                         [[id (or position pos) (or text t)]]
+                                         (rest b))]
+                     updated))
+                 labels)))))
+
+
+  (remove-label [this id]
+    (swap! state update-in [:text-labels]
+           (fn [labels]
+             (->> labels
+                  (remove #(-> %
+                               first
+                               (= id)))
+                  vec))))
+
+  (remove-all-labels [this]
+    (swap! state assoc :text-labels [])))
+
 
 (defn partial-js
   "Changes all passed arguments from javascript to clj types for easy mucking"
@@ -230,4 +270,8 @@
               :updateLineSegment (partial-js update-line-segment r)
               :projectToImage (partial-js project-to-image r)
               :addOverlay (partial-js add-overlay r)
-              :removeOverlay (partial-js remove-overlay r)})))
+              :removeOverlay (partial-js remove-overlay r)
+              :addLabel (partial-js add-label r)
+              :updateLabel (partial-js update-label r)
+              :removeLabel (partial-js remove-label r)
+              :removeAllLabels (partial-js remove-all-labels r)})))

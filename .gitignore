@@ -9,3 +9,5 @@ node.core
 /nepal
 /dist
 /out
+.idea/
+*.iml

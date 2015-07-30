@@ -188,11 +188,29 @@
                                       :color col})
 
                                    (fn [{:keys [buffer] :as line}]
-                                     (println "remove" line)
                                      (eutil/release-line-buffer gl buffer))
                                    
                                    identity)]
                    p)))))
+
+(defn update-labels
+  [cursor state-labels]
+  (let [gl (root cursor :gl)]
+    (transact! cursor []
+               (fn [labels]
+                 (println labels state-labels)
+                 (let [p (add-remove state-labels labels
+                                     ;; instantiate a new label
+                                     ;;
+                                     (fn [[_ position text]]
+                                       (println "create a new label:" position text)
+                                       {:position position
+                                        :text text})
+
+                                     ;; destroy a label
+                                     ;;
+                                     (fn [label]
+                                       (println "going to remove label" label)))])))))
 
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]
@@ -245,6 +263,10 @@
              ;; if line segments changed update them
              (when-not (identical? (:line-segments old-state) (:line-segments new-state))
                (update-line-segments (sub-cursor cursor [:line-segments]) (:line-segments new-state)))
+
+             ;; if the labels changed update them
+             (when-not (identical? (:text-labels old-state) (:text-labels new-state))
+               (update-labels (sub-cursor cursor [:text-labels]) (:text-labels new-state)))
 
              ;; something still changed, so we need to make sure that renderer is updated, we do this
              ;; by increasing our render count
