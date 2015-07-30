@@ -410,7 +410,7 @@
                                (map #(attribs/attribs-in aloader %))
                                (remove #(or (nil? %))))]
       (println (count buffers-to-draw) "/" (count (:point-buffers state)))
-      
+
       (draw-all-buffers gl buffers-to-draw
                         (-> (:scene-overlays state)
                             vals)
@@ -467,7 +467,19 @@
                                     (< y height))) points)]
           (util/draw-line-handle gl points width height))))
 
-                                        ; if there are any post render callback, call that
+
+          (doseq [l (-> state
+                        :text-labels
+                        vals
+                        seq)]
+            (when-let [p (util/->screen (:position l) mvp width height)]
+              (let [[x y _] p
+                    texture (-> l :texture :texture)
+                    w (-> l :texture :width)
+                    h (-> l :texture :height)]
+                (util/draw-2d-sprite gl texture x y w h width height))))
+
+    ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
       (cb gl mvp mv proj))))
 

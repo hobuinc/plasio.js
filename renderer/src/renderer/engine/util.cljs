@@ -17,7 +17,8 @@
             [cljs-webgl.typed-arrays :as ta]
             [cljs-webgl.texture :as texture]
             [cljs-webgl.shaders :as shaders]
-            [cljs-webgl.buffers :as buffers]))
+            [cljs-webgl.buffers :as buffers]
+            [cljsjs.gl-matrix]))
 
 
 (defn mk-vector
@@ -162,6 +163,96 @@
                                    :stride 12
                                    :buffer gl-buffer}]))))
 
+(let [sprite-buffer (atom nil)
+      proj-matrix (atom {:mat (js/mat4.create)
+                         :w   0
+                         :h   0})]
+  (defn create-get-2d-sprite-assets [gl vw vh]
+    {:gl-buffer (or @sprite-buffer
+                    (let [buffer (buffers/create-buffer gl
+                                                        (js/Float32Array.
+                                                          (array -1 -1 0
+                                                                 -1 1 0
+                                                                 1 1 0
+                                                                 -1 -1 0
+                                                                 1 1 0
+                                                                 1 -1 0))
+                                                        buffer-object/array-buffer
+                                                        buffer-object/static-draw)]
+                      (reset! sprite-buffer buffer)))
+     :proj      (if (and (= (:w @proj-matrix) vw)
+                         (= (:h @proj-matrix) vh))
+                  (:mat @proj-matrix)
+                  (do
+                    (swap! proj-matrix
+                          (fn [{:keys [mat]}]
+                            {:mat (js/mat4.ortho mat
+                                                 0 vw vh 0 -10 10)
+                             :w   vw
+                             :h   vh}))
+                    (:mat @proj-matrix)))}))
+
+
+(defn draw-2d-sprite [gl texture x y width height viewport-width viewport-height]
+  (let [{:keys [proj gl-buffer]} (create-get-2d-sprite-assets gl viewport-width viewport-height)
+        shader (s/create-get-sprite-shader gl)
+        position-loc (shaders/get-uniform-location gl shader "position")]
+    (buffers/draw! gl
+                   :shader shader
+                   :draw-mode draw-mode/triangles
+                   :viewport {:x 0 :y 0 :width viewport-width :height viewport-height}
+                   :first 0
+                   :count 6
+                   :capabilities {capability/depth-test false}
+                   :textures [{:texture texture :name "sprite"}]
+                   :uniforms [{:name "loc" :type :vec2 :values (ta/float32 [x y])}
+                              {:name "p" :type :mat4 :values proj}
+                              {:name "size" :type :vec2 :values (ta/float32 [width height])}]
+                   :attributes [{:location position-loc
+                                 :components-per-vertex 3
+                                 :type data-type/float
+                                 :stride 12
+                                 :buffer gl-buffer}])))
+
+
+(def font-size 40)
+
+(defn create-text-texture [gl text]
+  (let [canvas (.createElement js/document "canvas")
+        ctx (.getContext canvas "2d")
+        font-spec (str font-size "px sans-serif")
+        _ (set! (.-font ctx) font-spec)
+        width (.-width (.measureText ctx text))
+        height (* font-size 1.4)]
+    (set! (.-width canvas) width)
+    (set! (.-height canvas) height)
+    (set! (.-font ctx) font-spec)
+
+    (set! (.-textBaseline ctx) "middle")
+    (set! (.-textAlign ctx) "center")
+
+    (set! (.-fillStyle ctx) "white")
+    (set! (.-strokeStyle ctx) "black")
+    (.fillText ctx text (/ width 2) (/ height 2))
+    ;(.strokeText ctx text (/ width 2) (/ height 2))
+
+    ;; we now need to create a texture out of this
+    {:texture (texture/create-texture gl
+                                      :image canvas
+                                      :generate-mipmaps? false
+                                      :pixel-store-modes {webgl/unpack-flip-y-webgl false}
+                                      :parameters {tparams/texture-min-filter tfilter/linear
+                                                   tparams/texture-mag-filter tfilter/linear
+                                                   tparams/texture-wrap-s     twm/clamp-to-edge
+                                                   tparams/texture-wrap-t     twm/clamp-to-edge})
+     :width   (/ width 2)
+     :height  (/ height 2)}))
+
+
+(declare destroy-texture)
+
+(defn destroy-text-texture [gl {:keys [texture]}]
+  (destroy-texture gl texture))
 
 (defn create-texture [gl image]
   (texture/create-texture gl
@@ -173,3 +264,15 @@
 
 (defn destroy-texture [gl texture]
   (.deleteTexture gl texture))
+
+
+(defn- to-screen [x y z width height]
+  [(* (/ (+ x 1) 2) width)
+   (* (/ (- 1 y) 2) height)
+   z])
+
+(defn ->screen [point mat width height]
+  (let [p (apply array point)
+        _ (js/vec3.transformMat4 p p mat)]
+    (when (< (aget p 2) 1.0)
+      (to-screen (aget p 0) (aget p 1) (aget p 2) width height))))

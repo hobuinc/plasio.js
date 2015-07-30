@@ -275,19 +275,23 @@
             mode.resetState();
         };
 
-
+       var active = false;
        document.addEventListener("keydown", function(evt) {
-           console.log("keydown");
-           if (evt.keyCode === 16) {
+           if (evt.keyCode === 16 && !active) {
                c.enableControls(false);
                mode.activate();
+
+               active = true;
+
            }
        });
 
        document.addEventListener("keyup", function(evt) {
-           if (evt.keyCode === 16) {
+           if (evt.keyCode === 16 && active) {
                c.enableControls(true);
                mode.deactivate();
+
+               active = false;
            }
        });
 

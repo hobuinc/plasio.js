@@ -198,19 +198,19 @@
   (let [gl (root cursor :gl)]
     (transact! cursor []
                (fn [labels]
-                 (println labels state-labels)
                  (let [p (add-remove state-labels labels
                                      ;; instantiate a new label
                                      ;;
                                      (fn [[_ position text]]
-                                       (println "create a new label:" position text)
                                        {:position position
-                                        :text text})
+                                        :text     text
+                                        :texture  (eutil/create-text-texture gl text)})
 
                                      ;; destroy a label
                                      ;;
                                      (fn [label]
-                                       (println "going to remove label" label)))])))))
+                                       (eutil/destroy-text-texture gl (:texture label))))]
+                   p)))))
 
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]

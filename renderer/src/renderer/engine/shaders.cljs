@@ -19,6 +19,10 @@
 (declare line-handle-vertex-shader)
 (declare line-handle-fragment-shader)
 
+
+(declare sprite-vertex-shader)
+(declare sprite-fragment-shader)
+
 (defn create-shader [gl]
   ;; make sure that needed extensions are addeded
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader)
@@ -61,6 +65,14 @@
               fs (shaders/create-shader gl shader/fragment-shader line-handle-fragment-shader)
               s  (shaders/create-program gl vs fs)]
           (reset! line-handle-shader s)))))
+
+(let [sprite-shader (atom nil)]
+  (defn create-get-sprite-shader [gl]
+    (or @sprite-shader
+        (let [vs (shaders/create-shader gl shader/vertex-shader sprite-vertex-shader)
+              fs (shaders/create-shader gl shader/fragment-shader sprite-fragment-shader)
+              s  (shaders/create-program gl vs fs)]
+          (reset! sprite-shader s)))))
 
 (def vertex-shader
   "
@@ -368,3 +380,30 @@
       gl_FragColor = vec4(col.rgb, 1.0);
   }")
 
+(def sprite-vertex-shader
+  "precision mediump float;
+
+   uniform mat4  p;
+   uniform vec2  loc;
+   uniform vec2 size;
+   attribute vec3 position;
+
+   varying vec2 texcoord;
+
+   void main() {
+       texcoord = position.xy * 0.5 + vec2(0.5, 0.5);
+       vec3 offset = vec3(loc, 0.0);
+       gl_Position = p * vec4(position * vec3(size / 2.0, 1.0) + offset, 1.0);
+   }")
+
+(def sprite-fragment-shader
+  "
+  precision mediump float;
+  varying vec2 texcoord;
+  uniform sampler2D sprite;
+
+  void main() {
+      vec4 col = texture2D(sprite, texcoord);
+      if (col.a < 0.1) discard;
+      gl_FragColor = vec4(col.rgb, 1.0);
+  }")
