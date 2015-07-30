@@ -73,14 +73,24 @@
 (defn release-line-buffer [gl buffer]
   (.deleteBuffer gl buffer))
 
-(defn make-line-buffer [gl start end]
-  (let [buf (->> (concat start end)
+(defn make-line-buffer [gl points]
+  (println points)
+  (let [buf (->> (apply concat points)
                  (apply array)
-                 (js/Float32Array.))]
-    (buffers/create-buffer gl
-                           buf
-                           buffer-object/array-buffer
-                           buffer-object/static-draw)))
+                 (js/Float32Array.))
+        _ (js/console.log buf)
+        gl-buffer (buffers/create-buffer gl
+                                         buf
+                                         buffer-object/array-buffer
+                                         buffer-object/static-draw)]
+    (set! (.-prims gl-buffer) (-> points count dec))
+    gl-buffer))
+
+(defn canvas-of-size [width height]
+  (let [canvas (.createElement js/document "canvas")]
+    (set! (.-width canvas) width)
+    (set! (.-height canvas) height)
+    [canvas (.getContext canvas "2d")]))
 
 (let [line-handle-assets (atom nil)]
   (letfn [(create-line-handle-buffer [gl]
@@ -96,11 +106,7 @@
                                                 buffer-object/static-draw)]
               buffer))
 
-          (canvas-of-size [width height]
-            (let [canvas (.createElement js/document "canvas")]
-              (set! (.-width canvas) width)
-              (set! (.-height canvas) height)
-              [canvas (.getContext canvas "2d")]))
+
           
           (create-line-handle-texture [gl]
             (let [[canvas ctx] (canvas-of-size 64 64)]
@@ -214,7 +220,6 @@
                                  :stride 12
                                  :buffer gl-buffer}])))
 
-
 (def font-size 40)
 
 (defn create-text-texture [gl text]
@@ -248,7 +253,6 @@
      :width   (/ width 2)
      :height  (/ height 2)}))
 
-
 (declare destroy-texture)
 
 (defn destroy-text-texture [gl {:keys [texture]}]
@@ -265,6 +269,28 @@
 (defn destroy-texture [gl texture]
   (.deleteTexture gl texture))
 
+
+(defn- create-point-texture [gl border fill]
+  (let [[canvas ctx] (canvas-of-size 64 64)]
+    (.beginPath ctx)
+    (set! (.-fillStyle ctx) fill)
+    (set! (.-strokeStyle ctx) border)
+    (set! (.-lineWidth ctx) 4)
+    (.arc ctx 32 32 26 0 (* 2 js/Math.PI) false)
+    (.fill ctx)
+    (.stroke ctx)
+    (texture/create-texture gl
+                            :image canvas
+                            :generate-mipmaps? true
+                            :pixel-store-modes {webgl/unpack-flip-y-webgl true}
+                            :parameters {tparams/texture-min-filter tfilter/linear-mipmap-nearest
+                                         tparams/texture-mag-filter tfilter/linear})))
+
+(let [point-texture (atom nil)]
+  (defn create-get-point-textures [gl]
+    (or @point-texture
+        (reset! point-texture {:normal (create-point-texture gl "white" "blue")
+                               :hover  (create-point-texture gl "blue" "white")}))))
 
 (defn- to-screen [x y z width height]
   [(* (/ (+ x 1) 2) width)

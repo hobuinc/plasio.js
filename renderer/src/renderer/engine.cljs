@@ -171,28 +171,6 @@
                                {:visible true})
                              identity)))))
 
-(defn update-line-segments
-  [cursor state-segments]
-  (let [gl (root cursor :gl)]
-    (transact! cursor []
-               (fn [segments]
-                 (let [p
-                       (add-remove state-segments segments
-                                   (fn [[_ start end col]]
-                                     ;; line buffer creation is sync op, so we don't have to delegate stuff to
-                                     ;; attrib loaders etc.  Just create the buffer and move on
-                                     ;;
-                                     {:buffer (eutil/make-line-buffer gl start end)
-                                      :start start
-                                      :end end
-                                      :color col})
-
-                                   (fn [{:keys [buffer] :as line}]
-                                     (eutil/release-line-buffer gl buffer))
-                                   
-                                   identity)]
-                   p)))))
-
 (defn update-labels
   [cursor state-labels]
   (let [gl (root cursor :gl)]
@@ -211,6 +189,88 @@
                                      (fn [label]
                                        (eutil/destroy-text-texture gl (:texture label))))]
                    p)))))
+
+(defn change-set-for-points [new old]
+  ;; only return the points which have changed:
+  ;; 1. New points have changed
+  ;; 2. Points which have been updated have changed
+  (let [updated (->> new
+                     keys
+                     (remove #(identical? (get new %)
+                                          (get old %)))
+                     set)]
+    updated))
+
+(defn update-line-strips
+  [cursor state-line-strips state-points]
+  (let [gl (root cursor :gl)]
+    (transact! cursor []
+               (fn [strips]
+                 (println "incoming:" strips)
+                 (let [old-strips (:line-strips strips)
+                       old-points (:points strips)
+
+                       current-strips (-> old-strips keys set)
+                       new-strips (-> state-line-strips keys set)
+                       added-strips (clojure.set/difference new-strips current-strips)
+                       removed-strips (clojure.set/difference current-strips new-strips)
+                       changed-strips (clojure.set/intersection new-strips current-strips)]
+                   ;; dealing with unchanged-strips is more work, so lets just get done
+                   ;; with removed strips first
+                   ;;
+                   (println "added:" added-strips)
+                   (println "removed:" removed-strips)
+                   (println "changed:" changed-strips)
+                   (doall
+                     (map (fn [key]
+                            (let [buf (get-in old-strips [key :gl-buffer])]
+                              (eutil/release-line-buffer gl buf)))
+                          removed-strips))
+
+                   ;; merge in any new strips and the modified strip items
+                   (let [new-strips (merge
+                                      (zipmap
+                                        added-strips
+                                        (map (fn [key]
+                                               (let [info (get state-line-strips key)
+                                                     points (->> info
+                                                                 :points
+                                                                 (map #(->> %
+                                                                            (get state-points)
+                                                                            first))
+                                                                 (remove nil?))]
+                                                 (assoc info
+                                                   :gl-buffer (eutil/make-line-buffer gl points))))
+                                             added-strips))
+
+
+                                      ;; now deal with all the buffers which need to be updated
+                                      (let [changed-points (change-set-for-points state-points old-points)
+                                            strip-updated? (fn [a b]
+                                                             (or (not (identical? (:points a) (:points b)))
+                                                                 (some changed-points (:points a))))]
+                                        (zipmap
+                                          changed-strips
+                                          (map (fn [key]
+                                                 (println key state-line-strips current-strips)
+                                                 (let [new (get state-line-strips key)
+                                                       old (get old-strips key)]
+                                                   (println new old)
+                                                   (if (strip-updated? new old)
+                                                     (let [points (->> new
+                                                                       :points
+                                                                       (map #(->> %
+                                                                                  (get state-points)
+                                                                                  first))
+                                                                       (remove nil?))]
+                                                       (println "state-points!" state-points points)
+                                                       (assoc new
+                                                         :gl-buffer (eutil/make-line-buffer gl points)))
+                                                     old)))
+                                               changed-strips))))]
+                     (println "new-strips!" new-strips)
+                     {:line-strips new-strips
+                      :points state-points}))))))
 
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]
@@ -260,13 +320,18 @@
              (when-not (identical? (:point-buffers old-state) (:point-buffers new-state))
                (update-point-buffers (sub-cursor cursor [:point-buffers]) (:point-buffers new-state)))
 
-             ;; if line segments changed update them
-             (when-not (identical? (:line-segments old-state) (:line-segments new-state))
-               (update-line-segments (sub-cursor cursor [:line-segments]) (:line-segments new-state)))
-
              ;; if the labels changed update them
              (when-not (identical? (:text-labels old-state) (:text-labels new-state))
                (update-labels (sub-cursor cursor [:text-labels]) (:text-labels new-state)))
+
+             ;; line strip updating works differently, line strips rely on two things changing
+             ;; either the line-strip definitions themselves or the points
+             ;;
+             (when-not (and (identical? (:points old-state) (:points new-state))
+                            (identical? (:line-strips old-state) (:line-strips new-state)))
+               (update-line-strips (sub-cursor cursor [:line-strips])
+                                   (:line-strips new-state)
+                                   (:points new-state)))
 
              ;; something still changed, so we need to make sure that renderer is updated, we do this
              ;; by increasing our render count

@@ -382,6 +382,10 @@
                   (and (< d1 0) (< d2 0)))
                (map plane-distances (repeat mins) (repeat maxs) planes)))))
 
+(defn- draw-line [[a b] width]
+  ()
+  )
+
 (defn render-state
   "Render the state in its current form"
   [{:keys [source-state] :as state}]
@@ -419,67 +423,60 @@
                         proj mv ro width height
                         true))
 
-    ;; draw any lines we may need, don't z-test or write to z
-    (let [line-shader (s/create-get-line-shader gl)
-          position-loc (shaders/get-attrib-location gl line-shader "position")]
-      ;; first draw lines
-      ;;
-      (doseq [[_ l] (:line-segments state)]
-        (.lineWidth gl 5)
-        (buffers/draw! gl
+    (when-let [strips (-> state
+                          :line-strips
+                          :line-strips
+                          vals
+                          seq)]
+      ;; we have line-strips to draw, so lets draw them
+
+      (println strips)
+      (let [line-shader (s/create-get-line-shader gl)
+            position-loc (shaders/get-attrib-location gl line-shader "position")]
+        (doseq [s strips]
+          (let [width (get-in s [:params :width] 3)
+                gl-buffer (:gl-buffer s)
+                prims (.-prims gl-buffer)]
+            (println "render!" prims)
+            (buffers/draw! gl
                        :shader line-shader
-                       :draw-mode draw-mode/lines
+                       :draw-mode draw-mode/line-strip
                        :viewport {:x 0 :y 0 :width width :height height}
                        :first 0
                        :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
-                       :count 2
+                       :count prims
                        :capabilities {capability/depth-test false}
                        :attributes [{:location position-loc
                                      :components-per-vertex 3
                                      :type data-type/float
                                      :stride 12
-                                     :buffer (:buffer l)}]
+                                     :buffer gl-buffer}]
                        :uniforms [{:name "mv" :type :mat4 :values mv}
                                   {:name "p" :type :mat4 :values proj}
-                                  {:name "color" :type :vec3 :values (ta/float32 (map #(/ % 255) (:color l)))}]))
-      ;; we need to draw nice looking end-points, but that can be only done in ortho space
-      ;;
-      (when-let [ls (seq (:line-segments state))]
-        ;; transform all points to screen space and then show them using line handles
-        (let [to-screen (fn [x y z]
-                          [(* (/ (+ x 1) 2) width)
-                           (* (/ (- 1 y) 2) height)
-                           z])
-              points (mapcat (fn [[_ {:keys [start end]}]]
-                               (let [s (apply array start)
-                                     e (apply array end)
-                                     ts (js/vec3.transformMat4 s s mvp)
-                                     te (js/vec3.transformMat4 e e mvp)]
-                                 ;; for each line segment, emit two points in screen space
-                                 ;; start and end
-                                 [(to-screen (aget s 0) (aget s 1) (aget s 2))
-                                  (to-screen (aget e 0) (aget e 1) (aget e 2))])) ls)
-              points (filter (fn [[x y z]]
-                               (and (< z 1.0)
-                                    (> x 0)
-                                    (< x width)
-                                    (> y 0)
-                                    (< y height))) points)]
-          (util/draw-line-handle gl points width height))))
+                                  {:name "color" :type :vec3 :values (ta/float32 [1 1 1])}])))))
 
+      (doseq [l (-> state
+                    :text-labels
+                    vals
+                    seq)]
+        (when-let [p (util/->screen (:position l) mvp width height)]
+          (let [[x y _] p
+                texture (-> l :texture :texture)
+                w (-> l :texture :width)
+                h (-> l :texture :height)]
+            (util/draw-2d-sprite gl texture x y w h width height))))
 
-          (doseq [l (-> state
-                        :text-labels
-                        vals
-                        seq)]
-            (when-let [p (util/->screen (:position l) mvp width height)]
-              (let [[x y _] p
-                    texture (-> l :texture :texture)
-                    w (-> l :texture :width)
-                    h (-> l :texture :height)]
-                (util/draw-2d-sprite gl texture x y w h width height))))
+      (when-let [points (-> source-state :points vals seq)]
+        (let [textures (util/create-get-point-textures gl)]
+          (doseq [p points]
+            (let [[pos st] p
+                  st (keyword st)
+                  [x y _] (util/->screen pos mvp width height)]
+              (util/draw-2d-sprite gl
+                                   (get textures st (:normal textures))
+                                   x y 20 20 width height)))))
 
-    ; if there are any post render callback, call that
+                                        ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
       (cb gl mvp mv proj))))
 
