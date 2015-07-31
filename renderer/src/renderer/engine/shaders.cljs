@@ -335,11 +335,11 @@
 (def line-vertex-shader
   "precision mediump float;
 
-   uniform mat4  mv,p;
+   uniform mat4  mvp;
    attribute vec3 position;
 
    void main() {
-       gl_Position = p * mv * vec4(position, 1.0);
+       gl_Position = mvp * vec4(position, 1.0);
    }")
 
 (def line-fragment-shader

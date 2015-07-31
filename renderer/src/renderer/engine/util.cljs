@@ -74,16 +74,14 @@
   (.deleteBuffer gl buffer))
 
 (defn make-line-buffer [gl points]
-  (println points)
   (let [buf (->> (apply concat points)
                  (apply array)
                  (js/Float32Array.))
-        _ (js/console.log buf)
         gl-buffer (buffers/create-buffer gl
                                          buf
                                          buffer-object/array-buffer
                                          buffer-object/static-draw)]
-    (set! (.-prims gl-buffer) (-> points count dec))
+    (set! (.-prims gl-buffer) (-> points count))
     gl-buffer))
 
 (defn canvas-of-size [width height]

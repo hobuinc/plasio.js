@@ -250,6 +250,7 @@
       ;; if we're supposed to render the bbox, render that too
       (when draw-bbox?
         ;; render the bounding box
+        (.lineWidth gl 1)
         (when-let [params (:bbox-params transform)]
           (buffers/draw! gl
                          :shader (:shader params)
@@ -429,15 +430,13 @@
                           vals
                           seq)]
       ;; we have line-strips to draw, so lets draw them
-
-      (println strips)
       (let [line-shader (s/create-get-line-shader gl)
             position-loc (shaders/get-attrib-location gl line-shader "position")]
         (doseq [s strips]
-          (let [width (get-in s [:params :width] 3)
+          (let [line-width (get-in s [:params :width] 3)
                 gl-buffer (:gl-buffer s)
                 prims (.-prims gl-buffer)]
-            (println "render!" prims)
+            (.lineWidth gl line-width)
             (buffers/draw! gl
                        :shader line-shader
                        :draw-mode draw-mode/line-strip
@@ -451,9 +450,8 @@
                                      :type data-type/float
                                      :stride 12
                                      :buffer gl-buffer}]
-                       :uniforms [{:name "mv" :type :mat4 :values mv}
-                                  {:name "p" :type :mat4 :values proj}
-                                  {:name "color" :type :vec3 :values (ta/float32 [1 1 1])}])))))
+                       :uniforms [{:name "mvp" :type :mat4 :values mvp}
+                                  {:name "color" :type :vec3 :values (ta/float32 (apply array [1 1 1]))}])))))
 
       (doseq [l (-> state
                     :text-labels

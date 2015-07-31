@@ -194,19 +194,21 @@
   ;; only return the points which have changed:
   ;; 1. New points have changed
   ;; 2. Points which have been updated have changed
-  (let [updated (->> new
+  ;; 3. Points which have been deleted
+  ;;
+  (let [deleted (clojure.set/difference (-> old keys set) (-> new keys set))
+        updated (->> new
                      keys
                      (remove #(identical? (get new %)
                                           (get old %)))
                      set)]
-    updated))
+    (apply conj updated deleted)))
 
 (defn update-line-strips
   [cursor state-line-strips state-points]
   (let [gl (root cursor :gl)]
     (transact! cursor []
                (fn [strips]
-                 (println "incoming:" strips)
                  (let [old-strips (:line-strips strips)
                        old-points (:points strips)
 
@@ -228,17 +230,18 @@
                           removed-strips))
 
                    ;; merge in any new strips and the modified strip items
-                   (let [new-strips (merge
+                   (let [point-id->position (fn [ids]
+                                              (->> ids
+                                                   (map #(->> %
+                                                              (get state-points)
+                                                              first))
+                                                   (remove nil?)))
+                         new-strips (merge
                                       (zipmap
                                         added-strips
                                         (map (fn [key]
                                                (let [info (get state-line-strips key)
-                                                     points (->> info
-                                                                 :points
-                                                                 (map #(->> %
-                                                                            (get state-points)
-                                                                            first))
-                                                                 (remove nil?))]
+                                                     points (point-id->position (:points info))]
                                                  (assoc info
                                                    :gl-buffer (eutil/make-line-buffer gl points))))
                                              added-strips))
@@ -252,23 +255,17 @@
                                         (zipmap
                                           changed-strips
                                           (map (fn [key]
-                                                 (println key state-line-strips current-strips)
                                                  (let [new (get state-line-strips key)
                                                        old (get old-strips key)]
-                                                   (println new old)
+                                                   (println state-points)
                                                    (if (strip-updated? new old)
-                                                     (let [points (->> new
-                                                                       :points
-                                                                       (map #(->> %
-                                                                                  (get state-points)
-                                                                                  first))
-                                                                       (remove nil?))]
-                                                       (println "state-points!" state-points points)
+                                                     (let [points (point-id->position (:points new))]
+                                                       (println
+                                                         (count points))
                                                        (assoc new
                                                          :gl-buffer (eutil/make-line-buffer gl points)))
                                                      old)))
                                                changed-strips))))]
-                     (println "new-strips!" new-strips)
                      {:line-strips new-strips
                       :points state-points}))))))
 
