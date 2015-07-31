@@ -161,7 +161,7 @@
     (swap! state update-in [:points] dissoc id))
 
   (remove-all-points [_]
-    (swap! state update-in [:points] identity {}))
+    (swap! state assoc-in [:points] {}))
 
   (create-line-strip [_ id params]
     (swap! state update-in [:line-strips] assoc id {:points []
@@ -178,7 +178,7 @@
                  (concat a [point-id] b))))))
 
   (remove-all-line-strips [_]
-    (swap! state update-in [:line-strips] identity {}))
+    (swap! state assoc-in [:line-strips] {}))
 
   (project-to-image [this mat which res]
     ;; projection using matrix mat, picks _which_ coordinate (0, 1, 2) and res is the output image size

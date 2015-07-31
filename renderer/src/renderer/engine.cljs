@@ -194,7 +194,7 @@
   ;; only return the points which have changed:
   ;; 1. New points have changed
   ;; 2. Points which have been updated have changed
-  ;; 3. Points which have been deleted
+  ;; 3. Points which have been deleted have changed
   ;;
   (let [deleted (clojure.set/difference (-> old keys set) (-> new keys set))
         updated (->> new
@@ -203,6 +203,38 @@
                                           (get old %)))
                      set)]
     (apply conj updated deleted)))
+
+(defn labels-for-segments [gl points]
+  (let [make-label (fn [[p1 p2]]
+                     (let [a (apply array p1)
+                           b (apply array p2)
+                           center (vec (js/vec3.lerp (array 0 0 0) a b 0.5))
+                           dist (js/vec3.distance a b)
+                           text (.toFixed dist 2)]
+                       {:position center
+                        :text    text
+                        :texture  (eutil/create-text-texture gl text)}))]
+    (->> points
+         (partition 2 1)
+         (mapv make-label))))
+
+(defn label-for-total [gl points]
+  (let [distance (fn [[a b]]
+                   (js/vec3.distance
+                     (apply array a)
+                     (apply array b)))
+        total (->> points
+                   (partition 2 1)
+                   (map distance)
+                   (apply +))
+        position (->> points
+                      (reduce (fn [t v]
+                                (mapv + t v)) [0 0 0])
+                      (mapv #(/ % (count points))))
+        text (.toFixed total 2)]
+    {:position position
+     :text    text
+     :texture  (eutil/create-text-texture gl text)}))
 
 (defn update-line-strips
   [cursor state-line-strips state-points]
@@ -220,9 +252,6 @@
                    ;; dealing with unchanged-strips is more work, so lets just get done
                    ;; with removed strips first
                    ;;
-                   (println "added:" added-strips)
-                   (println "removed:" removed-strips)
-                   (println "changed:" changed-strips)
                    (doall
                      (map (fn [key]
                             (let [buf (get-in old-strips [key :gl-buffer])]
@@ -236,14 +265,22 @@
                                                               (get state-points)
                                                               first))
                                                    (remove nil?)))
+                         make-assets (fn [points {:keys [showTotal showLengths]}]
+                                       (hash-map
+                                         :gl-buffer (eutil/make-line-buffer gl points)
+                                         :labels (when showLengths
+                                                   (labels-for-segments gl points))
+                                         :sum-label (when showTotal
+                                                      (label-for-total gl points))))
                          new-strips (merge
                                       (zipmap
                                         added-strips
                                         (map (fn [key]
                                                (let [info (get state-line-strips key)
+                                                     params (:params info)
                                                      points (point-id->position (:points info))]
-                                                 (assoc info
-                                                   :gl-buffer (eutil/make-line-buffer gl points))))
+                                                 (merge info
+                                                        (make-assets points params))))
                                              added-strips))
 
 
@@ -257,13 +294,22 @@
                                           (map (fn [key]
                                                  (let [new (get state-line-strips key)
                                                        old (get old-strips key)]
-                                                   (println state-points)
                                                    (if (strip-updated? new old)
-                                                     (let [points (point-id->position (:points new))]
-                                                       (println
-                                                         (count points))
-                                                       (assoc new
-                                                         :gl-buffer (eutil/make-line-buffer gl points)))
+                                                     (let [points (point-id->position (:points new))
+                                                           params (:params new)]
+                                                       ;; release old line segment buffer
+                                                       (when-let [buf (:gl-buffer old)]
+                                                         (eutil/release-line-buffer gl buf))
+
+                                                       ;; release old text labels
+                                                       (when-let [labels (seq (:labels old))]
+                                                         (doall (map #(->> %
+                                                                           :texture
+                                                                           (eutil/destroy-text-texture gl))
+                                                                     labels)))
+
+                                                       (merge new
+                                                              (make-assets points params)))
                                                      old)))
                                                changed-strips))))]
                      {:line-strips new-strips

@@ -451,12 +451,13 @@
                                      :stride 12
                                      :buffer gl-buffer}]
                        :uniforms [{:name "mvp" :type :mat4 :values mvp}
-                                  {:name "color" :type :vec3 :values (ta/float32 (apply array [1 1 1]))}])))))
+                                  {:name "color" :type :vec3 :values (ta/float32 (apply array [1 0 0]))}])
+            ))))
 
-      (doseq [l (-> state
-                    :text-labels
-                    vals
-                    seq)]
+      (doseq [l (concat
+                  (-> state :text-labels vals)
+                  (mapcat :labels (-> state :line-strips :line-strips vals))
+                  (map :sum-label (-> state :line-strips :line-strips vals)))]
         (when-let [p (util/->screen (:position l) mvp width height)]
           (let [[x y _] p
                 texture (-> l :texture :texture)
