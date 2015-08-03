@@ -401,7 +401,6 @@
         proj (projection-matrix gl cam width height)
         mv   (mv-matrix gl eye tar)
         mvp  (mvp-matrix gl proj mv)
-        planes (cull-planes proj mv)
         ro (:render-options dp)]
                                         ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
