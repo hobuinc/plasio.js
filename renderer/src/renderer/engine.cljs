@@ -55,6 +55,7 @@
   engine, other than three.js"
   (attach! [this elem source-state])
   (pick-point [this x y])
+  (pick-ui-point [this x y radius])
   (add-loader [this loader])
   (remove-loader [this loader])
   (resize-view! [this w h])
@@ -388,6 +389,26 @@
     (let [rs @(:run-state @state)
           rs (assoc rs :source-state @(:source-state @state))]
       (r/pick-point (:picker rs) rs x y)))
+
+  (pick-ui-point [_ x y radius]
+    (let [rs @(:run-state @state)
+          width (:width rs)
+          height (:height rs)
+          gl (:gl rs)
+          mvp (.-mvp gl)
+          source-state @(:source-state @state)
+          within-radius? (fn [[_ _ [x' y' _]]]
+                           (<
+                             (js/vec2.distance (array x y)
+                                               (array x' y'))
+                             radius))]
+      (some->> source-state
+               :points
+               seq
+               (map (fn [[id [p _]]]
+                      [id p (eutil/->screen p mvp width height)]))
+               (filter within-radius?)
+               first)))
 
   (add-loader [_ loader]
     (let [key (.-key loader)

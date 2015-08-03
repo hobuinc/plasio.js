@@ -38,6 +38,7 @@
   (remove-loader [this loader])
   (set-render-options [this opts])
   (pick-point [this x y])
+  (pick-ui-point [this x y radius])
   (apply-state [this state])
   (resize-view! [this w h])
   (add-post-render [this f])
@@ -138,6 +139,9 @@
 
   (pick-point [_ x y]
     (r/pick-point @render-engine x y))
+
+  (pick-ui-point [_ x y radius]
+    (r/pick-ui-point @render-engine x y (or radius 20)))
 
   (apply-state [_ st]
     (reset! state st))
@@ -267,6 +271,7 @@
               :addLoader (partial-js add-loader r)
               :setRenderOptions (partial-js set-render-options r)
               :pickPoint (partial-js pick-point r)
+              :pickUIPoint (partial-js pick-ui-point r)
               :applyState (partial-js apply-state r)
               :setRenderViewSize (partial-js resize-view! r)
               :addPostRender (partial-js-passthrough add-post-render r)
