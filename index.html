@@ -63,6 +63,8 @@
        var baseURL = "http://data-dyn.iowalidar.com";
        var pipelineId = "iowa-dyn";
 
+         var baseURL = "http://misc.greyhound.io";
+         var pipelineId = "autzen-redo";
 
        // Autzen as an oct tree
          /*
@@ -113,6 +115,7 @@
              853538,
              616
          ];
+         */
 
          var bbox = [
              635577,
@@ -122,14 +125,13 @@
              853538,
              1000
          ];
-         */
 
-       var MAX_DEPTH = 20;
+       var MAX_DEPTH = 16;
 
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true, false),
-         overlay: new PlasioLib.Loaders.MapboxLoader(),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true, true),
+         //overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
@@ -236,8 +238,8 @@
        r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
          pointSize: 2,
-         rgb_f: 0.0,
-         overlay_f: 1.0,
+         rgb_f: 1.0,
+         overlay_f: 0.0,
          maxColorComponent: 255
        });
 
