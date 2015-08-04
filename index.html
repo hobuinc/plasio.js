@@ -29,6 +29,7 @@
      var overlay = null, roverlay = null;
      var clearLines = null; // clear lines
      var lines = [];
+     var bufAttrs = null;
 
      var commonStartup = function() {
        var stats = {}
@@ -275,6 +276,14 @@
             mode.resetState();
         };
 
+
+         bufAttrs = function() {
+             console.log("requesting buffer attributes");
+             var buffers = r.getLoadedBuffers();
+
+             console.log("got buffer:", buffers);
+         }
+
        var active = false;
        document.addEventListener("keydown", function(evt) {
            if (evt.keyCode === 16 && !active) {
@@ -305,13 +314,16 @@
             onclick="javascript:overlay();">Add Overlay</button>
 
     <button style="position:absolute;top:10px;right:180px;z-index:10000"
-            onclick="javascript:roverlay();">Remov Overlay</button>
+            onclick="javascript:roverlay();">Remove Overlay</button>
 
     <button style="position:absolute;top:10px;right:10px;z-index:10000"
             onclick="javascript:dp()">Do Profile</button>
 
     <button style="position:absolute;top:10px;right:80px;z-index:10000"
             onclick="javascript:clearLines()">Clear Lines</button>
+
+    <button style="position:absolute;top:60px;right:10px;z-index:10000"
+            onclick="javascript:bufAttrs()">Query Buffer Attributes</button>
 
 </body>
 </html>

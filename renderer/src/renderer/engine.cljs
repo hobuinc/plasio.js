@@ -62,7 +62,8 @@
   (add-post-render [this f])
   (project-to-image [this mat which res])
   (add-overlay [this id bounds image])
-  (remove-overlay [this id]))
+  (remove-overlay [this id])
+  (get-loaded-buffers [this]))
 
 
 (defn- changes
@@ -459,7 +460,17 @@
     (let [rs (:run-state @state)]
       (when-let [overlay (get-in @rs [:scene-overlays id])]
         (eutil/destroy-texture (:gl @rs) (:texture overlay))
-        (swap! rs update-in [:scene-overlays] dissoc id)))))
+        (swap! rs update-in [:scene-overlays] dissoc id))))
+
+  (get-loaded-buffers [_]
+    (let [rs (:run-state @state)
+          attrib-loader (:attrib-loader @rs)
+          point-buffers (:point-buffers @rs)]
+      (sequence
+        (comp (map :attribs-id)
+              (map #(attribs/attribs-in attrib-loader %))
+              (remove nil?))
+        (vals point-buffers)))))
 
 
 (defn make-engine

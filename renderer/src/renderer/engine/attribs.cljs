@@ -26,13 +26,14 @@
 
 (defmethod reify-attrib :point-buffer [[_ props]]
   {:point-stride (aget props "pointStride")
-   :point-size (aget props "pointSize")
+   :point-size   (aget props "pointSize")
    :total-points (aget props "totalPoints")
-   :attributes (js->clj (aget props "attributes"))
-   :gl-buffer (buffers/create-buffer *gl-context*
-                                     (aget props "data")
-                                     buffer-object/array-buffer
-                                     buffer-object/static-draw)})
+   :attributes   (js->clj (aget props "attributes"))
+   :source       {:data (aget props "data")}
+   :gl-buffer    (buffers/create-buffer *gl-context*
+                                        (aget props "data")
+                                        buffer-object/array-buffer
+                                        buffer-object/static-draw)})
 
 (defmethod reify-attrib :image-overlay [[_ props]]
   (let [image (aget props "image")
@@ -79,6 +80,9 @@
      :offset       (aget transform "offset")
      :mins         (point-cloud-space mins)
      :maxs         (point-cloud-space maxs)
+     :source {:position position
+              :mins mins
+              :maxs maxs}
      :uv-range     uv-range
      :bbox-params  (setup-bbox position
                                (point-cloud-space mins)

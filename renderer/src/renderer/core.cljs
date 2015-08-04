@@ -56,7 +56,8 @@
   (add-label [this id position text])
   (remove-label [this id])
   (update-label [this id position text])
-  (remove-all-labels [this]))
+  (remove-all-labels [this])
+  (get-loaded-buffers [this]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -235,7 +236,23 @@
                   vec))))
 
   (remove-all-labels [this]
-    (swap! state assoc :text-labels [])))
+    (swap! state assoc :text-labels []))
+
+  (get-loaded-buffers [this]
+    (let [buffers (r/get-loaded-buffers @render-engine)]
+      ;; we shouldn't and wouldn't return the raw stuffs here, just hand-pick and send
+      ;; stuff that we need
+      ;;
+      (mapv
+        (fn [buf]
+          (hash-map
+            :position (get-in buf [:transform :source :position])
+            :mins (get-in buf [:transform :source :mins])
+            :maxs (get-in buf [:transform :source :maxs])
+            :stride (get-in buf [:point-buffer :point-stride])
+            :total-points (get-in buf [:point-buffer :total-points])
+            :data (get-in buf [:point-buffer :source :data])))
+        buffers))))
 
 
 (defn partial-js
@@ -289,4 +306,5 @@
               :addLabel (partial-js add-label r)
               :updateLabel (partial-js update-label r)
               :removeLabel (partial-js remove-label r)
-              :removeAllLabels (partial-js remove-all-labels r)})))
+              :removeAllLabels (partial-js remove-all-labels r)
+              :getLoadedBuffers (partial-js get-loaded-buffers r)})))
