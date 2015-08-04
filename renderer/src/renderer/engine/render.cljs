@@ -383,10 +383,6 @@
                   (and (< d1 0) (< d2 0)))
                (map plane-distances (repeat mins) (repeat maxs) planes)))))
 
-(defn- draw-line [[a b] width]
-  ()
-  )
-
 (defn render-state
   "Render the state in its current form"
   [{:keys [source-state] :as state}]
@@ -434,11 +430,14 @@
         (doseq [s strips]
           (let [line-width (get-in s [:params :width] 3)
                 gl-buffer (:gl-buffer s)
+                line-mode (if (get-in s [:params :loop])
+                            draw-mode/line-loop
+                            draw-mode/line-strip)
                 prims (.-prims gl-buffer)]
             (.lineWidth gl line-width)
             (buffers/draw! gl
                        :shader line-shader
-                       :draw-mode draw-mode/line-strip
+                       :draw-mode line-mode
                        :viewport {:x 0 :y 0 :width width :height height}
                        :first 0
                        :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
