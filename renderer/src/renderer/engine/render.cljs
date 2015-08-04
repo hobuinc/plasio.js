@@ -636,6 +636,7 @@
           dirt (:dirt @picker-state)
           ;; dirty flag keeps track of whether we need to re-render the buffers
           clean? (and (identical? (:display dirt) (:display source-state))
+                      (identical? (:view dirt) (:view source-state))
                       (identical? (:point-buffers dirt) (:point-buffers state))
                       (= (:width dirt) w)
                       (= (:height dirt) h))]
@@ -645,6 +646,7 @@
       (when-not clean?
         ;; first make sure we update our dirt state
         (swap! picker-state assoc :dirt {:display (:display source-state)
+                                         :view (:view source-state)
                                          :point-buffers (:point-buffers state)
                                          :width w
                                          :height h})

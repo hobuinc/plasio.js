@@ -401,13 +401,17 @@
                            (<
                              (js/vec2.distance (array x y)
                                                (array x' y'))
-                             radius))]
+                             radius))
+          distance (fn [[_ _ [x' y' _]]]
+                     (js/vec2.distance (array x y)
+                                       (array x' y')))]
       (some->> source-state
                :points
                seq
                (map (fn [[id [p _]]]
                       [id p (eutil/->screen p mvp width height)]))
                (filter within-radius?)
+               (sort-by distance)
                first)))
 
   (add-loader [_ loader]
