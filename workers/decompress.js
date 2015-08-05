@@ -4,6 +4,21 @@
 
 importScripts("../lib/dist/laz-perf.js");
 
+
+function swapSpace(buffer, pointSize, numPoints) {
+	// we assume we have x, y and z as the first three floats per point
+	// we are useless without points anyway
+	var step = pointSize / 4; // every field is 4 byte floating point
+	for(var i = 0 ; i < numPoints ; i += step) {
+		var x = buffer[i + 0],
+			y = buffer[i + 1],
+			z = buffer[i + 2];
+		buffer[i + 0] = x;   // negate x
+		buffer[i + 1] = z;     // y is actually z from point cloud
+		buffer[i + 2] = y;     // z is actually y from point cloud
+	}
+}
+
 var totalSaved = 0;
 var decompressBuffer = function(schema, ab, numPoints) {
 	var x = new Module.DynamicLASZip();
@@ -45,6 +60,10 @@ var decompressBuffer = function(schema, ab, numPoints) {
 	Module._free(buf);
 
 	var b = new Float32Array(ret.buffer);
+
+	// if we got any points, swap them
+	if (numPoints > 0)
+		swapSpace(b, pointSize, numPoints);
 
 	return b;
 };

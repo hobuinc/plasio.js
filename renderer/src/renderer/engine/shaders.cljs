@@ -130,7 +130,7 @@
 
 
   void main() {
-      fpos = ((position.xyz - offset) * xyzScale).xzy * vec3(-1, 1, 1);
+      fpos = ((position.xyz - offset) * xyzScale);
       vec4 wpos = modelMatrix * vec4(fpos, 1.0);
 
       vec4 mvPosition = modelViewMatrix * wpos;
@@ -223,7 +223,7 @@
    varying vec3 xyz;
 
    void main() {
-       vec3 fpos = ((position.xyz - offset) * xyzScale).xzy * vec3(-1, 1, 1);
+       vec3 fpos = ((position.xyz - offset) * xyzScale);
        vec4 worldPos = modelMatrix * vec4(fpos, 1.0);
        vec4 mvPosition = modelViewMatrix * worldPos;
        gl_Position = projectionMatrix * mvPosition;

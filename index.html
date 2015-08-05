@@ -64,7 +64,7 @@
        var pipelineId = "iowa-dyn";
 
          var baseURL = "http://misc.greyhound.io";
-         var pipelineId = "autzen-redo";
+         var pipelineId = "autzen-oct";
 
        // Autzen as an oct tree
          /*
@@ -128,6 +128,9 @@
 
        var MAX_DEPTH = 16;
 
+
+         // put bbox in correct space, y goes up.
+         bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];
 
        var loaders = {
          point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true, true),
@@ -228,6 +231,8 @@
          r.setEyePosition(eye);
          r.setTargetPosition(target);
        }, camParams);
+
+         s.camera = c;
 
        // do some history setup
        window.onpopstate = function(event) {
