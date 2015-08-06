@@ -230,8 +230,6 @@
                 (.uniform1fv gl uniform-loc-conts (ta/float32 blend-contributions))
                 (.uniform4fv gl uniform-loc-bounds (ta/float32 all-bounds)))))
 
-          
-
           ;; draw this buffer
           (let [uniforms (uniforms-with-override uniforms
                                                  (assoc uniform-map
