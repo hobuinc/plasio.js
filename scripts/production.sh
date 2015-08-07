@@ -16,9 +16,6 @@ fi
 echo " :: Building renderer ..."
 cd renderer && lein clean && lein cljsbuild once release && cd .. ;
 
-echo " :: Building workers ..."
-cd workers && gulp build-all && cd .. ;
-
 echo " :: Building lib ..."
 cd lib && ./node_modules/.bin/webpack --build && cd .. ;
 
@@ -29,7 +26,7 @@ mkdir -p $TARGETDIR/lib/dist
 mkdir -p $TARGETDIR/workers
 
 cp -v \
-    renderer/plasio-renderer.js \
+    renderer/target/rel/renderer.js \
     $TARGETDIR
 
 
