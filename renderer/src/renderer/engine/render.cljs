@@ -230,8 +230,6 @@
                 (.uniform1fv gl uniform-loc-conts (ta/float32 blend-contributions))
                 (.uniform4fv gl uniform-loc-bounds (ta/float32 all-bounds)))))
 
-          
-
           ;; draw this buffer
           (let [uniforms (uniforms-with-override uniforms
                                                  (assoc uniform-map
@@ -250,6 +248,7 @@
       ;; if we're supposed to render the bbox, render that too
       (when draw-bbox?
         ;; render the bounding box
+        (.lineWidth gl 1)
         (when-let [params (:bbox-params transform)]
           (buffers/draw! gl
                          :shader (:shader params)
@@ -396,19 +395,18 @@
         proj (projection-matrix gl cam width height)
         mv   (mv-matrix gl eye tar)
         mvp  (mvp-matrix gl proj mv)
-        planes (cull-planes proj mv)
         ro (:render-options dp)]
-                                        ; clear buffer
+    ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
 
-                                        ; draw all loaded buffers
-    (let [buffers-to-draw (->> state
-                               :point-buffers
-                               vals
-                               (map :attribs-id)
-                               (map #(attribs/attribs-in aloader %))
-                               (remove #(or (nil? %))))]
+    ; draw all loaded buffers
+    (let [buffers-to-draw (sequence
+                            (comp
+                              (map :attribs-id)
+                              (keep (partial attribs/attribs-in aloader))
+                              (filter #(get-in % [:point-buffer :gl-buffer])))
+                            (vals (:point-buffers state)))]
       (println (count buffers-to-draw) "/" (count (:point-buffers state)))
 
       (draw-all-buffers gl buffers-to-draw
@@ -417,67 +415,60 @@
                         (:shader state)
                         uniform-map
                         proj mv ro width height
-                        true))
+                        false))
 
-    ;; draw any lines we may need, don't z-test or write to z
-    (let [line-shader (s/create-get-line-shader gl)
-          position-loc (shaders/get-attrib-location gl line-shader "position")]
-      ;; first draw lines
-      ;;
-      (doseq [[_ l] (:line-segments state)]
-        (.lineWidth gl 5)
-        (buffers/draw! gl
-                       :shader line-shader
-                       :draw-mode draw-mode/lines
-                       :viewport {:x 0 :y 0 :width width :height height}
-                       :first 0
-                       :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
-                       :count 2
-                       :capabilities {capability/depth-test false}
-                       :attributes [{:location position-loc
-                                     :components-per-vertex 3
-                                     :type data-type/float
-                                     :stride 12
-                                     :buffer (:buffer l)}]
-                       :uniforms [{:name "mv" :type :mat4 :values mv}
-                                  {:name "p" :type :mat4 :values proj}
-                                  {:name "color" :type :vec3 :values (ta/float32 (map #(/ % 255) (:color l)))}]))
-      ;; we need to draw nice looking end-points, but that can be only done in ortho space
-      ;;
-      (when-let [ls (seq (:line-segments state))]
-        ;; transform all points to screen space and then show them using line handles
-        (let [to-screen (fn [x y z]
-                          [(* (/ (+ x 1) 2) width)
-                           (* (/ (- 1 y) 2) height)
-                           z])
-              points (mapcat (fn [[_ {:keys [start end]}]]
-                               (let [s (apply array start)
-                                     e (apply array end)
-                                     ts (js/vec3.transformMat4 s s mvp)
-                                     te (js/vec3.transformMat4 e e mvp)]
-                                 ;; for each line segment, emit two points in screen space
-                                 ;; start and end
-                                 [(to-screen (aget s 0) (aget s 1) (aget s 2))
-                                  (to-screen (aget e 0) (aget e 1) (aget e 2))])) ls)
-              points (filter (fn [[x y z]]
-                               (and (< z 1.0)
-                                    (> x 0)
-                                    (< x width)
-                                    (> y 0)
-                                    (< y height))) points)]
-          (util/draw-line-handle gl points width height))))
+    (when-let [strips (-> state
+                          :line-strips
+                          :line-strips
+                          vals
+                          seq)]
+      ;; we have line-strips to draw, so lets draw them
+      (let [line-shader (s/create-get-line-shader gl)
+            position-loc (shaders/get-attrib-location gl line-shader "position")]
+        (doseq [s strips]
+          (let [line-width (get-in s [:params :width] 3)
+                gl-buffer (:gl-buffer s)
+                line-mode (if (get-in s [:params :loop])
+                            draw-mode/line-loop
+                            draw-mode/line-strip)
+                prims (.-prims gl-buffer)]
+            (.lineWidth gl line-width)
+            (buffers/draw! gl
+                           :shader line-shader
+                           :draw-mode line-mode
+                           :viewport {:x 0 :y 0 :width width :height height}
+                           :first 0
+                           :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
+                           :count prims
+                           :capabilities {capability/depth-test false}
+                           :attributes [{:location position-loc
+                                         :components-per-vertex 3
+                                         :type data-type/float
+                                         :stride 12
+                                         :buffer gl-buffer}]
+                           :uniforms [{:name "mvp" :type :mat4 :values mvp}
+                                      {:name "color" :type :vec3 :values (ta/float32 (apply array [1 0 0]))}])))))
 
+    (doseq [l (concat
+                (-> state :text-labels vals)
+                (mapcat :labels (-> state :line-strips :line-strips vals))
+                (map :sum-label (-> state :line-strips :line-strips vals)))]
+      (when-let [p (util/->screen (:position l) mvp width height)]
+        (let [[x y _] p
+              texture (-> l :texture :texture)
+              w (-> l :texture :width)
+              h (-> l :texture :height)]
+          (util/draw-2d-sprite gl texture x y w h width height))))
 
-          (doseq [l (-> state
-                        :text-labels
-                        vals
-                        seq)]
-            (when-let [p (util/->screen (:position l) mvp width height)]
-              (let [[x y _] p
-                    texture (-> l :texture :texture)
-                    w (-> l :texture :width)
-                    h (-> l :texture :height)]
-                (util/draw-2d-sprite gl texture x y w h width height))))
+    (when-let [points (-> source-state :points vals seq)]
+      (let [textures (util/create-get-point-textures gl)]
+        (doseq [p points]
+          (let [[pos st] p
+                st (keyword st)
+                [x y _] (util/->screen pos mvp width height)]
+            (util/draw-2d-sprite gl
+                                 (get textures st (:normal textures))
+                                 x y 20 20 width height)))))
 
     ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
@@ -641,6 +632,7 @@
           dirt (:dirt @picker-state)
           ;; dirty flag keeps track of whether we need to re-render the buffers
           clean? (and (identical? (:display dirt) (:display source-state))
+                      (identical? (:view dirt) (:view source-state))
                       (identical? (:point-buffers dirt) (:point-buffers state))
                       (= (:width dirt) w)
                       (= (:height dirt) h))]
@@ -650,6 +642,7 @@
       (when-not clean?
         ;; first make sure we update our dirt state
         (swap! picker-state assoc :dirt {:display (:display source-state)
+                                         :view (:view source-state)
                                          :point-buffers (:point-buffers state)
                                          :width w
                                          :height h})

@@ -38,20 +38,26 @@
   (remove-loader [this loader])
   (set-render-options [this opts])
   (pick-point [this x y])
+  (pick-ui-point [this x y radius])
   (apply-state [this state])
   (resize-view! [this w h])
   (add-post-render [this f])
-  (add-line-segment [this id start-pos end-pos color])
-  (update-line-segment [this id start-pos end-pos color])
-  (remove-line-segment [this id])
-  (remove-all-line-segments [this])
+  (add-point [this id position state])
+  (update-point [this id position state])
+  (remove-point [this id])
+  (remove-all-points [this])
+  (create-line-strip [this id params])
+  (push-line-strip-point [this id point-id])
+  (insert-line-strip-point [this id point-id after-id])
+  (remove-all-line-strips [this])
   (project-to-image [this projection-view-matrix coordinate-index resolution])
   (add-overlay [this id bounds image])
   (remove-overlay [this id])
   (add-label [this id position text])
   (remove-label [this id])
   (update-label [this id position text])
-  (remove-all-labels [this]))
+  (remove-all-labels [this])
+  (get-loaded-buffers [this]))
 
 (defrecord PlasioRenderer [state render-engine]
   IPlasioRenderer
@@ -132,47 +138,52 @@
   (set-render-options [this opts]
     (swap! state update-in [:display :render-options] merge opts))
 
-  (pick-point [this x y]
+  (pick-point [_ x y]
     (r/pick-point @render-engine x y))
 
-  (apply-state [this st]
+  (pick-ui-point [_ x y radius]
+    (r/pick-ui-point @render-engine x y (or radius 20)))
+
+  (apply-state [_ st]
     (reset! state st))
 
-  (resize-view! [this w h]
+  (resize-view! [_ w h]
     (r/resize-view! @render-engine w h))
 
-  (add-post-render [this f]
+  (add-post-render [_ f]
     (r/add-post-render @render-engine f))
 
-  (add-line-segment [this id start end col]
-    (swap! state update-in [:line-segments] conj [id start end col]))
+  (add-point [_ id position st]
+    (swap! state update-in [:points] assoc id [position st]))
 
-  (update-line-segment [this id start end col]
-    (swap! state update-in [:line-segments]
-           (fn [segments]
-             ;; find the item we're interested in
-             (let [[a b] (split-with (fn [[this-id _ _ _]]
-                                       (not= id this-id))
-                                     segments)]
-               (if-let [item (first b)]
-                 (do
-                   (let [[_ os oe ocol] item
-                         updated (concat a
-                                        [[id (or start os) (or end oe) (or col ocol)]]
-                                        (rest b))]
-                     updated))
-                 segments)))))
+  (update-point [_ id position st]
+    (swap! state update-in [:points id]
+           (fn [[p s]]
+             [(or position p)
+              (or st s)])))
 
-  (remove-line-segment [this id]
-    (swap! state update-in [:line-segments]
-           (fn [lines]
-             (remove #(-> %
-                          first
-                          (= id))
-                     lines))))
+  (remove-point [_ id]
+    (swap! state update-in [:points] dissoc id))
 
-  (remove-all-line-segments [this]
-    (swap! state assoc :line-segments '()))
+  (remove-all-points [_]
+    (swap! state assoc-in [:points] {}))
+
+  (create-line-strip [_ id params]
+    (swap! state update-in [:line-strips] assoc id {:points []
+                                                    :params params}))
+
+  (push-line-strip-point [_ id point-id]
+    (swap! state update-in [:line-strips id :points] conj point-id))
+
+  (insert-line-strip-point [_ id point-id before-id]
+    (swap! state update-in [:line-strips id :points]
+           (fn [points]
+             (let [[a b] (split-with #(not= before-id %) points)]
+               (vec
+                 (concat a [point-id] b))))))
+
+  (remove-all-line-strips [_]
+    (swap! state assoc-in [:line-strips] {}))
 
   (project-to-image [this mat which res]
     ;; projection using matrix mat, picks _which_ coordinate (0, 1, 2) and res is the output image size
@@ -225,7 +236,23 @@
                   vec))))
 
   (remove-all-labels [this]
-    (swap! state assoc :text-labels [])))
+    (swap! state assoc :text-labels []))
+
+  (get-loaded-buffers [this]
+    (let [buffers (r/get-loaded-buffers @render-engine)]
+      ;; we shouldn't and wouldn't return the raw stuffs here, just hand-pick and send
+      ;; stuff that we need
+      ;;
+      (mapv
+        (fn [buf]
+          (hash-map
+            :position (get-in buf [:transform :source :position])
+            :mins (get-in buf [:transform :source :mins])
+            :maxs (get-in buf [:transform :source :maxs])
+            :stride (get-in buf [:point-buffer :point-stride])
+            :total-points (get-in buf [:point-buffer :total-points])
+            :data (get-in buf [:point-buffer :source :data])))
+        buffers))))
 
 
 (defn partial-js
@@ -261,17 +288,23 @@
               :addLoader (partial-js add-loader r)
               :setRenderOptions (partial-js set-render-options r)
               :pickPoint (partial-js pick-point r)
+              :pickUIPoint (partial-js pick-ui-point r)
               :applyState (partial-js apply-state r)
               :setRenderViewSize (partial-js resize-view! r)
               :addPostRender (partial-js-passthrough add-post-render r)
-              :addLineSegment (partial-js add-line-segment r)
-              :removeLineSegment (partial-js remove-line-segment r)
-              :removeAllLineSegments (partial-js remove-all-line-segments r)
-              :updateLineSegment (partial-js update-line-segment r)
+              :addPoint (partial-js add-point r)
+              :updatePoint (partial-js update-point r)
+              :removePoint (partial-js remove-point r)
+              :removeAllPoints (partial-js remove-all-points r)
+              :createLineStrip (partial-js create-line-strip r)
+              :pushLineStripPoint (partial-js push-line-strip-point r)
+              :insertLineStripPoint (partial-js insert-line-strip-point r)
+              :removeAllLineStrips (partial-js remove-all-line-strips r)
               :projectToImage (partial-js project-to-image r)
               :addOverlay (partial-js add-overlay r)
               :removeOverlay (partial-js remove-overlay r)
               :addLabel (partial-js add-label r)
               :updateLabel (partial-js update-label r)
               :removeLabel (partial-js remove-label r)
-              :removeAllLabels (partial-js remove-all-labels r)})))
+              :removeAllLabels (partial-js remove-all-labels r)
+              :getLoadedBuffers (partial-js get-loaded-buffers r)})))

@@ -55,13 +55,15 @@
   engine, other than three.js"
   (attach! [this elem source-state])
   (pick-point [this x y])
+  (pick-ui-point [this x y radius])
   (add-loader [this loader])
   (remove-loader [this loader])
   (resize-view! [this w h])
   (add-post-render [this f])
   (project-to-image [this mat which res])
   (add-overlay [this id bounds image])
-  (remove-overlay [this id]))
+  (remove-overlay [this id])
+  (get-loaded-buffers [this]))
 
 
 (defn- changes
@@ -171,28 +173,6 @@
                                {:visible true})
                              identity)))))
 
-(defn update-line-segments
-  [cursor state-segments]
-  (let [gl (root cursor :gl)]
-    (transact! cursor []
-               (fn [segments]
-                 (let [p
-                       (add-remove state-segments segments
-                                   (fn [[_ start end col]]
-                                     ;; line buffer creation is sync op, so we don't have to delegate stuff to
-                                     ;; attrib loaders etc.  Just create the buffer and move on
-                                     ;;
-                                     {:buffer (eutil/make-line-buffer gl start end)
-                                      :start start
-                                      :end end
-                                      :color col})
-
-                                   (fn [{:keys [buffer] :as line}]
-                                     (eutil/release-line-buffer gl buffer))
-                                   
-                                   identity)]
-                   p)))))
-
 (defn update-labels
   [cursor state-labels]
   (let [gl (root cursor :gl)]
@@ -211,6 +191,131 @@
                                      (fn [label]
                                        (eutil/destroy-text-texture gl (:texture label))))]
                    p)))))
+
+(defn change-set-for-points [new old]
+  ;; only return the points which have changed:
+  ;; 1. New points have changed
+  ;; 2. Points which have been updated have changed
+  ;; 3. Points which have been deleted have changed
+  ;;
+  (let [deleted (clojure.set/difference (-> old keys set) (-> new keys set))
+        updated (->> new
+                     keys
+                     (remove #(identical? (get new %)
+                                          (get old %)))
+                     set)]
+    (apply conj updated deleted)))
+
+(defn labels-for-segments [gl points]
+  (let [make-label (fn [[p1 p2]]
+                     (let [a (apply array p1)
+                           b (apply array p2)
+                           center (vec (js/vec3.lerp (array 0 0 0) a b 0.5))
+                           dist (js/vec3.distance a b)
+                           text (.toFixed dist 2)]
+                       {:position center
+                        :text    text
+                        :texture  (eutil/create-text-texture gl text)}))]
+    (->> points
+         (partition 2 1)
+         (mapv make-label))))
+
+(defn label-for-total [gl points]
+  (let [distance (fn [[a b]]
+                   (js/vec3.distance
+                     (apply array a)
+                     (apply array b)))
+        total (->> points
+                   (partition 2 1)
+                   (map distance)
+                   (apply +))
+        position (->> points
+                      (reduce (fn [t v]
+                                (mapv + t v)) [0 0 0])
+                      (mapv #(/ % (count points))))
+        text (.toFixed total 2)]
+    {:position position
+     :text    text
+     :texture  (eutil/create-text-texture gl text)}))
+
+(defn update-line-strips
+  [cursor state-line-strips state-points]
+  (let [gl (root cursor :gl)]
+    (transact! cursor []
+               (fn [strips]
+                 (let [old-strips (:line-strips strips)
+                       old-points (:points strips)
+
+                       current-strips (-> old-strips keys set)
+                       new-strips (-> state-line-strips keys set)
+                       added-strips (clojure.set/difference new-strips current-strips)
+                       removed-strips (clojure.set/difference current-strips new-strips)
+                       changed-strips (clojure.set/intersection new-strips current-strips)]
+                   ;; dealing with unchanged-strips is more work, so lets just get done
+                   ;; with removed strips first
+                   ;;
+                   (doall
+                     (map (fn [key]
+                            (let [buf (get-in old-strips [key :gl-buffer])]
+                              (eutil/release-line-buffer gl buf)))
+                          removed-strips))
+
+                   ;; merge in any new strips and the modified strip items
+                   (let [point-id->position (fn [ids]
+                                              (->> ids
+                                                   (map #(->> %
+                                                              (get state-points)
+                                                              first))
+                                                   (remove nil?)))
+                         make-assets (fn [points {:keys [showTotal showLengths]}]
+                                       (hash-map
+                                         :gl-buffer (eutil/make-line-buffer gl points)
+                                         :labels (when showLengths
+                                                   (labels-for-segments gl points))
+                                         :sum-label (when showTotal
+                                                      (label-for-total gl points))))
+                         new-strips (merge
+                                      (zipmap
+                                        added-strips
+                                        (map (fn [key]
+                                               (let [info (get state-line-strips key)
+                                                     params (:params info)
+                                                     points (point-id->position (:points info))]
+                                                 (merge info
+                                                        (make-assets points params))))
+                                             added-strips))
+
+
+                                      ;; now deal with all the buffers which need to be updated
+                                      (let [changed-points (change-set-for-points state-points old-points)
+                                            strip-updated? (fn [a b]
+                                                             (or (not (identical? (:points a) (:points b)))
+                                                                 (some changed-points (:points a))))]
+                                        (zipmap
+                                          changed-strips
+                                          (map (fn [key]
+                                                 (let [new (get state-line-strips key)
+                                                       old (get old-strips key)]
+                                                   (if (strip-updated? new old)
+                                                     (let [points (point-id->position (:points new))
+                                                           params (:params new)]
+                                                       ;; release old line segment buffer
+                                                       (when-let [buf (:gl-buffer old)]
+                                                         (eutil/release-line-buffer gl buf))
+
+                                                       ;; release old text labels
+                                                       (when-let [labels (seq (:labels old))]
+                                                         (doall (map #(->> %
+                                                                           :texture
+                                                                           (eutil/destroy-text-texture gl))
+                                                                     labels)))
+
+                                                       (merge new
+                                                              (make-assets points params)))
+                                                     old)))
+                                               changed-strips))))]
+                     {:line-strips new-strips
+                      :points state-points}))))))
 
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]
@@ -260,13 +365,18 @@
              (when-not (identical? (:point-buffers old-state) (:point-buffers new-state))
                (update-point-buffers (sub-cursor cursor [:point-buffers]) (:point-buffers new-state)))
 
-             ;; if line segments changed update them
-             (when-not (identical? (:line-segments old-state) (:line-segments new-state))
-               (update-line-segments (sub-cursor cursor [:line-segments]) (:line-segments new-state)))
-
              ;; if the labels changed update them
              (when-not (identical? (:text-labels old-state) (:text-labels new-state))
                (update-labels (sub-cursor cursor [:text-labels]) (:text-labels new-state)))
+
+             ;; line strip updating works differently, line strips rely on two things changing
+             ;; either the line-strip definitions themselves or the points
+             ;;
+             (when-not (and (identical? (:points old-state) (:points new-state))
+                            (identical? (:line-strips old-state) (:line-strips new-state)))
+               (update-line-strips (sub-cursor cursor [:line-strips])
+                                   (:line-strips new-state)
+                                   (:points new-state)))
 
              ;; something still changed, so we need to make sure that renderer is updated, we do this
              ;; by increasing our render count
@@ -280,6 +390,30 @@
     (let [rs @(:run-state @state)
           rs (assoc rs :source-state @(:source-state @state))]
       (r/pick-point (:picker rs) rs x y)))
+
+  (pick-ui-point [_ x y radius]
+    (let [rs @(:run-state @state)
+          width (:width rs)
+          height (:height rs)
+          gl (:gl rs)
+          mvp (.-mvp gl)
+          source-state @(:source-state @state)
+          within-radius? (fn [[_ _ [x' y' _]]]
+                           (<
+                             (js/vec2.distance (array x y)
+                                               (array x' y'))
+                             radius))
+          distance (fn [[_ _ [x' y' _]]]
+                     (js/vec2.distance (array x y)
+                                       (array x' y')))]
+      (some->> source-state
+               :points
+               seq
+               (map (fn [[id [p _]]]
+                      [id p (eutil/->screen p mvp width height)]))
+               (filter within-radius?)
+               (sort-by distance)
+               first)))
 
   (add-loader [_ loader]
     (let [key (.-key loader)
@@ -326,7 +460,17 @@
     (let [rs (:run-state @state)]
       (when-let [overlay (get-in @rs [:scene-overlays id])]
         (eutil/destroy-texture (:gl @rs) (:texture overlay))
-        (swap! rs update-in [:scene-overlays] dissoc id)))))
+        (swap! rs update-in [:scene-overlays] dissoc id))))
+
+  (get-loaded-buffers [_]
+    (let [rs (:run-state @state)
+          attrib-loader (:attrib-loader @rs)
+          point-buffers (:point-buffers @rs)]
+      (sequence
+        (comp (map :attribs-id)
+              (map #(attribs/attribs-in attrib-loader %))
+              (remove nil?))
+        (vals point-buffers)))))
 
 
 (defn make-engine

@@ -25,14 +25,16 @@
 (defmulti unreify-attrib first)
 
 (defmethod reify-attrib :point-buffer [[_ props]]
-  {:point-stride (aget props "pointStride")
-   :point-size (aget props "pointSize")
-   :total-points (aget props "totalPoints")
-   :attributes (js->clj (aget props "attributes"))
-   :gl-buffer (buffers/create-buffer *gl-context*
-                                     (aget props "data")
-                                     buffer-object/array-buffer
-                                     buffer-object/static-draw)})
+  (let [total-points (aget props "totalPoints")]
+    {:point-stride (aget props "pointStride")
+     :total-points total-points
+     :attributes   (js->clj (aget props "attributes"))
+     :source       {:data (aget props "data")}
+     :gl-buffer    (when-not (zero? total-points)
+                     (buffers/create-buffer *gl-context*
+                                           (aget props "data")
+                                           buffer-object/array-buffer
+                                           buffer-object/static-draw))}))
 
 (defmethod reify-attrib :image-overlay [[_ props]]
   (let [image (aget props "image")
@@ -44,12 +46,12 @@
                                          tparams/texture-mag-filter tfilter/linear})))
 
 (defn- -range [mins maxs]
-  ;; we don't really care about Z because it has mostly nothing to do with imagery
-  (let [nx (aget mins 0) ny (aget mins 1)
-        xx (aget maxs 0) xy (aget maxs 1)
+  ;; we don't really care about Y because it has mostly nothing to do with imagery
+  (let [nx (aget mins 0) nz (aget mins 2)
+        xx (aget maxs 0) xz (aget maxs 2)
         cx (+ nx (/ (- xx nx) 2))
-        cy (+ ny (/ (- xy ny) 2))]
-    [(- nx cx) (- ny cy) (- xx cx) (- xy cy)])) 
+        cy (+ nz (/ (- xz nz) 2))]
+    [(- nx cx) (- nz cy) (- xx cx) (- xz cy)]))
 
 (defn- translation-matrix [translate]
   (let [x (aget translate 0)
@@ -61,31 +63,31 @@
        0 0 1 0
        x y z 1)))
 
-(defn point-cloud-space [arr]
-  (js/Array (- (aget arr 0)) (aget arr 2) (aget arr 1)))
-
 (declare setup-bbox)
 
 (defmethod reify-attrib :transform [[_ transform]]
   ;; Note that this stuff is straight from JS land, so most things here are JS objects
   ;; Much apologies in advance
   (let [position (aget transform "position")
-        position (js/Array (- (aget position 0)) (aget position 2) (aget position 1))
         mins     (aget transform "mins")
         maxs     (aget transform "maxs")
         model-matrix (translation-matrix position)
         uv-range     (-range mins maxs)]
     {:model-matrix model-matrix
      :offset       (aget transform "offset")
-     :mins         (point-cloud-space mins)
-     :maxs         (point-cloud-space maxs)
+     :mins         mins
+     :maxs         maxs
+     :source {:position position
+              :mins mins
+              :maxs maxs}
      :uv-range     uv-range
      :bbox-params  (setup-bbox position
-                               (point-cloud-space mins)
-                               (point-cloud-space maxs))}))
+                               mins
+                               maxs)}))
 
 (defmethod unreify-attrib :point-buffer [[_ buffer]]
-  (.deleteBuffer *gl-context* buffer))
+  (when buffer
+    (.deleteBuffer *gl-context* buffer)))
 
 (defmethod unreify-attrib :image-overlay [[_ image]]
   (.deleteTexture *gl-context* image))
