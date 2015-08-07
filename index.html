@@ -66,6 +66,8 @@
          var baseURL = "http://misc.greyhound.io";
          var pipelineId = "autzen-oct";
 
+         var baseURL = "http://misc.greyhound.io";
+         var pipelineId = "nepal-oct";
        // Autzen as an oct tree
          /*
        var baseURL = "http://misc.greyhound.io";
@@ -115,7 +117,6 @@
              853538,
              616
          ];
-         */
 
          var bbox = [
              635577,
@@ -125,6 +126,18 @@
              853538,
              1000
          ];
+          */
+
+
+         /* Nepal bounds */
+         var bbox = [
+             348326,
+             3067667,
+             850,
+             349361,
+             3068647,
+             1850
+         ];
 
        var MAX_DEPTH = 16;
 
@@ -133,7 +146,7 @@
          bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, pipelineId, MAX_DEPTH, true, true),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, bbox, pipelineId, MAX_DEPTH, true, true),
          //overlay: new PlasioLib.Loaders.MapboxLoader(),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
@@ -245,7 +258,7 @@
          pointSize: 2,
          rgb_f: 1.0,
          overlay_f: 0.0,
-         maxColorComponent: 255
+         maxColorComponent: 1 << 16,
        });
 
        p.on("bbox", function(bbox) {
