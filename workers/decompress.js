@@ -85,8 +85,6 @@ self.onmessage = function(e) {
 	var numPoints = data.pointsCount;
 	var worldBoundsX = data.worldBoundsX;
 
-	console.log(worldBoundsX);
-
 	var res = decompressBuffer(schema, worldBoundsX, ab, numPoints);
 	postMessage({result: res}, [res.buffer]);
 };

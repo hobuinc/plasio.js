@@ -396,17 +396,17 @@
         mv   (mv-matrix gl eye tar)
         mvp  (mvp-matrix gl proj mv)
         ro (:render-options dp)]
-                                        ; clear buffer
+    ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
 
-                                        ; draw all loaded buffers
-    (let [buffers-to-draw (->> state
-                               :point-buffers
-                               vals
-                               (map :attribs-id)
-                               (map #(attribs/attribs-in aloader %))
-                               (remove #(or (nil? %))))]
+    ; draw all loaded buffers
+    (let [buffers-to-draw (sequence
+                            (comp
+                              (map :attribs-id)
+                              (keep (partial attribs/attribs-in aloader))
+                              (filter #(get-in % [:point-buffer :gl-buffer])))
+                            (vals (:point-buffers state)))]
       (println (count buffers-to-draw) "/" (count (:point-buffers state)))
 
       (draw-all-buffers gl buffers-to-draw
@@ -415,7 +415,7 @@
                         (:shader state)
                         uniform-map
                         proj mv ro width height
-                        true))
+                        false))
 
     (when-let [strips (-> state
                           :line-strips
@@ -434,44 +434,43 @@
                 prims (.-prims gl-buffer)]
             (.lineWidth gl line-width)
             (buffers/draw! gl
-                       :shader line-shader
-                       :draw-mode line-mode
-                       :viewport {:x 0 :y 0 :width width :height height}
-                       :first 0
-                       :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
-                       :count prims
-                       :capabilities {capability/depth-test false}
-                       :attributes [{:location position-loc
-                                     :components-per-vertex 3
-                                     :type data-type/float
-                                     :stride 12
-                                     :buffer gl-buffer}]
-                       :uniforms [{:name "mvp" :type :mat4 :values mvp}
-                                  {:name "color" :type :vec3 :values (ta/float32 (apply array [1 0 0]))}])
-            ))))
+                           :shader line-shader
+                           :draw-mode line-mode
+                           :viewport {:x 0 :y 0 :width width :height height}
+                           :first 0
+                           :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
+                           :count prims
+                           :capabilities {capability/depth-test false}
+                           :attributes [{:location position-loc
+                                         :components-per-vertex 3
+                                         :type data-type/float
+                                         :stride 12
+                                         :buffer gl-buffer}]
+                           :uniforms [{:name "mvp" :type :mat4 :values mvp}
+                                      {:name "color" :type :vec3 :values (ta/float32 (apply array [1 0 0]))}])))))
 
-      (doseq [l (concat
-                  (-> state :text-labels vals)
-                  (mapcat :labels (-> state :line-strips :line-strips vals))
-                  (map :sum-label (-> state :line-strips :line-strips vals)))]
-        (when-let [p (util/->screen (:position l) mvp width height)]
-          (let [[x y _] p
-                texture (-> l :texture :texture)
-                w (-> l :texture :width)
-                h (-> l :texture :height)]
-            (util/draw-2d-sprite gl texture x y w h width height))))
+    (doseq [l (concat
+                (-> state :text-labels vals)
+                (mapcat :labels (-> state :line-strips :line-strips vals))
+                (map :sum-label (-> state :line-strips :line-strips vals)))]
+      (when-let [p (util/->screen (:position l) mvp width height)]
+        (let [[x y _] p
+              texture (-> l :texture :texture)
+              w (-> l :texture :width)
+              h (-> l :texture :height)]
+          (util/draw-2d-sprite gl texture x y w h width height))))
 
-      (when-let [points (-> source-state :points vals seq)]
-        (let [textures (util/create-get-point-textures gl)]
-          (doseq [p points]
-            (let [[pos st] p
-                  st (keyword st)
-                  [x y _] (util/->screen pos mvp width height)]
-              (util/draw-2d-sprite gl
-                                   (get textures st (:normal textures))
-                                   x y 20 20 width height)))))
+    (when-let [points (-> source-state :points vals seq)]
+      (let [textures (util/create-get-point-textures gl)]
+        (doseq [p points]
+          (let [[pos st] p
+                st (keyword st)
+                [x y _] (util/->screen pos mvp width height)]
+            (util/draw-2d-sprite gl
+                                 (get textures st (:normal textures))
+                                 x y 20 20 width height)))))
 
-                                        ; if there are any post render callback, call that
+    ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
       (cb gl mvp mv proj))))
 

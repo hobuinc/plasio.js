@@ -25,15 +25,16 @@
 (defmulti unreify-attrib first)
 
 (defmethod reify-attrib :point-buffer [[_ props]]
-  {:point-stride (aget props "pointStride")
-   :point-size   (aget props "pointSize")
-   :total-points (aget props "totalPoints")
-   :attributes   (js->clj (aget props "attributes"))
-   :source       {:data (aget props "data")}
-   :gl-buffer    (buffers/create-buffer *gl-context*
-                                        (aget props "data")
-                                        buffer-object/array-buffer
-                                        buffer-object/static-draw)})
+  (let [total-points (aget props "totalPoints")]
+    {:point-stride (aget props "pointStride")
+     :total-points total-points
+     :attributes   (js->clj (aget props "attributes"))
+     :source       {:data (aget props "data")}
+     :gl-buffer    (when-not (zero? total-points)
+                     (buffers/create-buffer *gl-context*
+                                           (aget props "data")
+                                           buffer-object/array-buffer
+                                           buffer-object/static-draw))}))
 
 (defmethod reify-attrib :image-overlay [[_ props]]
   (let [image (aget props "image")
@@ -85,7 +86,8 @@
                                maxs)}))
 
 (defmethod unreify-attrib :point-buffer [[_ buffer]]
-  (.deleteBuffer *gl-context* buffer))
+  (when buffer
+    (.deleteBuffer *gl-context* buffer)))
 
 (defmethod unreify-attrib :image-overlay [[_ image]]
   (.deleteTexture *gl-context* image))
