@@ -68,6 +68,9 @@
 
          var baseURL = "http://misc.greyhound.io";
          var pipelineId = "nepal-oct";
+
+         var baseURL = "http://misc.greyhound.io";
+         var pipelineId = "nyc-c";
        // Autzen as an oct tree
          /*
        var baseURL = "http://misc.greyhound.io";
@@ -130,6 +133,7 @@
 
 
          /* Nepal bounds */
+         /*
          var bbox = [
              348326,
              3067667,
@@ -138,6 +142,17 @@
              3068647,
              1850
          ];
+         */
+
+         /* NYC bounds */
+         var bbox = [
+             -8267096,
+             4938189,
+             -2000,
+             -8204144,
+             5000518,
+             3000
+         ]
 
        var MAX_DEPTH = 16;
 
@@ -146,8 +161,8 @@
          bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, bbox, pipelineId, MAX_DEPTH, true, true),
-         //overlay: new PlasioLib.Loaders.MapboxLoader(),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, bbox, pipelineId, MAX_DEPTH, true, false),
+         overlay: new PlasioLib.Loaders.MapboxLoader(bbox),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
@@ -202,8 +217,6 @@
            });
        });
 
-
-
        PlasioLib.P2PNode.key = "d498vphryc8lg14i";
        return { element: e, renderer: r, policy: p };
      };
@@ -256,8 +269,8 @@
        r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
          pointSize: 2,
-         rgb_f: 1.0,
-         overlay_f: 0.0,
+         rgb_f: 0.0,
+         overlay_f: 1.0,
          maxColorComponent: 1 << 16,
        });
 
