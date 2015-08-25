@@ -29,21 +29,26 @@
     {:point-stride (aget props "pointStride")
      :total-points total-points
      :attributes   (js->clj (aget props "attributes"))
-     :source       {:data (aget props "data")}
+     :source       {:data nil}
      :gl-buffer    (when-not (zero? total-points)
                      (buffers/create-buffer *gl-context*
                                            (aget props "data")
                                            buffer-object/array-buffer
                                            buffer-object/static-draw))}))
 
-(defmethod reify-attrib :image-overlay [[_ props]]
-  (let [image (aget props "image")
-        need-flip (aget props "needFlip")]
-    (texture/create-texture *gl-context*
-                            :image image
-                            :pixel-store-modes {webgl/unpack-flip-y-webgl need-flip}
-                            :parameters {tparams/texture-min-filter tfilter/linear
-                                         tparams/texture-mag-filter tfilter/linear})))
+(let [texture-cache (atom {})]
+  (defmethod reify-attrib :image-overlay [[_ props]]
+    (let [image (aget props "image")
+          need-flip (aget props "needFlip")]
+      (or (get @texture-cache image)
+          (let [texture (texture/create-texture
+                          *gl-context*
+                          :image image
+                          :pixel-store-modes {webgl/unpack-flip-y-webgl need-flip}
+                          :parameters {tparams/texture-min-filter tfilter/linear
+                                       tparams/texture-mag-filter tfilter/linear})]
+            (swap! texture-cache assoc image texture)
+            texture)))))
 
 (defn- -range [mins maxs]
   ;; we don't really care about Y because it has mostly nothing to do with imagery
