@@ -25,6 +25,7 @@
 (defmulti unreify-attrib first)
 
 (defmethod reify-attrib :point-buffer [[_ props]]
+  (println props)
   (let [total-points (aget props "totalPoints")]
     {:point-stride (aget props "pointStride")
      :total-points total-points

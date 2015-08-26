@@ -141,7 +141,9 @@
   "Try to load the given resource, using the provided loader-id and parameters"
   [loader params]
   (go
-   [(keyword (aget loader "provides")) (<! (load-resource loader params))]))
+    (println params)
+    (util/tap
+      [(keyword (aget loader "provides")) (<! (load-resource loader params))])))
 
 (defn- load-buffer-components
   "Load all components required for an ID, if they fail, just substitute a nil instead"
