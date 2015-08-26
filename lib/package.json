@@ -8,6 +8,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
+    "async": "^1.4.2",
     "babel-core": "^5.8.20",
     "babel-loader": "^5.3.2",
     "buffer": "~2.7.0",
