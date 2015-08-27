@@ -11,7 +11,8 @@
             [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
             [clojure.set :as set])
-  (:require-macros [cljs.core.async.macros :refer [go go-loop]]))
+  (:require-macros [cljs.core.async.macros :refer [go go-loop]]
+                   [renderer.macros :refer [with-profile]]))
 
 (defprotocol ICursor
   "A cursor represents a chunk of application state, updating this state
@@ -141,9 +142,7 @@
   "Try to load the given resource, using the provided loader-id and parameters"
   [loader params]
   (go
-    (println params)
-    (util/tap
-      [(keyword (aget loader "provides")) (<! (load-resource loader params))])))
+    [(keyword (aget loader "provides")) (<! (load-resource loader params))]))
 
 (defn- load-buffer-components
   "Load all components required for an ID, if they fail, just substitute a nil instead"

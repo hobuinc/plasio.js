@@ -6,6 +6,7 @@
             [renderer.engine.shaders :as s]
             [renderer.engine.attribs :as attribs]
             [renderer.engine.specs :as specs]
+            [renderer.engine.draw :as draw]
             [cljs-webgl.context :as context]
             [cljs-webgl.shaders :as shaders]
             [cljs-webgl.constants.capability :as capability]
@@ -88,7 +89,6 @@
   (-> {}
       (uniform :projectionMatrix :mat4 identity-matrix)
       (uniform :modelViewMatrix :mat4 identity-matrix)
-      (uniform :modelViewProjectionMatrix :mat4 identity-matrix)
       (uniform :modelMatrix :mat4 identity-matrix)
 
       (uniform :pointSize :float 1.0)
@@ -128,7 +128,6 @@
   (-> {}
       (uniform :projectionMatrix :mat4 identity-matrix)
       (uniform :modelViewMatrix :mat4 identity-matrix)
-      (uniform :modelViewProjectionMatrix :mat4 identity-matrix)
       (uniform :modelMatrix :mat4 identity-matrix)
       (uniform :pointSize :float 1.0)
       (uniform :xyzScale :vec3 [1 1 1])
@@ -157,8 +156,7 @@
                   (assoc render-options
                          :screen [width height]
                          :projectionMatrix proj
-                         :modelViewMatrix  mv
-                         :modelViewProjectionMatrix (mvp-matrix gl proj mv)))]
+                         :modelViewMatrix  mv))]
     ;; The only two loaders we know how to handle right now are:
     ;;      point-buffer - The actual point cloud
     ;;      image-overlay - The overlay for this point-buffer
@@ -291,8 +289,7 @@
                     :offset (:offset transform)
                     :modelMatrix (:model-matrix transform)
                     :projectionMatrix proj
-                    :modelViewMatrix  mv
-                    :modelViewProjectionMatrix (mvp-matrix gl proj mv)))]
+                    :modelViewMatrix  mv))]
     (buffers/draw! gl
                    :shader shader
                    :draw-mode draw-mode/points
@@ -409,13 +406,13 @@
                             (vals (:point-buffers state)))]
       (println (count buffers-to-draw) "/" (count (:point-buffers state)))
 
-      (draw-all-buffers gl buffers-to-draw
-                        (-> (:scene-overlays state)
-                            vals)
-                        (:shader state)
-                        uniform-map
-                        proj mv ro width height
-                        false))
+      (draw/draw-all-buffers gl buffers-to-draw
+                             (-> (:scene-overlays state)
+                                 vals)
+                             (:shader state)
+                             uniform-map
+                             proj mv ro width height
+                             false))
 
     (when-let [strips (-> state
                           :line-strips
