@@ -17,7 +17,7 @@ echo " :: Building renderer ..."
 cd renderer && lein clean && lein cljsbuild once release && cd .. ;
 
 echo " :: Building lib ..."
-cd lib && ./node_modules/.bin/webpack --build && cd .. ;
+cd lib && ./node_modules/.bin/webpack --build --optimize-minimize  && cd .. ;
 
 
 echo " :: Prepping ..."
