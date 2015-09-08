@@ -250,14 +250,12 @@
        // for playing in repl
        window.s = s;
 
-         
        var camParams = decomposeCamParameters();
 
        console.log("Camera parameters:", camParams);
 
        var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
-         r.setEyePosition(eye);
-         r.setTargetPosition(target);
+           r.setEyeTargetPosition(eye, target);
        }, camParams);
 
          s.camera = c;

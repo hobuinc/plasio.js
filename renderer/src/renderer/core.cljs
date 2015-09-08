@@ -26,8 +26,7 @@
   (set-clear-color [this col] [this r g b])
   (add-camera [this props])
   (update-camera [this index f])
-  (set-eye-position [this x y z] [this pos])
-  (set-target-position [this x y z] [this pos])
+  (set-eye-target-position [this eye target])
   (add-scale-object [this uri x y z] [this uri pos])
   (remove-all-scale-objects [this])
   (add-prop-listener [this korks f])
@@ -82,14 +81,12 @@
   (set-clear-color [this col]
     (swap! state assoc-in [:display :clear-color] col))
 
-  (set-eye-position [this x y z]
-    (set-eye-position this [x y z]))
-
-  (set-eye-position [this pos]
-    (swap! state assoc-in [:view :eye] pos))
-
-  (set-target-position [this x y z]
-    (set-target-position this [x y z]))
+  (set-eye-target-position [this eye target]
+    (swap! state update-in [:view]
+           (fn [view]
+             (-> view
+                 (assoc :eye (or eye (:eye view)))
+                 (assoc :target (or target (:target view)))))))
 
   (add-scale-object [this uri x y z]
     (l/logi "Adding scale object" uri x y z)
@@ -100,9 +97,6 @@
 
   (remove-all-scale-objects [this]
     (swap! state assoc-in [:scale-objects] []))
-
-  (set-target-position [this pos]
-    (swap! state assoc-in [:view :target] pos))
 
   (add-prop-listener [this korks f]
     (let [id (str (uuid/make-random))
@@ -277,8 +271,7 @@
     (clj->js {:addCamera (partial-js add-camera r)
               :updateCamera (partial-js update-camera r)
               :setClearColor (partial-js set-clear-color r)
-              :setEyePosition (partial-js set-eye-position r)
-              :setTargetPosition (partial-js set-target-position r)
+              :setEyeTargetPosition (partial-js set-eye-target-position r)
               :addScaleObject (partial-js add-scale-object r)
               :removeAllScaleObjects (partial-js remove-all-scale-objects r)
               :addPropertyListener (partial-js add-prop-listener r)
