@@ -155,8 +155,10 @@
       vec3 height_color = vec3(nheight, nheight, nheight);
       vec3 inv_height_color = vec3(1.0 - nheight, 1.0 - nheight, 1.0 - nheight);
 
-      vec2 uv = vec2(1.0 - (fpos.x - uvrange.x) / (uvrange.z - uvrange.x),
-                     1.0 - (fpos.z - uvrange.y) / (uvrange.w - uvrange.y));
+      vec2 rd = uvrange.zw - uvrange.xy;
+
+      vec2 uv = vec2(1.0 - (fpos.x - uvrange.x) / rd.x + (0.5 / rd.x),
+                     1.0 - (fpos.z - uvrange.y) / rd.y + (0.5 / rd.y));
                      
       vec3 overlay_color = texture2D(overlay, uv).xyz;
 

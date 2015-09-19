@@ -37,7 +37,7 @@
   (let [m (.-proj gl)
         aspect (if (< width height) (/ height width) (/ width height))
         fov  (to-rads (or (:fov cam) 75))
-        near (or (:near cam) 0.1)
+        near (or (:near cam) 1)
         far  (or (:far cam) 10000.0)]
     (if (= (:type cam) "perspective")
       (js/mat4.perspective m fov aspect near far)

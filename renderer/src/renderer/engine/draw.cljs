@@ -73,6 +73,33 @@
       :mat4   (.uniformMatrix4fv gl-context uniform-location transpose values)
       nil)))
 
+
+(defn size-f [mins maxs]
+  (let [x1 (aget mins 0)
+        x2 (aget maxs 0)
+        y1 (aget mins 1)
+        y2 (aget maxs 1)
+        z1 (aget mins 2)
+        z2 (aget maxs 2)]
+    (+
+      (* (- x1 x2) (- x1 x2))
+      (* (- y1 y2) (- y1 y2))
+      (* (- z1 z2) (- z1 z2)))))
+
+(defn sort-bufs [bufs mv]
+  ;; the buffers need to be sorted based on distance from eye
+  ;;
+  (let [tmp (js/vec4.create)]
+    (sort-by
+      (fn [{:keys [transform]}]
+        (let [position (get-in transform [:source :position])
+              pos (js/vec3.transformMat4 tmp position mv)]
+          ;; our key-fn weighs priority based on how big something is, if its small
+          ;; it needs to be renderered last
+          (/ (- (aget pos 2))
+             (size-f (:mins transform) (:maxs transform)))))
+      bufs)))
+
 (defn draw-all-buffers [gl bufs scene-overlays shader
                         base-uniform-map proj mv ro width height draw-bbox?]
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
@@ -98,14 +125,16 @@
     (doseq [[_ v] uniforms]
       (set-uniform gl v))
 
-    (doseq [{:keys [point-buffer image-overlay transform]} bufs]
+    (.disable gl (.-DEPTH_TEST gl))
+
+    (doseq [{:keys [point-buffer image-overlay transform]} (sort-bufs bufs mv)]
       ;; if we have a loaded point buffer for this buffer, lets render it, we may still want to draw
       ;; the bbox if the point-buffer is not valid yet
       ;;
       (when point-buffer
         (let [total-points (:total-points point-buffer)
-              stride       (:point-stride point-buffer)
-              gl-buffer    (:gl-buffer point-buffer)
+              stride (:point-stride point-buffer)
+              gl-buffer (:gl-buffer point-buffer)
 
               ;; figure out our overlays
               overlays (->> scene-overlays
@@ -164,9 +193,11 @@
                                     {:name "v" :type :mat4 :values mv}
                                     {:name "p" :type :mat4 :values proj}]
                          ;; just one attribute
-                         :attributes [{:location (:position-location params)
+                         :attributes [{:location              (:position-location params)
                                        :components-per-vertex 3
-                                       :type data-type/float
-                                       :stride 12
-                                       :offset 0
-                                       :buffer (:buffer params)}]))))))
+                                       :type                  data-type/float
+                                       :stride                12
+                                       :offset                0
+                                       :buffer                (:buffer params)}]))))
+
+    (.enable gl (.-DEPTH_TEST gl))))
