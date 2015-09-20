@@ -163,8 +163,9 @@
          bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];
 
        var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, bbox, pipelineId, MAX_DEPTH, true, false),
-         overlay: new PlasioLib.Loaders.MapboxLoader(bbox),
+         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, bbox, pipelineId, MAX_DEPTH, true, false, false,
+                 new PlasioLib.Loaders.MapboxLoader(bbox)),
+       //  overlay: new PlasioLib.Loaders.MapboxLoader(bbox),
          transform: new PlasioLib.Loaders.TransformLoader()
        };
          
@@ -269,9 +270,9 @@
        r.setClearColor(0.1, 0, 0);
        r.setRenderOptions({
          pointSize: 2,
-         rgb_f: 0.0,
-         overlay_f: 1.0,
-         maxColorComponent: 1 << 8,
+         rgb_f: 1.0,
+         overlay_f: 0.0,
+         maxColorComponent: 1 << 8
        });
 
        p.on("bbox", function(bbox) {

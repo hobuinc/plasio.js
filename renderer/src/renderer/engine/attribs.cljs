@@ -93,9 +93,11 @@
                                maxs)}))
 
 (defmethod rereify-attrib :point-buffer [[_ buf]]
-  (let [source (:source buf)]
-    (if (aget source "update")
+  (let [source (get-in buf [:source :data])
+        needs-update? (.-update source)]
+    (if needs-update?
       (do
+        (println "re-reify needed!")
         (aset source "update" false)
         (update buf :gl-buffer
                 (fn [b]
