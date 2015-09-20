@@ -397,6 +397,10 @@
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
 
+    ; update any buffers that need to be, the outside world can request a refresh of
+    ; a resource
+    (attribs/check-rereify-all aloader gl)
+
     ; draw all loaded buffers
     (let [buffers-to-draw (sequence
                             (comp

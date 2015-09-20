@@ -172,7 +172,9 @@
                                                       (let [attribs-id (attribs/reify-attribs attrib-loader gl loaded-info)]
                                                         (assoc v :attribs-id attribs-id))))))))
                                {:visible true})
-                             identity)))))
+                             (fn [buf]
+                               (when-let [aid (:attribs-id buf)]
+                                 (attribs/unreify-attribs attrib-loader gl aid))))))))
 
 (defn update-labels
   [cursor state-labels]

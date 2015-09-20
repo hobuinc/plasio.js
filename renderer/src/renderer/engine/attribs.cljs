@@ -22,6 +22,7 @@
 (def ^:private ^:dynamic *gl-context* nil) ; The attribs creation and deletion executes in context of this gl-context
 
 (defmulti reify-attrib first)        ; The type of attribs to load is always the first argument
+(defmulti rereify-attrib first)
 (defmulti unreify-attrib first)
 
 (defmethod reify-attrib :point-buffer [[_ props]]
@@ -29,12 +30,13 @@
     {:point-stride (aget props "pointStride")
      :total-points total-points
      :attributes   (js->clj (aget props "attributes"))
-     :source       {:data nil}
+     :source       {:data (aget props "data")}
      :gl-buffer    (when-not (zero? total-points)
                      (buffers/create-buffer *gl-context*
                                            (aget props "data")
                                            buffer-object/array-buffer
                                            buffer-object/static-draw))}))
+
 
 (let [texture-cache (atom {})]
   (defmethod reify-attrib :image-overlay [[_ props]]
@@ -90,12 +92,34 @@
                                mins
                                maxs)}))
 
+(defmethod rereify-attrib :point-buffer [[_ buf]]
+  (let [source (:source buf)]
+    (if (aget source "update")
+      (do
+        (aset source "update" false)
+        (update buf :gl-buffer
+                (fn [b]
+                  (.deleteBuffer *gl-context* b)
+                  (buffers/create-buffer *gl-context*
+                                         source
+                                         buffer-object/array-buffer
+                                         buffer-object/static-draw))))
+      buf)))
+
+(defmethod rereify-attrib :image-overlay [[_ image]]
+  image)
+
+(defmethod rereify-attrib :transform [[_ transform]]
+  transform)
+
 (defmethod unreify-attrib :point-buffer [[_ buffer]]
   (when buffer
-    (.deleteBuffer *gl-context* buffer)))
+    (.deleteBuffer *gl-context* (:gl-buffer buffer))))
 
 (defmethod unreify-attrib :image-overlay [[_ image]]
-  (.deleteTexture *gl-context* image))
+  ;; textures are managed by the cache, we can't just delete anything here
+  ;;
+  )
 
 (defmethod unreify-attrib :transform [[_ transform]]
   (when-let [b (get-in transform [:bbox-params :buffer])]
@@ -104,6 +128,7 @@
 (defprotocol IAttribLoader
   (reify-attribs [this context attribs])
   (attribs-in [this id] [this id korks])
+  (check-rereify-all [this context])
   (unreify-attribs [this context id]))
 
 (defrecord AttribCache [state]
@@ -118,15 +143,23 @@
   (attribs-in [this id]
     (attribs-in this id []))
 
-  (attribs-in [this id korks]
+  (attribs-in [_ id korks]
     (when-let [res (get @state id)]
       (let [korks (if (sequential? korks) korks [korks])]
         (get-in res korks))))
 
+  (check-rereify-all [this context]
+    (binding [*gl-context* context]
+      (swap! state
+             (fn [s]
+               (into {}
+                     (for [[k v] s]
+                       [k (u/map-vals #(rereify-attrib %) v)]))))))
+
   (unreify-attribs [_ context id]
     (binding [*gl-context* context]
       (when-let [res (get @state id)]
-        (swap! dissoc state id)
+        (swap! state dissoc id)
         (doall (u/map-vals #(unreify-attrib %) res))))))
 
 (defn create-attribs-loader []
