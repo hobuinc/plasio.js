@@ -30,6 +30,7 @@
      var clearLines = null; // clear lines
      var lines = [];
      var bufAttrs = null;
+     var switchImagery = null;
 
      var commonStartup = function() {
        var stats = {}
@@ -183,6 +184,11 @@
 
        console.log(history);
 
+         switchImagery = function() {
+             p.hookedReload(function() {
+                 loaders.point.setColorSourceImagery("mapbox.comic");
+             });
+         };
 
         dp = function() {
             // test function to trigger profiler
@@ -342,6 +348,16 @@
      };
 
      ownerStartup();
+
+        var settings = function() {
+            return {
+                zrange: [-2000, 3000],
+                rampColorStart: [1, 0, 0],
+                rampColorEnd: [0, 1, 0],
+                rgb_f: 0.5,
+                map_f: 0.5
+            };
+        };
     </script>
 
     <button style="position:absolute;top:10px;right:280px;z-index:10000"
@@ -358,6 +374,9 @@
 
     <button style="position:absolute;top:60px;right:10px;z-index:10000"
             onclick="javascript:bufAttrs()">Query Buffer Attributes</button>
+
+    <button style="position:absolute;top:90px;right:10px;z-index:10000"
+            onclick="javascript:switchImagery()">Switch Imagery</button>
 
 </body>
 </html>

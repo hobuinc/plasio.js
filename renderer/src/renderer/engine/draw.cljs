@@ -115,6 +115,7 @@
                      :screen [width height]
                      :projectionMatrix proj
                      :modelViewMatrix  mv))]
+    (println uniforms)
     ;; setup properties that won't change for each buffer
     ;;
     ;; Viewport, active shader

@@ -104,10 +104,12 @@
   uniform vec2  zrange;
   uniform vec4  uvrange;
   uniform vec3  offset;
-  uniform sampler2D map;
   uniform vec2  klassRange;
   uniform vec2  pointSizeAttenuation; // (actual size contribution, attenuated size contribution)
   uniform vec2  screen; // screen dimensions
+
+  uniform vec3 rampColorStart;
+  uniform vec3 rampColorEnd;
 
   uniform sampler2D overlay;
 
@@ -134,18 +136,18 @@
 
       vec4 mvPosition = modelViewMatrix * wpos;
       gl_Position = projectionMatrix * mvPosition;
-      float nheight = (position.z - zrange.x) / (zrange.y - zrange.x);
+      float nheight = (position.y - zrange.x) / (zrange.y - zrange.x);
 
       float nhclamp = (nheight - colorClampLower) / (colorClampHigher - colorClampLower);
 
       // compute color channels
       //
       vec3 norm_color = color / maxColorComponent;
-      vec3 map_color = texture2D(map, vec2(nhclamp, 0.5)).rgb;
-      vec3 inv_map_color = texture2D(map, vec2(1.0 - nhclamp, 0.5)).rgb;
+      vec3 map_color = mix(rampColorStart, rampColorEnd, nhclamp);
+      vec3 inv_map_color = mix(rampColorEnd, rampColorStart, nhclamp);
 
       float iklass = (classification - klassRange.x) / (klassRange.y - klassRange.x);
-      vec3 class_color = texture2D(map, vec2(iklass, 0.5)).rgb;
+      vec3 class_color = mix(rampColorStart, rampColorEnd, iklass);
 
       // compute intensity channels
       float i = (intensity - clampLower) / (clampHigher - clampLower);

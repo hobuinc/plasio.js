@@ -112,10 +112,12 @@
       (uniform :colorClampLower :float 0)
       (uniform :colorClampHigher :float 1)
 
+      (uniform :rampColorStart :vec3 [1 0 0])
+      (uniform :rampColorEnd :vec3 [0 1 0])
+
       (uniform :zrange :vec2 [0 1])
       (uniform :uvrange :vec4 [0 0 1 1])
       (uniform :offset :vec3 [0 0 0])
-      (uniform :map :tex 0)
       (uniform :klassRange :vec2 [0 1])
       (uniform :pointSizeAttenuation :vec2 [1 0])
       (uniform :screen :vec2 [1000 1000]) ;; not really but something
