@@ -101,7 +101,7 @@
       bufs)))
 
 (defn draw-all-buffers [gl bufs scene-overlays shader
-                        base-uniform-map proj mv ro width height draw-bbox?]
+                        base-uniform-map proj mv ro width height hints draw-bbox?]
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
         known-attributes {"position" (attrib-loc "position")
                           "color" (attrib-loc "color")
@@ -115,7 +115,6 @@
                      :screen [width height]
                      :projectionMatrix proj
                      :modelViewMatrix  mv))]
-    (println uniforms)
     ;; setup properties that won't change for each buffer
     ;;
     ;; Viewport, active shader
@@ -126,7 +125,8 @@
     (doseq [[_ v] uniforms]
       (set-uniform gl v))
 
-    (.disable gl (.-DEPTH_TEST gl))
+    (when (:flicker-fix hints)
+      (.disable gl (.-DEPTH_TEST gl)))
 
     (doseq [{:keys [point-buffer image-overlay transform]} (sort-bufs bufs mv)]
       ;; if we have a loaded point buffer for this buffer, lets render it, we may still want to draw
@@ -201,4 +201,5 @@
                                        :offset                0
                                        :buffer                (:buffer params)}]))))
 
-    (.enable gl (.-DEPTH_TEST gl))))
+    (when (:flicker-fix hints)
+      (.enable gl (.-DEPTH_TEST gl)))))

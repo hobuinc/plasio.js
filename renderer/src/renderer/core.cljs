@@ -36,6 +36,7 @@
   (add-loader [this loader])
   (remove-loader [this loader])
   (set-render-options [this opts])
+  (set-render-hints [this hints])
   (pick-point [this x y])
   (pick-ui-point [this x y radius])
   (apply-state [this state])
@@ -49,6 +50,10 @@
   (push-line-strip-point [this id point-id])
   (insert-line-strip-point [this id point-id after-id])
   (remove-all-line-strips [this])
+  (add-plane [this id normal dist color opacity size])
+  (update-plane [this id normal dist color opacity size])
+  (remove-plane [this id])
+  (remove-all-planes [this])
   (project-to-image [this projection-view-matrix coordinate-index resolution])
   (add-overlay [this id bounds image])
   (remove-overlay [this id])
@@ -58,12 +63,12 @@
   (remove-all-labels [this])
   (get-loaded-buffers [this]))
 
-(defrecord PlasioRenderer [state render-engine]
+(defrecord PlasioRenderer [state local-state render-engine]
   IPlasioRenderer
   (startup [this elem]
     (l/logi "Doing startup!")
     (let [rengine (r/make-engine)]
-      (r/attach! rengine elem state)
+      (r/attach! rengine elem state local-state)
 
       (l/logi "Setting up state!")
       (reset! render-engine rengine)
@@ -132,6 +137,9 @@
   (set-render-options [this opts]
     (swap! state update-in [:display :render-options] merge opts))
 
+  (set-render-hints [this hints]
+    (swap! local-state update-in [:display :render-hints] merge hints))
+
   (pick-point [_ x y]
     (r/pick-point @render-engine x y))
 
@@ -148,7 +156,9 @@
     (r/add-post-render @render-engine f))
 
   (add-point [_ id position st]
-    (swap! state update-in [:points] assoc id [position st]))
+    (swap! state update-in [:points]
+           (fnil assoc {})
+           id [position st]))
 
   (update-point [_ id position st]
     (swap! state update-in [:points id]
@@ -178,6 +188,24 @@
 
   (remove-all-line-strips [_]
     (swap! state assoc-in [:line-strips] {}))
+
+  (add-plane [_ id normal dist color opacity size]
+    (swap! state update-in [:planes] assoc id [normal dist color opacity size]))
+
+  (update-plane [_ id normal dist color opacity size]
+    (swap! state update-in [:planes id]
+           (fn [[n d c o s]]
+             [(or normal n)
+              (or dist d)
+              (or color c)
+              (or opacity o)
+              (or size s)])))
+
+  (remove-plane [_ id]
+    (swap! state update-in [:planes] dissoc id))
+
+  (remove-all-planes [_]
+    (swap! state assoc-in [:planes] {}))
 
   (project-to-image [this mat which res]
     ;; projection using matrix mat, picks _which_ coordinate (0, 1, 2) and res is the output image size
@@ -266,7 +294,7 @@
   "Given a DOM element, initialize a renderer on it, also returns an object which
   can have methods invoked on it to do stuff with it"
   [elem]
-  (let [r (PlasioRenderer. (atom {}) (atom nil))]
+  (let [r (PlasioRenderer. (atom {}) (atom {}) (atom nil))]
     (startup r elem)
     (clj->js {:addCamera (partial-js add-camera r)
               :updateCamera (partial-js update-camera r)
@@ -280,6 +308,7 @@
               :removePointBuffer (partial-js-passthrough remove-point-buffer r)
               :addLoader (partial-js add-loader r)
               :setRenderOptions (partial-js set-render-options r)
+              :setRenderHints (partial-js set-render-hints r)
               :pickPoint (partial-js pick-point r)
               :pickUIPoint (partial-js pick-ui-point r)
               :applyState (partial-js apply-state r)

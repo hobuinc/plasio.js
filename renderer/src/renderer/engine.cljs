@@ -54,7 +54,7 @@
 (defprotocol IRenderEngine
   "The render engine protocol, implement if you want to use a different rendering
   engine, other than three.js"
-  (attach! [this elem source-state])
+  (attach! [this elem source-state local-state])
   (pick-point [this x y])
   (pick-ui-point [this x y radius])
   (add-loader [this loader])
@@ -320,6 +320,16 @@
                      {:line-strips new-strips
                       :points state-points}))))))
 
+(defn- change-set-for-planes [np op]
+  (let [npk (-> np keys set)
+        opk (-> op keys set)
+        deleted (clojure.set/difference opk npk)
+        updated (->> np
+                     keys
+                     (remove #(= (get np key)
+                                 (get op key))))]
+    [(vec updated) (vec deleted)]))
+
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]
     (set! (.-width c) w)
@@ -332,7 +342,7 @@
 
 (defrecord WebGLRenderEngine [state]
   IRenderEngine
-  (attach! [this elem source-state]
+  (attach! [this elem source-state local-state]
     (let [width         (.-offsetWidth elem)
           height        (.-offsetHeight elem)
           canvas        (create-canvas-with-size width height)
@@ -358,7 +368,8 @@
          run-state "__internal"
          (fn [_ _ _ new-state]
            (r/render-state (assoc new-state
-                             :source-state @source-state))))
+                             :source-state @source-state
+                             :local-state @local-state))))
 
         (add-framed-watch
          source-state "__internal-ss"
@@ -381,9 +392,16 @@
                                    (:line-strips new-state)
                                    (:points new-state)))
 
+
              ;; something still changed, so we need to make sure that renderer is updated, we do this
              ;; by increasing our render count
              (swap! run-state update-in [:render-count] inc))))
+
+        (add-framed-watch
+          local-state "__internal-ls"
+          (fn [_ _ old-state new-state]
+            ;; local state changes don't need much for now
+            (swap! run-state update-in [:render-count] inc)))
 
         (reset! state
                 {:run-state run-state

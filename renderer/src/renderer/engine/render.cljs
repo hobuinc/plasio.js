@@ -382,7 +382,7 @@
 
 (defn render-state
   "Render the state in its current form"
-  [{:keys [source-state] :as state}]
+  [{:keys [source-state local-state] :as state}]
   (let [gl (:gl state)
         aloader (:attrib-loader state)
         [width height] (render-view-size state)
@@ -394,7 +394,8 @@
         proj (projection-matrix gl cam width height)
         mv   (mv-matrix gl eye tar)
         mvp  (mvp-matrix gl proj mv)
-        ro (:render-options dp)]
+        ro (:render-options dp)
+        hints (get-in local-state [:display :render-hints])]
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
@@ -418,6 +419,7 @@
                              (:shader state)
                              uniform-map
                              proj mv ro width height
+                             hints
                              false))
 
     (when-let [strips (-> state
