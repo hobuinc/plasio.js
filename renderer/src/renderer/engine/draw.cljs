@@ -1,5 +1,6 @@
 (ns renderer.engine.draw
-  (:require [cljs-webgl.constants.blending-factor-dest :as bf]
+  (:require [renderer.engine.shaders :as s]
+            [cljs-webgl.constants.blending-factor-dest :as bf]
             [cljs-webgl.shaders :as shaders]
             [cljs-webgl.constants.data-type :as data-type]
             [cljs-webgl.constants.texture-target :as tt]
@@ -8,7 +9,8 @@
             [cljs-webgl.constants.buffer-object :as bo]
             [cljs-webgl.constants.draw-mode :as draw-mode]
             [cljs-webgl.buffers :as buffers]
-            [cljs-webgl.constants.capability :as capability]))
+            [cljs-webgl.constants.capability :as capability]
+            [cljs-webgl.constants.buffer-object :as buffer-object]))
 
 (defn typed-array? [v]
   (let [t (type v)]
@@ -203,3 +205,95 @@
 
     (when (:flicker-fix hints)
       (.enable gl (.-DEPTH_TEST gl)))))
+
+
+(let [geom (atom nil)]
+  (defn- planes-geom [gl]
+    (or @geom
+        (let [buf (ta/float32 [-1 0 -1
+                                1 0 -1
+                                1 0 1
+                               -1 0 -1
+                                1 0 1
+                               -1 0 1])
+              _ (println "-- -- " buf)
+              gl-buffer (buffers/create-buffer gl
+                                               buf
+                                               buffer-object/array-buffer
+                                               buffer-object/static-draw)]
+          (reset! geom gl-buffer)))))
+
+;; plane rendering stuff
+(defn prep-planes-state! [gl]
+  (let [geom (planes-geom gl)
+        {:keys [shader attribs]} (s/create-get-plane-shader gl)]
+    ;; setup vertex pointer
+    (println "-- -- prep:" shader attribs geom)
+    (doto gl
+      (.enable (.-BLEND gl))
+      (.blendEquation (.-FUNC_ADD gl))
+      (.blendFunc (.-SRC_ALPHA gl) (.-ONE_MINUS_SRC_ALPHA gl))
+      (.useProgram shader)
+      (.bindBuffer bo/array-buffer geom)
+      (.vertexAttribPointer (:position attribs) 3 data-type/float false 0 0)
+      (.enableVertexAttribArray (:position attribs)))))
+
+(defn unprep-planes-state! [gl]
+  ;; reverse the state here
+  (doto gl
+    (.disableVertexAttribArray (:position a))
+    (.bindBuffer bo/array-buffer nil)))
+
+(let [m (js/vec3.create)
+      na (js/vec3.create)                                   ;
+      nb (js/vec3.create)]
+  (defn rot-a->b [a b]
+    ;; given two vectors find the axis of rotation and angle of rotation
+    ;; between then
+    (js/vec3.normalize na a)
+    (js/vec3.normalize nb b)
+
+    (let [angle (js/Math.acos (js/vec3.dot na nb))]
+      (if (< angle 0.00001)
+        [a 0]
+        [(js/vec3.cross m a b) angle]))))
+
+(let [m (js/mat4.create)
+      s (js/mat4.create)
+      r (js/mat4.create)
+      temp (js/mat4.create)
+      t (js/mat4.create)]
+  (defn- plane-world-matrix [normal dist size]
+    (let [[axis angle] (rot-a->b (array 0 1 0)
+                                 (apply array normal))]
+      (js/mat4.identity m)
+      (js/mat4.identity s)
+      (js/mat4.identity r)
+      (js/mat4.identity t)
+
+      (println "-- --" m r s t)
+      (println "-- --" axis angle)
+
+      (js/mat4.multiply
+        m
+        (js/mat4.rotate r r angle axis)
+        (js/mat4.multiply
+          temp
+          (js/mat4.translate t t (array 0 dist 0))
+          (js/mat4.scale s s (array size size size)))))))
+
+(defn draw-plane! [gl mvp normal dist color opacity size]
+  (let [geom (planes-geom gl)
+        {s :shader a :attribs u :uniforms} (s/create-get-plane-shader gl)
+        world (plane-world-matrix normal dist size)]
+    (println "-- -- " geom u a)
+    (println "-- -- " mvp normal dist color opacity size)
+    (println "-- -- " world)
+    (doto gl
+      (.uniform1f (:opacity u) opacity)
+      (.uniform3fv (:color u) (ta/float32 color))
+      (.uniformMatrix4fv (:world u) false world)
+      (.uniformMatrix4fv (:mvp u) false mvp)
+
+      (.drawArrays draw-mode/triangles 0 6))))
+

@@ -422,6 +422,18 @@
                              hints
                              false))
 
+    ;; if there are any planes to be drawn, draw them here
+    ;;
+    (when-let [planes (seq (:planes source-state))]
+      (draw/prep-planes-state! gl)
+      (doall
+        (map (fn [[id [normal dist color opacity size]]]
+               ;; draw the plane here
+               (draw/draw-plane! gl mvp normal dist color opacity size))
+             planes))
+      (draw/unprep-planes-state! gl))
+
+
     (when-let [strips (-> state
                           :line-strips
                           :line-strips

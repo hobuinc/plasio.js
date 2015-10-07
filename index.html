@@ -31,6 +31,7 @@
      var lines = [];
      var bufAttrs = null;
      var switchImagery = null;
+     var addPlane = null;
 
      var commonStartup = function() {
        var stats = {}
@@ -216,7 +217,15 @@
 
          roverlay = function() {
              r.removeOverlay("1234");
-         }
+         };
+
+         addPlane = function() {
+             var v = [Math.random(), Math.random(), Math.random()];
+             var col = [Math.random(), Math.random(), Math.random()];
+             var d = Math.random() * 500;
+             var o = Math.random();
+             r.addPlane("abc", v, d, col, o, 10000, d);
+         };
 
        r.addPropertyListener(["line-segments"], function(l) {
            if (!l) return;
@@ -377,6 +386,11 @@
 
     <button style="position:absolute;top:90px;right:10px;z-index:10000"
             onclick="javascript:switchImagery()">Switch Imagery</button>
+
+    <button style="position:absolute;top:120px;right:10px;z-index:10000"
+            onclick="javascript:addPlane()">Add Plane</button>
+
+
 
 </body>
 </html>

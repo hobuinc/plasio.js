@@ -320,16 +320,6 @@
                      {:line-strips new-strips
                       :points state-points}))))))
 
-(defn- change-set-for-planes [np op]
-  (let [npk (-> np keys set)
-        opk (-> op keys set)
-        deleted (clojure.set/difference opk npk)
-        updated (->> np
-                     keys
-                     (remove #(= (get np key)
-                                 (get op key))))]
-    [(vec updated) (vec deleted)]))
-
 (defn- create-canvas-with-size [w h]
   (let [c (.createElement js/document "canvas")]
     (set! (.-width c) w)

@@ -19,6 +19,8 @@
 (declare line-handle-vertex-shader)
 (declare line-handle-fragment-shader)
 
+(declare plane-vertex-shader)
+(declare plane-fragment-shader)
 
 (declare sprite-vertex-shader)
 (declare sprite-fragment-shader)
@@ -73,6 +75,21 @@
               fs (shaders/create-shader gl shader/fragment-shader sprite-fragment-shader)
               s  (shaders/create-program gl vs fs)]
           (reset! sprite-shader s)))))
+
+
+(let [plane-shader (atom nil)
+      uniforms #{"mvp" "world" "color" "opacity"}
+      attribs #{"position"}]
+  (defn create-get-plane-shader [gl]
+    (or @plane-shader
+        (let [vs (shaders/create-shader gl shader/vertex-shader plane-vertex-shader)
+              fs (shaders/create-shader gl shader/fragment-shader plane-fragment-shader)
+              s  (shaders/create-program gl vs fs)
+              uniforms (into {} (for [u uniforms]
+                                  [(keyword u) (shaders/get-uniform-location gl s u)]))
+              attribs (into {} (for [a attribs]
+                                 [(keyword a) (shaders/get-attrib-location gl s a)]))]
+          (reset! plane-shader {:shader s, :uniforms uniforms, :attribs attribs})))))
 
 (def vertex-shader
   "
@@ -408,4 +425,28 @@
       vec4 col = texture2D(sprite, texcoord);
       if (col.a < 0.1) discard;
       gl_FragColor = vec4(col.rgb, 1.0);
+  }")
+
+(def plane-vertex-shader
+  "precision mediump float;
+
+   uniform mat4  mvp;
+   uniform mat4  world;
+
+   attribute vec3  position;
+
+   void main() {
+       vec4 pos = vec4(position, 1.0);
+       gl_Position = mvp * world * pos;
+   }")
+
+(def plane-fragment-shader
+  "
+  precision mediump float;
+
+  uniform float opacity;
+  uniform vec3  color;
+
+  void main() {
+      gl_FragColor = vec4(color, opacity);
   }")
