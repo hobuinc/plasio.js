@@ -8,6 +8,7 @@
             [renderer.engine.model-cache :as mc]
             [renderer.engine.render :as r]
             [renderer.engine.attribs :as attribs]
+            [renderer.stats :as stats]
             [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
             [clojure.set :as set])
@@ -64,7 +65,9 @@
   (project-to-image [this mat which res])
   (add-overlay [this id bounds image])
   (remove-overlay [this id])
-  (get-loaded-buffers [this]))
+  (get-loaded-buffers [this])
+  (add-stats-listener [this which key f])
+  (remove-stats-listener [this which key]))
 
 
 (defn- changes
@@ -154,10 +157,18 @@
                 (fetch-resource loader (aget buffer-id loader-id)))]
     (async/into {} (async/merge chans))))
 
+(defn update-stats! [stats id loaded-info]
+  (when-let [pb (:point-buffer loaded-info)]
+    (when-let [z-stats (aget pb "stats" "z")]
+      (let [s (js->clj z-stats)
+            z (:z stats)]
+        (stats/add-node! z id s)))))
+
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
   [cursor state-pb]
   (let [gl            (root cursor :gl)
+        stats         (root cursor :stats-collector)
         attrib-loader (root cursor :attrib-loader)
         all-loaders   (root cursor :loaders)]
     (transact! cursor []
@@ -166,6 +177,7 @@
                              (fn [buffer-id]
                                (let [decoded-id (util/decode-id buffer-id)]
                                  (go (let [loaded-info (<! (load-buffer-components all-loaders decoded-id))]
+                                       (update-stats! stats buffer-id loaded-info)
                                        (transact! cursor [buffer-id]
                                                   (fn [v]
                                                     (when-not (nil? v)
@@ -350,6 +362,7 @@
                              :shader (shaders/create-shader context)
                              :picker (r/create-picker)
                              :attrib-loader (attribs/create-attribs-loader)
+                             :stats-collector {:z (stats/make-stats)}
                              :loaders {}
                              :point-buffers {}
                              :screen-overlays {}})]
@@ -481,7 +494,19 @@
         (comp (map :attribs-id)
               (map #(attribs/attribs-in attrib-loader %))
               (remove nil?))
-        (vals point-buffers)))))
+        (vals point-buffers))))
+
+  (add-stats-listener [_ which key f]
+    (let [rs @(:run-state @state)
+          stats-collector (:stats-collector rs)]
+      (when-let [s (get stats-collector (keyword which))]
+        (stats/listen! s key f))))
+
+  (remove-stats-listener [_ which key]
+    (let [rs @(:run-state @state)
+          stats-collector (:stats-collector rs)]
+      (when-let [s (get stats-collector (keyword which))]
+        (stats/unlisten! s key)))))
 
 
 (defn make-engine

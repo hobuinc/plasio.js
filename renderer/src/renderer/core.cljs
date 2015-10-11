@@ -61,7 +61,9 @@
   (remove-label [this id])
   (update-label [this id position text])
   (remove-all-labels [this])
-  (get-loaded-buffers [this]))
+  (get-loaded-buffers [this])
+  (add-stats-listener [this which id f])
+  (remove-stats-listener [this which id]))
 
 (defrecord PlasioRenderer [state local-state render-engine]
   IPlasioRenderer
@@ -274,7 +276,15 @@
             :stride (get-in buf [:point-buffer :point-stride])
             :total-points (get-in buf [:point-buffer :total-points])
             :data (get-in buf [:point-buffer :source :data])))
-        buffers))))
+        buffers)))
+
+  (add-stats-listener [_ which id f]
+    (r/add-stats-listener @render-engine which id
+                          (fn [o n]
+                            (f (clj->js o) (clj->js n)))))
+
+  (remove-stats-listener [_ which id]
+    (r/remove-stats-listener @render-engine which id)))
 
 
 (defn partial-js
@@ -333,4 +343,6 @@
               :updateLabel (partial-js update-label r)
               :removeLabel (partial-js remove-label r)
               :removeAllLabels (partial-js remove-all-labels r)
-              :getLoadedBuffers (partial-js get-loaded-buffers r)})))
+              :getLoadedBuffers (partial-js get-loaded-buffers r)
+              :addStatsListener (partial-js add-stats-listener r)
+              :removeStatsListener (partial-js remove-stats-listener r)})))

@@ -235,6 +235,10 @@
            });
        });
 
+         r.addStatsListener("z", "z-listener", function(o, n) {
+             //console.log("-- --  STATS:", o, n);
+         });
+
        PlasioLib.P2PNode.key = "d498vphryc8lg14i";
        return { element: e, renderer: r, policy: p };
      };

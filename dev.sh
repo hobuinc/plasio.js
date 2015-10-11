@@ -12,6 +12,7 @@ tmux has-session -t $SESSION_NAME
 if [ $? != 0 ] ; then
     tmux new-session -d -s $SESSION_NAME -c $PWD/lib 'npm run dev'
     tmux split-window -v -t $SESSION_NAME -c $PWD/renderer 'lein cljsbuild auto dev'
+    tmux split-window -v -t $SESSION_NAME -c $PWD/renderer 'lein doo node test auto'
     tmux split-window -v -t $SESSION_NAME 'env PORT=3000 http-server'
     tmux select-layout -t $SESSION_NAME even-vertical
 fi
