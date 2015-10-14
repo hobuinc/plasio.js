@@ -277,7 +277,7 @@
       }
 
 
-        if (circularPoints > 0) {
+      if (circularPoints > 0) {
         float a = pow(2.0*(gl_PointCoord.x - 0.5), 2.0);
         float b = pow(2.0*(gl_PointCoord.y - 0.5), 2.0);
         float c = 1.0 - (a + b);
@@ -287,7 +287,7 @@
         }      
 
 #if defined have_frag_depth
-        gl_FragDepthEXT = gl_FragCoord.z + 0.002*(1.0-pow(c, 1.0)) * gl_FragCoord.w;
+        // gl_FragDepthEXT = gl_FragCoord.z + 0.002*(1.0-pow(c, 1.0)) * gl_FragCoord.w;
 #endif
       }
       gl_FragColor = vec4(mix(out_color, out_intensity, intensityBlend), 1.0);
