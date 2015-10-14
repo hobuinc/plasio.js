@@ -240,9 +240,10 @@
 
 (defn unprep-planes-state! [gl]
   ;; reverse the state here
-  (doto gl
-    (.disableVertexAttribArray (:position a))
-    (.bindBuffer bo/array-buffer nil)))
+  (let [{a :attribs} (s/create-get-plane-shader gl)]
+    (doto gl
+      (.disableVertexAttribArray (:position a))
+      (.bindBuffer bo/array-buffer nil))))
 
 (let [m (js/vec3.create)
       na (js/vec3.create)                                   ;
