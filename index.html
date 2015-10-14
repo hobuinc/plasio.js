@@ -75,6 +75,11 @@
          //var baseURL = "http://54.161.144.43";
          var baseURL = "http://data.greyhound.io";
          var pipelineId = "nyc-g";
+
+         /*
+         var baseURL = "http://misc.greyhound.io";
+         var pipelineId = "sandy-oct";
+         */
        // Autzen as an oct tree
          /*
        var baseURL = "http://misc.greyhound.io";
@@ -156,7 +161,21 @@
              -8204144,
              5000518,
              3000
-         ]
+         ];
+
+         /* sandy bounds */
+         /*
+         var bbox = [
+             -8505250,
+             4594220,
+             -200,
+             -8353425,
+             4843875,
+             1000
+         ];
+         */
+
+
 
        var MAX_DEPTH = 16;
 
@@ -220,11 +239,17 @@
          };
 
          addPlane = function() {
-             var v = [Math.random(), Math.random(), Math.random()];
-             var col = [Math.random(), Math.random(), Math.random()];
-             var d = Math.random() * 500;
+             var v = [0, 1, 0];
+             var col = [1, 1, 1];
              var o = Math.random();
-             r.addPlane("abc", v, d, col, o, 10000, d);
+
+             var t = 0.0;
+             setInterval(function() {
+                 var d = Math.sin(t) * 10000.0;
+                 r.updatePlane("abc", v, d, col, 0.5, 50000, d);
+                 t += 0.05;
+             }, 10)
+
          };
 
        r.addPropertyListener(["line-segments"], function(l) {

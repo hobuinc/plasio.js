@@ -37,7 +37,7 @@
   (let [m (.-proj gl)
         aspect (if (< width height) (/ height width) (/ width height))
         fov  (to-rads (or (:fov cam) 75))
-        near (or (:near cam) 1)
+        near (or (:near cam) 1.0)
         far  (or (:far cam) 10000.0)]
     (if (= (:type cam) "perspective")
       (js/mat4.perspective m fov aspect near far)
@@ -57,7 +57,7 @@
     (js/mat4.multiply m proj mv)))
 
 (defn get-gl-context [elem]
-  (let [gl (context/get-context elem {:alpha true
+  (let [gl (context/get-context elem {:alpha false
                                       :premultiplied-alpha false})]
     (set! (.-proj gl) (js/Array 16))
     (set! (.-mv gl) (js/Array 16))
@@ -145,7 +145,7 @@
                            (assoc old :values (coerce v typ))
                            (throw (js/Error. (str "Don't know type for field: " k))))))) which-map opts))
 
-(defn- draw-all-buffers
+#_(defn- draw-all-buffers
   [gl bufs scene-overlays shader base-uniform-map proj mv render-options width height draw-bbox?]
   (let [attrib-loc (partial shaders/get-attrib-location gl shader)
         blend-func [bf/src-alpha bf/one-minus-src-alpha]
@@ -399,6 +399,10 @@
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
+    #_(.depthFunc gl (.-LESS gl))
+
+    (.enable gl (.-DEPTH_TEST gl))
+    (.depthMask gl true)
 
     ; update any buffers that need to be, the outside world can request a refresh of
     ; a resource
@@ -434,7 +438,7 @@
       (draw/unprep-planes-state! gl))
 
 
-    (when-let [strips (-> state
+    #_(when-let [strips (-> state
                           :line-strips
                           :line-strips
                           vals

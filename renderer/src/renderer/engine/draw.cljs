@@ -203,6 +203,7 @@
                                        :offset                0
                                        :buffer                (:buffer params)}]))))
 
+
     (when (:flicker-fix hints)
       (.enable gl (.-DEPTH_TEST gl)))))
 
@@ -216,7 +217,6 @@
                                -1 0 -1
                                 1 0 1
                                -1 0 1])
-              _ (println "-- -- " buf)
               gl-buffer (buffers/create-buffer gl
                                                buf
                                                buffer-object/array-buffer
@@ -228,10 +228,8 @@
   (let [geom (planes-geom gl)
         {:keys [shader attribs]} (s/create-get-plane-shader gl)]
     ;; setup vertex pointer
-    (println "-- -- prep:" shader attribs geom)
     (doto gl
       (.enable (.-BLEND gl))
-      (.blendEquation (.-FUNC_ADD gl))
       (.blendFunc (.-SRC_ALPHA gl) (.-ONE_MINUS_SRC_ALPHA gl))
       (.useProgram shader)
       (.bindBuffer bo/array-buffer geom)
@@ -242,6 +240,7 @@
   ;; reverse the state here
   (let [{a :attribs} (s/create-get-plane-shader gl)]
     (doto gl
+      (.disable (.-BLEND gl))
       (.disableVertexAttribArray (:position a))
       (.bindBuffer bo/array-buffer nil))))
 
@@ -272,9 +271,6 @@
       (js/mat4.identity r)
       (js/mat4.identity t)
 
-      (println "-- --" m r s t)
-      (println "-- --" axis angle)
-
       (js/mat4.multiply
         m
         (js/mat4.rotate r r angle axis)
@@ -284,12 +280,8 @@
           (js/mat4.scale s s (array size size size)))))))
 
 (defn draw-plane! [gl mvp normal dist color opacity size]
-  (let [geom (planes-geom gl)
-        {s :shader a :attribs u :uniforms} (s/create-get-plane-shader gl)
+  (let [{u :uniforms} (s/create-get-plane-shader gl)
         world (plane-world-matrix normal dist size)]
-    (println "-- -- " geom u a)
-    (println "-- -- " mvp normal dist color opacity size)
-    (println "-- -- " world)
     (doto gl
       (.uniform1f (:opacity u) opacity)
       (.uniform3fv (:color u) (ta/float32 color))
