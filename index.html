@@ -73,8 +73,8 @@
 
 
          //var baseURL = "http://54.161.144.43";
-         var baseURL = "http://data.greyhound.io";
-         var pipelineId = "nyc-g";
+         var baseURL = "http://dev.greyhound.io";
+         var pipelineId = "nyc-hb";
 
          /*
          var baseURL = "http://misc.greyhound.io";
@@ -157,10 +157,10 @@
          var bbox = [
              -8267096,
              4938189,
-             -2000,
+             -31000,
              -8204144,
              5000518,
-             3000
+             31000
          ];
 
          /* sandy bounds */
@@ -311,7 +311,7 @@
            c.applyState(event.state);
        };
 
-       r.setClearColor(0.1, 0, 0);
+       r.setClearColor(0.4, 0, 0);
        r.setRenderOptions({
          pointSize: 2,
          rgb_f: 1.0,
