@@ -121,9 +121,9 @@
       (uniform :klassRange :vec2 [0 1])
       (uniform :pointSizeAttenuation :vec2 [1 0])
       (uniform :screen :vec2 [1000 1000]) ;; not really but something
-      (uniform :do_plane_clipping :int 0)
+      #_(uniform :do_plane_clipping :int 0)
       (uniform :circularPoints :int 0)
-      (uniform :planes :vec4 (repeat 24 0))
+      #_(uniform :planes :vec4 (repeat 24 0))
       (uniform :sceneOverlaysCount :int 0)))
 
 (def ^:private picker-uniform-map

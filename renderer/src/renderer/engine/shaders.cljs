@@ -269,12 +269,14 @@
   varying vec3 fpos;
 
   void main() {
+  /*
       if (do_plane_clipping > 0) {
           for(int i = 0 ; i < 6 ; i ++) {
               if (dot(planes[i], vec4(fpos, 1.0)) < 0.0)
                   discard;
           }
       }
+      */
 
 
       if (circularPoints > 0) {
