@@ -25,367 +25,202 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
-     var dp = null; // do profile, function that does profile stuff for us
-     var overlay = null, roverlay = null;
-     var clearLines = null; // clear lines
-     var lines = [];
-     var bufAttrs = null;
-     var switchImagery = null;
-     var addPlane = null;
+        var SERVER = "dev.greyhound.io";
+        var RESOURCE = "nyc-hb";
+        var IMAGERY_SOURCE = "local.origin";
 
-     var commonStartup = function() {
-       var stats = {}
-       var renderStats = function(ps, ds) {
-         stats.ps = ps || stats.ps;
-         stats.ds = ds || stats.ds;
-
-         if (stats.ps && stats.ds) {
-           document.getElementById("stats").innerHTML =
-           "Pool: active: " + stats.ps.inuse +
-           ", waiting: " + stats.ps.waiting +
-           ", max:" + stats.ps.max + "| Totals: points: " +
-           stats.ds.totalPoints + ", bytes: " + stats.ds.totalBytes;
-         }
-       };
-
-       var e = document.getElementById("app");
-
-       var r = renderer.core.createRenderer(e);
-       /*
-       var p = new baseSource.NodeDistancePolicy(r,
-       "localhost:8080", "4da95360946af6a58f36ef92fa65e4cc");
-        */
-
-       var baseURL = "http://52.4.221.249:8080";
-       var pipelineId = "mini-shred";
-
-       var baseURL = "http://data.iowalidar.com";
-       var pipelineId = "ia-nineteen";
-
-       var baseURL = "http://data-dyn.iowalidar.com";
-       var pipelineId = "iowa-dyn";
-
-         var baseURL = "http://misc.greyhound.io";
-         var pipelineId = "autzen-oct";
-
-         var baseURL = "http://misc.greyhound.io";
-         var pipelineId = "nepal-oct";
+        var dp = null; // do profile, function that does profile stuff for us
+        var overlay = null, roverlay = null;
+        var clearLines = null; // clear lines
+        var lines = [];
+        var bufAttrs = null;
+        var switchImagery = null;
+        var addPlane = null;
 
 
-         //var baseURL = "http://54.161.144.43";
-         var baseURL = "http://dev.greyhound.io";
-         var pipelineId = "nyc-hb";
+        var get = function(url, cb) {
+            var r = new XMLHttpRequest();
+            r.onload = function() {
+                if (r.status === 200) {
+                    return cb(JSON.parse(r.response));
+                }
 
-         /*
-         var baseURL = "http://misc.greyhound.io";
-         var pipelineId = "sandy-oct";
-         */
-       // Autzen as an oct tree
-         /*
-       var baseURL = "http://misc.greyhound.io";
-       var pipelineId = "autzen-tall";
-       */
+                throw new Error("get failed for: " + url);
+            }
 
-         /*
-       var baseURL = "http://52.0.223.227";
-       var pipelineId = "nepal";
-            */
-
-       //var baseURL = "http://54.157.130.127";
-         /*
-       var baseURL = "http://dh1bhcvxlzpg1.cloudfront.net";
-       var pipelineId = "iowa-link";
-            */
-
-       
-       // var bbox = [-10796577.371225, 4902908.135781, -10015953.953824, 5375808.896799];
-       //var bbox = [-10755071.77716193,4894622.884751885, -9979898.42756837,5405017.135473464];
-       // var bbox = [-10214432.963804673, 5087648.60266133, -10175297.205322662, 5126784.361143343];
-
-         var bbox = [
-             // Whole state in web-mercator.
-             -10796577.371225, 4902908.135781, 0,
-             -10015953.953824, 5375808.896799, 1000
-         ];
-         /*
-         var bbox = [
-             348327,
-             3067668,
-             1329.97,
-             349361,
-             3068647,
-             1399.52
-         ]
-         */
-
-
-       // Autzen oct tree bounds
-         /*
-         var bbox = [
-             635577,
-             848882,
-             406,
-             639004,
-             853538,
-             616
-         ];
-
-         var bbox = [
-             635577,
-             848882,
-             0,
-             639004,
-             853538,
-             1000
-         ];
-          */
-
-
-         /* Nepal bounds */
-         /*
-         var bbox = [
-             348326,
-             3067667,
-             850,
-             349361,
-             3068647,
-             1850
-         ];
-         */
-
-         /* NYC bounds */
-         var bbox = [
-             -8267096,
-             4938189,
-             -31000,
-             -8204144,
-             5000518,
-             31000
-         ];
-
-         /* sandy bounds */
-         /*
-         var bbox = [
-             -8505250,
-             4594220,
-             -200,
-             -8353425,
-             4843875,
-             1000
-         ];
-         */
-
-
-
-       var MAX_DEPTH = 16;
-
-
-         // put bbox in correct space, y goes up.
-         bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];
-
-       var loaders = {
-         point: new PlasioLib.Loaders.GreyhoundPipelineLoader(baseURL, bbox, pipelineId, MAX_DEPTH, true, false, false,
-                 new PlasioLib.Loaders.MapboxLoader(bbox)),
-       //  overlay: new PlasioLib.Loaders.MapboxLoader(bbox),
-         transform: new PlasioLib.Loaders.TransformLoader()
-       };
-         
-       var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox, 20, MAX_DEPTH);
-       for (var l in loaders) {
-         r.addLoader(loaders[l].constructor);
-       }
-
-       var handleResize = function () {
-         r.setRenderViewSize(window.innerWidth, window.innerHeight);
-       };
-
-       window.onresize = handleResize;
-       handleResize();
-
-       console.log(history);
-
-         switchImagery = function() {
-             p.hookedReload(function() {
-                 loaders.point.setColorSourceImagery("mapbox.comic");
-             });
-         };
-
-        dp = function() {
-            // test function to trigger profiler
-            console.log("dp:", lines);
-            if (lines.length === 0)
-                return;
-
-            var p = new PlasioLib.Features.Profiler(r);
-            p.profileLines(lines, bbox);
+            r.open("get", url);
+            r.send();
         };
 
-         overlay = function() {
-             var c = document.createElement("canvas");
-             c.width = 512;
-             c.height = 512;
-             var ctx = c.getContext('2d');
+        var commonStartup = function(f) {
+            var stats = {}
 
-             ctx.strokeStyle = "#ff0000";
-           
-             ctx.lineWidth = 5;
-             ctx.strokeRect(50, 50, 200, 200);
-            
-            r.addOverlay("1234", [-40000, -20000, 40000, 20000], c);
-         };
+            var e = document.getElementById("app");
+            var r = renderer.core.createRenderer(e);
 
-         roverlay = function() {
-             r.removeOverlay("1234");
-         };
+            get("http://" + SERVER + "/resource/" + RESOURCE + "/info", function(obj) {
+                var bbox = obj.bounds.slice(0);
+                var schema = obj.schema;
 
-         addPlane = function() {
-             var v = [0, 1, 0];
-             var col = [1, 1, 1];
-             var o = Math.random();
+                // put bbox in correct space, y goes up.
+                bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];
 
-             var t = 0.0;
-             setInterval(function() {
-                 var d = Math.sin(t) * 10000.0;
-                 r.updatePlane("abc", v, d, col, 0.5, 50000, d);
-                 t += 0.05;
-             }, 10)
+                var loaders = {
+                    point: new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, bbox, schema, IMAGERY_SOURCE),
+                    transform: new PlasioLib.Loaders.TransformLoader()
+                };
 
-         };
+                var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox);
 
-       r.addPropertyListener(["line-segments"], function(l) {
-           if (!l) return;
+                for (var l in loaders) {
+                    r.addLoader(loaders[l].constructor);
+                }
 
-           lines = l.map(function(_l) {
-               return [_l[1], _l[2], _l[3]];
-           });
-       });
+                var handleResize = function () {
+                    r.setRenderViewSize(window.innerWidth, window.innerHeight);
+                };
 
-         r.addStatsListener("z", "z-listener", function(o, n) {
-             //console.log("-- --  STATS:", o, n);
-         });
+                window.onresize = handleResize;
+                handleResize();
 
-       PlasioLib.P2PNode.key = "d498vphryc8lg14i";
-       return { element: e, renderer: r, policy: p };
-     };
+                console.log(history);
 
-     var decomposeCamParameters = function() {
-         var q = window.location.search;
-         if (q.length === 0) return null;
+                switchImagery = function () {
+                    p.hookedReload(function () {
+                        loaders.point.setColorSourceImagery("mapbox.comic");
+                    });
+                };
 
-         q = q.slice(1);
-         var s = q.split("&").reduce(function(a, v) {
-             var p = v.split("=");
-             var k = p[0], v = JSON.parse(decodeURIComponent(p[1]));
-             a[k] = v;
-             return a;
-         }, {});
+                dp = function () {
+                    // test function to trigger profiler
+                    console.log("dp:", lines);
+                    if (lines.length === 0)
+                        return;
 
+                    var p = new PlasioLib.Features.Profiler(r);
+                    p.profileLines(lines, bbox);
+                };
 
-         return s;
-     };
+                overlay = function () {
+                    var c = document.createElement("canvas");
+                    c.width = 512;
+                    c.height = 512;
+                    var ctx = c.getContext('2d');
 
-     var ownerStartup = function() {
-       var s = commonStartup();
+                    ctx.strokeStyle = "#ff0000";
 
-       var e = s.element;
-       var r = s.renderer;
-       var p = s.policy;
+                    ctx.lineWidth = 5;
+                    ctx.strokeRect(50, 50, 200, 200);
 
+                    r.addOverlay("1234", [-40000, -20000, 40000, 20000], c);
+                };
 
-       // for playing in repl
-       window.s = s;
+                roverlay = function () {
+                    r.removeOverlay("1234");
+                };
 
-       var camParams = decomposeCamParameters();
+                addPlane = function () {
+                    var v = [0, 1, 0];
+                    var col = [1, 1, 1];
+                    var o = Math.random();
 
-       console.log("Camera parameters:", camParams);
+                    var t = 0.0;
+                    setInterval(function () {
+                        var d = Math.sin(t) * 10000.0;
+                        r.updatePlane("abc", v, d, col, 0.5, 50000, d);
+                        t += 0.05;
+                    }, 10)
 
-       var c = new PlasioLib.Cameras.Orbital(e, r, function(eye, target) {
-           r.setEyeTargetPosition(eye, target);
-       }, camParams);
+                };
 
-         s.camera = c;
-
-       // do some history setup
-       window.onpopstate = function(event) {
-           console.log("STATE!!!!");
-           c.applyState(event.state);
-       };
-
-       r.setClearColor(0.4, 0, 0);
-       r.setRenderOptions({
-         pointSize: 2,
-         rgb_f: 1.0,
-         overlay_f: 0.0,
-         maxColorComponent: 1 << 8
-       });
-
-       p.on("bbox", function(bbox) {
-         var x = bbox.maxs[0] - bbox.mins[0],
-         y = bbox.maxs[1] - bbox.mins[1],
-         z = bbox.maxs[2] - bbox.mins[2];
-         
-         // reset the state of our camera
-         if (!camParams)
-               c.setHint([x, y, z]);
-
-         // update our renderer to set far clip plane to pretty far
-         var farPlane = Math.sqrt(x*x + y*y) * 2;
-         r.updateCamera(0, {far: farPlane});
-         
-       });
-
-       p.on("view-changed", function() {
-           var state = c.serialize();
-
-           var kv = function(k, first) {
-               return (first ? "?" : "&") + encodeURIComponent(k) + "=" + encodeURIComponent(JSON.stringify(state[k]));
-           };
-
-           var s = kv('distance', true) + kv('elevation') + kv('azimuth') + kv('maxDistance') + kv('distance') + kv('target');
-
-           history.pushState(state, "Viewing stuffs", s);
-       });
-
-
-       var mode = new PlasioLib.Modes.LinePicker(e, r);
-
-        clearLines = function() {
-            console.log("clearing lines!");
-            mode.resetState();
+                PlasioLib.P2PNode.key = "d498vphryc8lg14i";
+                f({element: e, renderer: r, policy: p});
+            });
         };
 
+        var decomposeCamParameters = function() {
+            var q = window.location.search;
+            if (q.length === 0) return null;
 
-         bufAttrs = function() {
-             console.log("requesting buffer attributes");
-             var buffers = r.getLoadedBuffers();
+            q = q.slice(1);
+            var s = q.split("&").reduce(function(a, v) {
+                var p = v.split("=");
+                var k = p[0], v = JSON.parse(decodeURIComponent(p[1]));
+                a[k] = v;
+                return a;
+            }, {});
 
-             console.log("got buffer:", buffers);
-         }
 
-       var active = false;
-       document.addEventListener("keydown", function(evt) {
-           if (evt.keyCode === 16 && !active) {
-               c.enableControls(false);
-               mode.activate();
+            return s;
+        };
 
-               active = true;
+        var ownerStartup = function() {
+            var s = commonStartup(function(s) {
 
-           }
-       });
 
-       document.addEventListener("keyup", function(evt) {
-           if (evt.keyCode === 16 && active) {
-               c.enableControls(true);
-               mode.deactivate();
+                var e = s.element;
+                var r = s.renderer;
+                var p = s.policy;
 
-               active = false;
-           }
-       });
 
-       p.start();
-     };
+                // for playing in repl
+                window.s = s;
 
-     ownerStartup();
+                var camParams = decomposeCamParameters();
+
+                console.log("Camera parameters:", camParams);
+
+                var c = new PlasioLib.Cameras.Orbital(e, r, function (eye, target) {
+                    r.setEyeTargetPosition(eye, target);
+                }, camParams);
+
+                s.camera = c;
+
+                // do some history setup
+                window.onpopstate = function (event) {
+                    c.applyState(event.state);
+                };
+
+                r.setClearColor(0.4, 0, 0);
+                r.setRenderOptions({
+                    pointSize: 2,
+                    rgb_f: 1.0,
+                    overlay_f: 0.0,
+                    maxColorComponent: 1 << 8
+                });
+
+                p.on("bbox", function (bbox) {
+                    var x = bbox.maxs[0] - bbox.mins[0],
+                            y = bbox.maxs[1] - bbox.mins[1],
+                            z = bbox.maxs[2] - bbox.mins[2];
+
+                    // reset the state of our camera
+                    if (!camParams)
+                        c.setHint([x, y, z]);
+
+                    // update our renderer to set far clip plane to pretty far
+                    var farPlane = Math.sqrt(x * x + y * y) * 2;
+                    r.updateCamera(0, {far: farPlane});
+
+                });
+
+                p.on("view-changed", function () {
+                    var state = c.serialize();
+
+                    var kv = function (k, first) {
+                        return (first ? "?" : "&") + encodeURIComponent(k) + "=" + encodeURIComponent(JSON.stringify(state[k]));
+                    };
+
+                    var s = kv('distance', true) + kv('elevation') + kv('azimuth') + kv('maxDistance') + kv('distance') + kv('target');
+
+                    history.pushState(state, "Viewing stuffs", s);
+                });
+
+                p.start();
+            });
+        };
+
+        ownerStartup();
 
         var settings = function() {
             return {
