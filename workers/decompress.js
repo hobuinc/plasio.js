@@ -28,24 +28,42 @@ function swapSpace(buffer, worldBoundsX, pointSize, numPoints) {
 	}
 }
 
-function collectStats(buffer, pointSize, numPoints) {
-	// whatever stats we collect go here
+function collectStats(buffer, pointSize, numPoints, collectFor) {
+	// We collect stats here, collectFor is a list of 3-tuples, where
+	// each element specifies the stats to collect, first item being the
+	// key and the second one being its offset in floating point in the point representation
+	// and the third item being the clamp step
 	//
-	var bin = {};
-	var binIt = function(val) {
-		var key = Math.floor(val / 10) * 10;
+	//
+	// E.g. to collect Z-stats you'd say
+	// collectFor = [["z" 1]];
+	//
+	var bins = {};
+
+	var binIt = function(type, step, val) {
+		var key = Math.floor(val / step) * step;
+		var bin = bins[type] || {};
 		bin[key] = ((!bin[key]) ? 0 : bin[key]) + 1;
+
+		bins[type] = bin;
 	};
 
 	var offset = 0;
 	var psInFloats = pointSize / 4;
 	for (var i = 0 ; i < numPoints ; i ++) {
-		var z = buffer[offset + 1];
-		binIt(z);
+		for (var j = 0 ; j < collectFor.length ; j ++) {
+			var type = collectFor[j][0],
+				off  = collectFor[j][1],
+				step = collectFor[j][2];
+
+			var val = buffer[offset + off];
+			binIt(type, step, val);
+		}
+
 		offset += psInFloats;
 	}
 
-	return {z: bin};
+	return bins;
 }
 
 var unpackBuffer = function(buffer, totalPoints, pointSize, schema) {
@@ -79,8 +97,6 @@ var unpackBuffer = function(buffer, totalPoints, pointSize, schema) {
 	// from this point on, everything is stored as 32-bit floats
 	var outBuffer = new Float32Array(totalPoints * schema.length);
 
-	console.log("-- -- TPW:", totalPoints);
-
 	for (var i = 0 ; i < totalPoints ; i ++) {
 		for (var j = 0, jl = fields.length ; j < jl ; j ++) {
 			var f = fields[j];
@@ -95,9 +111,22 @@ var unpackBuffer = function(buffer, totalPoints, pointSize, schema) {
 		}
 	}
 
-	console.log("-- -- end of line:", woff * 4, roff);
-
 	return outBuffer;
+};
+
+var getColorChannelOffsets = function(schema) {
+	var red = null, green = null, blue = null;
+
+	schema.forEach(function(s, i) {
+		if (s.name === "Red") red = i;
+		else if (s.name === "Green") green = i;
+		else if (s.name === "Blue") blue = i;
+	});
+
+	if (red !== null && green !== null && blue !== null)
+		return [red, green, blue];
+
+	return null;
 };
 
 var totalSaved = 0;
@@ -154,7 +183,21 @@ var decompressBuffer = function(schema, worldBoundsX, ab, numPoints) {
 	if (numPoints > 0)
 		swapSpace(b, worldBoundsX, pointSize, numPoints);
 
-	var stats = collectStats(b, pointSize, numPoints);
+	// stats collection, if we have color, collect color stats
+	//
+	var statsToCollect = [
+		["z", 1, 10]
+	];
+
+	var colorOffsets = getColorChannelOffsets(schema);
+
+	if (colorOffsets !== null) {
+		statsToCollect.push(["red", colorOffsets[0], 10]);
+		statsToCollect.push(["green", colorOffsets[1], 10]);
+		statsToCollect.push(["blue", colorOffsets[2], 10]);
+	}
+
+	var stats = collectStats(b, pointSize, numPoints, statsToCollect);
 
 	return [b, stats];
 };

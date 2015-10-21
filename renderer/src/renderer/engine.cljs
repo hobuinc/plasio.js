@@ -157,12 +157,16 @@
                 (fetch-resource loader (aget buffer-id loader-id)))]
     (async/into {} (async/merge chans))))
 
-(defn update-stats! [stats id loaded-info]
-  (when-let [pb (:point-buffer loaded-info)]
-    (when-let [z-stats (aget pb "stats" "z")]
-      (let [s (js->clj z-stats)
-            z (:z stats)]
-        (stats/add-node! z id s)))))
+(defn update-stat-for! [stats stat-type id pb]
+  (when-let [s (aget pb "stats" (name stat-type))]
+    (when-let [st (get stats stat-type)]
+      (stats/add-node! st id (js->clj s)))))
+
+(let [stats-to-update #{:z :red :green :blue}]
+  (defn update-stats! [stats id loaded-info]
+    (when-let [pb (:point-buffer loaded-info)]
+      (doseq [s stats-to-update]
+        (update-stat-for! stats s id pb)))))
 
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
@@ -362,7 +366,10 @@
                              :shader (shaders/create-shader context)
                              :picker (r/create-picker)
                              :attrib-loader (attribs/create-attribs-loader)
-                             :stats-collector {:z (stats/make-stats)}
+                             :stats-collector {:z (stats/make-stats)
+                                               :red (stats/make-stats)
+                                               :green (stats/make-stats)
+                                               :blue (stats/make-stats)}
                              :loaders {}
                              :point-buffers {}
                              :screen-overlays {}})]

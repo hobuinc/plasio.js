@@ -26,8 +26,8 @@
 
     <script>
         var SERVER = "dev.greyhound.io";
-        var RESOURCE = "nyc-hb";
-        var IMAGERY_SOURCE = "local.origin";
+        var RESOURCE = "autzen";
+        var IMAGERY_SOURCE = "local.elevation";
 
         var dp = null; // do profile, function that does profile stuff for us
         var overlay = null, roverlay = null;
@@ -132,6 +132,28 @@
                     }, 10)
 
                 };
+
+                var maxColorComponent = null;
+                r.addStatsListener("red", "col-listener", function(o, n) {
+                    if (maxColorComponent === null && n) {
+                        var keys = Object.keys(n);
+                        for (var i = 0 ; i < keys.length ; i ++) {
+                            var v = parseInt(keys[i]);
+                            if (v > 255) {
+                                maxColorComponent = 1 << 16;
+                                break;
+                            }
+                        }
+
+                        if (maxColorComponent === null) {
+                            maxColorComponent = 1 << 8;
+                        }
+
+                        r.setRenderOptions({
+                            maxColorComponent: maxColorComponent
+                        });
+                    }
+                });
 
                 PlasioLib.P2PNode.key = "d498vphryc8lg14i";
                 f({element: e, renderer: r, policy: p});
