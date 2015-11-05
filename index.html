@@ -25,9 +25,9 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
-        var SERVER = "174.129.176.71";
+        var SERVER = "devdata.greyhound.io";
         var RESOURCE = "sandy-ell";
-        var IMAGERY_SOURCE = "mapbox.satellite";
+        var IMAGERY_SOURCE = "local.elevation";
 
         var dp = null; // do profile, function that does profile stuff for us
         var overlay = null, roverlay = null;
@@ -61,6 +61,12 @@
             get("http://" + SERVER + "/resource/" + RESOURCE + "/info", function(obj) {
                 var bbox = obj.bounds.slice(0);
                 var schema = obj.schema;
+
+                // determine and set splitting cutoffs
+                var stopSplitLevel = Math.ceil(Math.log(obj.numPoints) / Math.log(4)) + 1;
+
+                PlasioLib.FrustumLODNodePolicy.STOP_SPLIT_DEPTH = stopSplitLevel;
+                PlasioLib.FrustumLODNodePolicy.HARD_STOP_DEPTH = stopSplitLevel * 2;
 
                 // put bbox in correct space, y goes up.
                 bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];

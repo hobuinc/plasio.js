@@ -377,9 +377,11 @@
         (add-framed-watch
          run-state "__internal"
          (fn [_ _ _ new-state]
+           (js/console.time "render-state")
            (r/render-state (assoc new-state
                              :source-state @source-state
-                             :local-state @local-state))))
+                             :local-state @local-state))
+           (js/console.timeEnd "render-state")))
 
         (add-framed-watch
          source-state "__internal-ss"
