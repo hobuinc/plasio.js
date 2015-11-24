@@ -395,14 +395,21 @@
              (when-not (identical? (:text-labels old-state) (:text-labels new-state))
                (update-labels (sub-cursor cursor [:text-labels]) (:text-labels new-state)))
 
-             ;; line strip updating works differently, line strips rely on two things changing
-             ;; either the line-strip definitions themselves or the points
-             ;;
-             (when-not (and (identical? (:points old-state) (:points new-state))
-                            (identical? (:line-strips old-state) (:line-strips new-state)))
-               (update-line-strips (sub-cursor cursor [:line-strips])
-                                   (:line-strips new-state)
-                                   (:points new-state)))
+
+             ;; if the points changed this time we need to make sure we check if any of our supported
+             ;; primivites are also updated
+             (when-not (identical? (:points old-state) (:points new-state))
+               ;; points have changed! check all primitives and update them
+               (when-not (identical? (:line-strips old-state) (:line-strips new-state))
+                 ;; the line strips changed
+                 (update-line-strips (sub-cursor cursor [:line-strips])
+                                     (:line-strips new-state)
+                                     (:points new-state)))
+
+               ;; TODO: check for other shapes
+               )
+
+
 
 
              ;; something still changed, so we need to make sure that renderer is updated, we do this
@@ -439,14 +446,20 @@
           distance (fn [[_ _ [x' y' _]]]
                      (js/vec2.distance (array x y)
                                        (array x' y')))]
-      (some->> source-state
-               :points
-               seq
-               (map (fn [[id [p _]]]
-                      [id p (eutil/->screen p mvp width height)]))
-               (filter within-radius?)
-               (sort-by distance)
-               first)))
+      ;; we can get intersections with either points, line-strips or
+      ;; shapes, we need to convey sufficient information to the caller
+      ;;
+      (if-let [point (some->> source-state
+                              :points
+                              seq
+                              (map (fn [[id [p _]]]
+                                     [id p (eutil/->screen p mvp width height)]))
+                              (filter within-radius?)
+                              (sort-by distance)
+                              first)]
+        ;; we got a point
+        {:entity point
+         :type :point})))
 
   (add-loader [_ loader]
     (let [key (.-key loader)

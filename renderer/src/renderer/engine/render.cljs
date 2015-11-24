@@ -399,7 +399,6 @@
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
-    #_(.depthFunc gl (.-LESS gl))
 
     (.enable gl (.-DEPTH_TEST gl))
     (.depthMask gl true)
@@ -470,7 +469,7 @@
                            :uniforms [{:name "mvp" :type :mat4 :values mvp}
                                       {:name "color" :type :vec3 :values (ta/float32 (apply array [1 0 0]))}])))))
 
-    (doseq [l (concat
+    #_(doseq [l (concat
                 (-> state :text-labels vals)
                 (mapcat :labels (-> state :line-strips :line-strips vals))
                 (map :sum-label (-> state :line-strips :line-strips vals)))]

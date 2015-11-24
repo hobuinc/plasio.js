@@ -27,15 +27,9 @@
     <script>
         var SERVER = "devdata.greyhound.io";
         var RESOURCE = "sandy-ell";
-        var IMAGERY_SOURCE = "local.classification";
+        var IMAGERY_SOURCE = "local.elevation";
 
-        var dp = null; // do profile, function that does profile stuff for us
-        var overlay = null, roverlay = null;
-        var clearLines = null; // clear lines
         var lines = [];
-        var bufAttrs = null;
-        var switchImagery = null;
-        var addPlane = null;
 
 
         var get = function(url, cb) {
@@ -45,15 +39,17 @@
                     return cb(JSON.parse(r.response));
                 }
 
-                throw new Error("get failed for: " + url);
-            }
+                throw new Error("HTTP/GET failed for: " + url);
+            };
 
             r.open("get", url);
             r.send();
         };
 
+        var enablePointPicker = null, disablePointPicker = null;
+
         var commonStartup = function(f) {
-            var stats = {}
+            var stats = {};
 
             var e = document.getElementById("app");
             var r = renderer.core.createRenderer(e);
@@ -89,24 +85,7 @@
                 window.onresize = handleResize;
                 handleResize();
 
-                console.log(history);
-
-                switchImagery = function () {
-                    p.hookedReload(function () {
-                        loaders.point.setColorSourceImagery("mapbox.comic");
-                    });
-                };
-
-                dp = function () {
-                    // test function to trigger profiler
-                    console.log("dp:", lines);
-                    if (lines.length === 0)
-                        return;
-
-                    var p = new PlasioLib.Features.Profiler(r);
-                    p.profileLines(lines, bbox);
-                };
-
+                /*
                 overlay = function () {
                     var c = document.createElement("canvas");
                     c.width = 512;
@@ -124,20 +103,7 @@
                 roverlay = function () {
                     r.removeOverlay("1234");
                 };
-
-                addPlane = function () {
-                    var v = [0, 1, 0];
-                    var col = [1, 1, 1];
-                    var o = Math.random();
-
-                    var t = 0.0;
-                    setInterval(function () {
-                        var d = Math.sin(t) * 10000.0;
-                        r.updatePlane("abc", v, d, col, 0.5, 50000, d);
-                        t += 0.05;
-                    }, 10)
-
-                };
+                 */
 
                 var maxColorComponent = null;
                 r.addStatsListener("red", "col-listener", function(o, n) {
@@ -161,7 +127,6 @@
                     }
                 });
 
-                PlasioLib.P2PNode.key = "d498vphryc8lg14i";
                 f({element: e, renderer: r, policy: p});
             });
         };
@@ -198,15 +163,16 @@
 
                 console.log("Camera parameters:", camParams);
 
-                var c = new PlasioLib.Cameras.Orbital(e, r, function (eye, target) {
+                var modeManager = new PlasioLib.ModeManager(e, r, function(eye, target) {
                     r.setEyeTargetPosition(eye, target);
-                }, camParams);
+                }, camParams)
 
-                s.camera = c;
+                s.camera = null;
+                s.modeManager = modeManager;
 
                 // do some history setup
                 window.onpopstate = function (event) {
-                    c.applyState(event.state);
+                    modeManager.activeCamera.deserialize(event.state);
                 };
 
                 r.setClearColor(0.4, 0, 0);
@@ -224,7 +190,7 @@
 
                     // reset the state of our camera
                     if (!camParams)
-                        c.setHint([x, y, z]);
+                        modeManager.propagateDataRangeHint(x, y, z);
 
                     // update our renderer to set far clip plane to pretty far
                     var farPlane = Math.sqrt(x * x + y * y) * 2;
@@ -233,7 +199,7 @@
                 });
 
                 p.on("view-changed", function () {
-                    var state = c.serialize();
+                    var state = modeManager.activeCamera.serialize();
 
                     var kv = function (k, first) {
                         return (first ? "?" : "&") + encodeURIComponent(k) + "=" + encodeURIComponent(JSON.stringify(state[k]));
@@ -245,6 +211,16 @@
                 });
 
                 p.start();
+
+
+                var pointPicker = null;
+                enablePointPicker = function() {
+                    modeManager.activeMode = "point";
+                };
+
+                disablePointPicker = function() {
+                    modeManager.activeMode = "camera";
+                };
             });
         };
 
@@ -262,26 +238,10 @@
     </script>
 
     <button style="position:absolute;top:10px;right:280px;z-index:10000"
-            onclick="javascript:overlay();">Add Overlay</button>
+            onclick="javascript:enablePointPicker();">Enable Point Picker</button>
 
-    <button style="position:absolute;top:10px;right:180px;z-index:10000"
-            onclick="javascript:roverlay();">Remove Overlay</button>
-
-    <button style="position:absolute;top:10px;right:10px;z-index:10000"
-            onclick="javascript:dp()">Do Profile</button>
-
-    <button style="position:absolute;top:10px;right:80px;z-index:10000"
-            onclick="javascript:clearLines()">Clear Lines</button>
-
-    <button style="position:absolute;top:60px;right:10px;z-index:10000"
-            onclick="javascript:bufAttrs()">Query Buffer Attributes</button>
-
-    <button style="position:absolute;top:90px;right:10px;z-index:10000"
-            onclick="javascript:switchImagery()">Switch Imagery</button>
-
-    <button style="position:absolute;top:120px;right:10px;z-index:10000"
-            onclick="javascript:addPlane()">Add Plane</button>
-
+    <button style="position:absolute;top:10px;right:150px;z-index:10000"
+            onclick="javascript:disablePointPicker();">Disable Point Picker</button>
 
 
 </body>
