@@ -167,6 +167,10 @@
                     r.setEyeTargetPosition(eye, target);
                 }, camParams)
 
+                modeManager.addActionListener(function(actions) {
+                    console.log("context menu actions:", actions);
+                });
+
                 s.camera = null;
                 s.modeManager = modeManager;
 
