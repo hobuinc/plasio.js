@@ -219,7 +219,7 @@
     ;; but in world coordinates, where Y goes up and orgin is right at the middle of the point cloud
     ;;
     ;; TODO: At this point the overlays are passed down directly to the renderer.  They do not affect the
-    ;; state.  Eventually it would be nice to gave the renderer call back into the features so that the renderer
+    ;; state.  Eventually it would be nice to have the renderer call back into the features so that the renderer
     ;; could drive these things.
     ;;
     (r/add-overlay @render-engine id bounds image))

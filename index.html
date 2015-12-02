@@ -21,12 +21,14 @@
        var DECOMPRESS_WORKER_PATH="/workers/decompress.js"
     </script>
 
+    <srcipt src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.3.1/gl-matrix-min.js"></srcipt>
     <script src="renderer/target/dev/renderer.js"></script>
+
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
         var SERVER = "devdata.greyhound.io";
-        var RESOURCE = "sandy-ell";
+        var RESOURCE = "autzen";
         var IMAGERY_SOURCE = "local.elevation";
 
         var lines = [];
@@ -47,6 +49,10 @@
         };
 
         var enablePointPicker = null, disablePointPicker = null;
+        var doLOS = null;
+
+
+        var totalBBox = null;
 
         var commonStartup = function(f) {
             var stats = {};
@@ -66,6 +72,9 @@
 
                 // put bbox in correct space, y goes up.
                 bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];
+
+
+                totalBBox = bbox;
 
                 var loaders = {
                     point: new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, bbox, schema, IMAGERY_SOURCE),
@@ -150,7 +159,6 @@
         var ownerStartup = function() {
             var s = commonStartup(function(s) {
 
-
                 var e = s.element;
                 var r = s.renderer;
                 var p = s.policy;
@@ -165,10 +173,14 @@
 
                 var modeManager = new PlasioLib.ModeManager(e, r, function(eye, target) {
                     r.setEyeTargetPosition(eye, target);
-                }, camParams)
+                }, camParams);
 
                 modeManager.addActionListener(function(actions) {
                     console.log("context menu actions:", actions);
+                    if (actions["los"]) {
+                        var fn = actions["los"][1];
+                        fn.call();
+                    }
                 });
 
                 s.camera = null;
@@ -216,8 +228,6 @@
 
                 p.start();
 
-
-                var pointPicker = null;
                 enablePointPicker = function() {
                     modeManager.activeMode = "point";
                 };
@@ -225,6 +235,85 @@
                 disablePointPicker = function() {
                     modeManager.activeMode = "camera";
                 };
+
+                doLOS = function() {
+                    var identity = mat4.identity(mat4.create());
+                    var view = identity;
+
+                    console.log(totalBBox);
+
+                    var range = [totalBBox[3] - totalBBox[0], totalBBox[5] - totalBBox[2]];
+
+
+                    //mat4.rotateZ(view, view, 3.14159265);
+                    mat4.rotateX(view, view, Math.PI / 2);
+
+
+                    console.log(range);
+                    var proj = mat4.ortho(mat4.create(), +range[0]/2, -range[0]/2,
+                            -range[1]/2, range[1]/2, -1000000, 1000000);
+
+                    var mat = mat4.multiply(mat4.create(), proj, view);
+
+                    var SIZE = 256;
+                    var res = r.projectToImage(mat, 1, SIZE);
+
+                    console.log(res);
+
+                    var c = document.createElement("canvas");
+                    c.width = SIZE;
+                    c.height = SIZE;
+                    c.style.position = "absolute";
+                    c.style.left = c.style.top = 0;
+                    c.style.width = 256;
+                    c.style.height = 256;
+
+                    var ctx = c.getContext("2d");
+
+                    var m = -999999999999, n = 99999999999;
+                    for(var i = 0 ; i < res.length ; i++) {
+                        m = Math.max(m, res[i]);
+                        n = Math.min(n, res[i]);
+                    }
+
+                    console.log("m,n", m, n);
+
+                    for (var off = 0 ; off < res.length ; off ++) {
+                        var v = res[off];
+                        var clf = (v - n) / (m - n);
+
+                        clf = clf * 255;
+                        var col = "rgb(" + Math.floor(clf) + ",0,0)";
+
+                        if (off < 100) {
+                            console.log(col);
+                        }
+
+                        ctx.fillStyle = col;
+
+                        var x = off % SIZE;
+                        var y = Math.floor(off / SIZE);
+
+                        ctx.fillRect(x, y, 1, 1);
+                    }
+
+                    document.body.appendChild(c);
+
+                    /*
+                    var image = new Image();
+                    image.crossOrigin = "";
+                    image.onload = function() {
+                        console.log("Image loaded, adding overlay!");
+                        var bounds = [-10000, -10000, 10000, 10000];
+
+                        r.addOverlay("los-12314", bounds, image);
+                        console.log("Overlay addede!");
+
+                    };
+                    image.src = "https://placekitten.com/1024/1024";
+                    console.log("Doing line of sight!");
+                    */
+                }
             });
         };
 
@@ -247,6 +336,8 @@
     <button style="position:absolute;top:10px;right:150px;z-index:10000"
             onclick="javascript:disablePointPicker();">Disable Point Picker</button>
 
+    <button style="position:absolute;top:50px;right:150px;z-index:10000"
+            onclick="javascript:doLOS();">LOS</button>
 
 </body>
 </html>

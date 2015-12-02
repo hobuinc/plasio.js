@@ -37,7 +37,7 @@
                    which-map opts)]
     (->> uniforms
          (map (fn [[k u]]
-            (if-let [loc (shaders/get-uniform-location gl shader (:name u))]
+            (if-let [loc (get-in shader [:uniforms (:name u)])]
               [k (assoc u :location loc)]
               (throw (js/Error. (str "Could not find uniform location for: " (:name u)))))))
          (into {}))))
@@ -104,28 +104,62 @@
 
 (defn draw-all-buffers [gl bufs scene-overlays shader
                         base-uniform-map proj mv ro width height hints draw-bbox?]
-  (let [attrib-loc (partial shaders/get-attrib-location gl shader)
-        known-attributes {"position" (attrib-loc "position")
-                          "color" (attrib-loc "color")
-                          "intensity" (attrib-loc "intensity")
-                          "classification" (attrib-loc "classification")}
-        overlay-texture-location (shaders/get-uniform-location gl shader "overlay")
-        uniforms (uniforms-with-override
+  (let [uniforms (uniforms-with-override
                    gl shader
                    base-uniform-map
                    (assoc ro
                      :screen [width height]
                      :projectionMatrix proj
-                     :modelViewMatrix  mv))]
+                     :modelViewMatrix  mv))
+        overlays (->> scene-overlays
+                      (take 8)
+                      seq)]
     ;; setup properties that won't change for each buffer
     ;;
     ;; Viewport, active shader
     (.viewport gl 0 0 width height)
-    (.useProgram gl shader)
+    (.useProgram gl (:shader shader))
 
     ;; setup all uniforms which don't change frame to frame
     (doseq [[_ v] uniforms]
       (set-uniform gl v))
+
+    ;; if we have overlays, active texture units
+    (when overlays
+      ;; we have a shader limit of 8 overlays at this time
+      ;; TODO, Auto Detect texture unit count
+      (println "overlays:" overlays)
+      (let [base-index 1
+            indices (take (count overlays)
+                          (iterate inc base-index))] ;; base index is 1 since we want to leave texture0 untouched
+        ;; activate all textures
+        (doall
+          (map
+            (fn [texture-unit ovr]
+              (.activeTexture gl (+ tu/texture0 texture-unit))
+              (.bindTexture gl tt/texture-2d (:texture ovr)))
+            indices
+            overlays))
+
+        ;; set the texture unit back to 0
+        (.activeTexture gl tu/texture0)
+
+        ;; we need to now set sampler information in our sceneOverlays struct
+        (let [overlay-val (apply array indices)
+              uniform-loc (get-in shader [:uniforms "sceneOverlays"])]
+          (.uniform1iv gl uniform-loc (ta/int32 overlay-val)))
+
+        ;; the supporting uniforms are also sort of complex to set, so lets just do that using the raw
+        ;; gl api
+        (let [blend-contributions (apply array (repeat 8 1.0))
+              all-bounds (apply array
+                                (mapcat :bounds overlays))
+              overlay-count (get-in shader [:uniforms "sceneOverlaysCount"])
+              loc-conts (get-in shader [:uniforms "sceneOverlayBlendContributions"])
+              loc-bounds (get-in shader [:uniforms "sceneOverlayBounds"])]
+          (.uniform1i gl overlay-count (count overlays))
+          (.uniform1fv gl loc-conts (ta/float32 blend-contributions))
+          (.uniform4fv gl loc-bounds (ta/float32 all-bounds)))))
 
     (when (:flicker-fix hints)
       (.disable gl (.-DEPTH_TEST gl)))
@@ -137,12 +171,7 @@
       (when point-buffer
         (let [total-points (:total-points point-buffer)
               stride (:point-stride point-buffer)
-              gl-buffer (:gl-buffer point-buffer)
-
-              ;; figure out our overlays
-              overlays (->> scene-overlays
-                            (take 8)
-                            seq)]
+              gl-buffer (:gl-buffer point-buffer)]
           ;; override per buffer uniforms
           (set-uniform gl (override-uniform uniforms :modelMatrix (:model-matrix transform)))
           (set-uniform gl (override-uniform uniforms :offset (:offset transform)))
@@ -161,7 +190,7 @@
           ;; setup attributes
           (.bindBuffer gl bo/array-buffer gl-buffer)
           (doseq [[name offset size] (:attributes point-buffer)]
-            (if-let [loc (get known-attributes name)]
+            (if-let [loc (get-in shader [:attribs name])]
               (doto gl
                 (.enableVertexAttribArray loc)
                 (.vertexAttribPointer loc size data-type/float false stride (* 4 offset)))

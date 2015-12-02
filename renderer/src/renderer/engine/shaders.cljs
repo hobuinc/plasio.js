@@ -1,7 +1,8 @@
 (ns renderer.engine.shaders
   "Shaders abstraction"
   (:require [cljs-webgl.shaders :as shaders]
-            [cljs-webgl.constants.shader :as shader]))
+            [cljs-webgl.constants.shader :as shader]
+            [clojure.string :as s]))
 
 
 (declare vertex-shader)
@@ -25,14 +26,40 @@
 (declare sprite-vertex-shader)
 (declare sprite-fragment-shader)
 
+
+(defn- parse-uniform-name [nm]
+  ;; webgl post-fixes [0] on all shaders which are arrays
+  (s/replace nm #"\[\d\]$" ""))
+
+(defn shader-uniforms-attribs [gl program]
+  (let [uniform-count (.getProgramParameter gl program (.-ACTIVE_UNIFORMS gl))
+        uniform-locs (into {}
+                           (for [i (range uniform-count)
+                                 :let [uniform (.getActiveUniform gl program i)
+                                       name (parse-uniform-name (.-name uniform))
+                                       loc (shaders/get-uniform-location gl program name)]]
+                             [name loc]))
+        attrib-count (.getProgramParameter gl program (.-ACTIVE_ATTRIBUTES gl))
+        attrib-locs (into {}
+                          (for [i (range attrib-count)
+                                :let [attrib (.getActiveAttrib gl program i)
+                                      name (parse-uniform-name (.-name attrib))
+                                      loc (shaders/get-attrib-location gl program name)]]
+                            [name loc]))]
+    {:uniforms uniform-locs
+     :attribs attrib-locs}))
+
 (defn create-shader [gl]
   ;; make sure that needed extensions are addeded
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader)
         fs (shaders/create-shader gl shader/fragment-shader
                                   (if (.getExtension gl "EXT_frag_depth")
                                     (str "#define have_frag_depth\n\n" frag-shader)
-                                    frag-shader))]
-    (shaders/create-program gl vs fs)))
+                                    frag-shader))
+        shader (shaders/create-program gl vs fs)]
+    (merge
+      {:shader shader}
+      (shader-uniforms-attribs gl shader))))
 
 
 (defn create-picker-shader [gl]

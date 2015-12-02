@@ -614,8 +614,8 @@
         dp (:display source-state)
         which (case which
                 0 [1 0 0]
-                1 [0 0 1]
-                [0 1 0])
+                1 [0 1 0]
+                [0 0 1])
         ro (-> (:render-options dp)     ; picker rendering options don't need a ton of options
                (select-keys [:xyzScale :zrange :offset])
                (assoc :pointSize 1
