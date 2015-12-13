@@ -49,7 +49,10 @@
   (create-line-strip [this id params])
   (push-line-strip-point [this id point-id])
   (insert-line-strip-point [this id point-id after-id])
+  (remove-line-strip-point [this id point-id])
+  (remove-line-strip [this id])
   (remove-all-line-strips [this])
+  (update-line-strip-params [this id params])
   (add-plane [this id normal dist color opacity size])
   (update-plane [this id normal dist color opacity size])
   (remove-plane [this id])
@@ -178,6 +181,9 @@
     (swap! state update-in [:line-strips] assoc id {:points []
                                                     :params params}))
 
+  (remove-line-strip [_ id]
+    (swap! state update-in [:line-strips] dissoc id))
+
   (push-line-strip-point [_ id point-id]
     (swap! state update-in [:line-strips id :points] conj point-id))
 
@@ -188,8 +194,17 @@
                (vec
                  (concat a [point-id] b))))))
 
+  (remove-line-strip-point [_ id point-id]
+    (swap! state update-in [:line-strips id :points]
+           #(->> %
+                 (remove (fn [p] (= p point-id)))
+                 vec)))
+
   (remove-all-line-strips [_]
     (swap! state assoc-in [:line-strips] {}))
+
+  (update-line-strip-params [_ id params]
+    (swap! state update-in [:line-strips id :params] merge params))
 
   (add-plane [_ id normal dist color opacity size]
     (swap! state update-in [:planes] assoc id [normal dist color opacity size]))
@@ -331,6 +346,9 @@
               :createLineStrip (partial-js create-line-strip r)
               :pushLineStripPoint (partial-js push-line-strip-point r)
               :insertLineStripPoint (partial-js insert-line-strip-point r)
+              :removeLineStripPoint (partial-js remove-line-strip-point r)
+              :removeLineStrip (partial-js remove-line-strip r)
+              :updateLineStripParams (partial-js update-line-strip-params r)
               :removeAllLineStrips (partial-js remove-all-line-strips r)
               :addPlane (partial-js add-plane r)
               :updatePlane (partial-js update-plane r)

@@ -300,3 +300,32 @@
         _ (js/vec3.transformMat4 p p mat)]
     (when (< (aget p 2) 1.0)
       (to-screen (aget p 0) (aget p 1) (aget p 2) width height))))
+
+(let [pa (js/vec2.create)
+      sa (js/vec2.create)
+      ea (js/vec2.create)]
+  (defn line-distance-to-point-squared [[x y] [sx sy] [ex ey]]
+    (js/vec2.set pa x y)
+    (js/vec2.set sa sx sy)
+    (js/vec2.set ea ex ey)
+
+    (let [d (js/vec2.squaredDistance sa ea)]
+      ;; if distance between sa and ea is zero (same point) then
+      ;; just compute distance from start to point
+      (if (zero? d)
+        (js/vec2.squaredDistance sa pa)
+        (let [t (/ (+ (* (- x sx)
+                         (- ex sx))
+                      (* (- y sy)
+                         (- ey sy)))
+                   d)]
+          (cond
+            (< t 0) (js/vec2.squaredDistance pa sa)
+            (> t 1) (js/vec2.squaredDistance pa ea)
+            :else (js/vec2.squaredDistance pa (array
+                                                (+ sx (* t (- ex sx)))
+                                                (+ sy (* t (- ey sy)))))))))))
+
+(defn line-distance-to-point [p s e]
+  (js/Math.sqrt
+    (line-distance-to-point-squared p s e)))

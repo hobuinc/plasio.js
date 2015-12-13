@@ -309,6 +309,7 @@
                                       (let [changed-points (change-set-for-points state-points old-points)
                                             strip-updated? (fn [a b]
                                                              (or (not (identical? (:points a) (:points b)))
+                                                                 (not (identical? (:params a) (:params b)))
                                                                  (some changed-points (:points a))))]
                                         (zipmap
                                           changed-strips
@@ -345,6 +346,56 @@
 (defn- resize-canvas-to-size [canvas w h]
   (set! (.-width canvas) w)
   (set! (.-height canvas) h))
+
+(defn- to-intersection [strips all-points fn-to-screen]
+  (mapcat (fn [[lid {ps :points params :params}]]
+            ;; if this line strip is a loop then we need to append the last point to the
+            ;; the list of points to check for segments
+            (let [points (if (:loop params)
+                           (conj ps (first ps))
+                           ps)
+                  psx (keep (fn [id]
+                              (when-let [loc (first (get all-points id))]
+                                {:id              id
+                                 :line-id         lid
+                                 :location        loc
+                                 :screen-location (fn-to-screen loc)}))
+                            points)
+                  segments (partition 2 1 psx)]
+              segments))
+          strips))
+
+
+(defn- intersecting-point [[x y] points radius fn-to-screen]
+  (let [within-radius? (fn [[_ _ [x' y' _]]]
+                         (<
+                           (js/vec2.distance (array x y)
+                                             (array x' y'))
+                           radius))
+        distance (fn [[_ _ [x' y' _]]]
+                   (js/vec2.distance (array x y)
+                                     (array x' y')))]
+    (some->> points
+             seq
+             (map (fn [[id [p _]]]
+                    [id p (fn-to-screen p)]))
+             (filter within-radius?)
+             (sort-by distance)
+             first)))
+
+(defn intersecting-line [[x y] lines points radius fn-to-screen]
+  (some->> (to-intersection lines points fn-to-screen)
+           (map (fn [[start end]]
+                  {:line-id  (:line-id start)
+                   :start    (dissoc start :line-id)
+                   :end      (dissoc end :line-id)
+                   :distance (eutil/line-distance-to-point
+                               [x y]
+                               (:screen-location start)
+                               (:screen-location end))}))
+           (filter #(< (:distance %) radius))
+           (sort-by :distance)
+           first))
 
 (defrecord WebGLRenderEngine [state]
   IRenderEngine
@@ -395,22 +446,13 @@
              (when-not (identical? (:text-labels old-state) (:text-labels new-state))
                (update-labels (sub-cursor cursor [:text-labels]) (:text-labels new-state)))
 
-
-             ;; if the points changed this time we need to make sure we check if any of our supported
-             ;; primivites are also updated
-             (when-not (identical? (:points old-state) (:points new-state))
-               ;; points have changed! check all primitives and update them
-               (when-not (identical? (:line-strips old-state) (:line-strips new-state))
-                 ;; the line strips changed
-                 (update-line-strips (sub-cursor cursor [:line-strips])
-                                     (:line-strips new-state)
-                                     (:points new-state)))
-
-               ;; TODO: check for other shapes
-               )
-
-
-
+             ;; update line segments, if either the points change or the line-segments change
+             ;; we need to update
+             (when (or (not (identical? (:points old-state) (:points new-state)))
+                       (not (identical? (:line-strips old-state) (:line-strips new-state))))
+               (update-line-strips (sub-cursor cursor [:line-strips])
+                                   (:line-strips new-state)
+                                   (:points new-state)))
 
              ;; something still changed, so we need to make sure that renderer is updated, we do this
              ;; by increasing our render count
@@ -438,28 +480,25 @@
           gl (:gl rs)
           mvp (.-mvp gl)
           source-state @(:source-state @state)
-          within-radius? (fn [[_ _ [x' y' _]]]
-                           (<
-                             (js/vec2.distance (array x y)
-                                               (array x' y'))
-                             radius))
-          distance (fn [[_ _ [x' y' _]]]
-                     (js/vec2.distance (array x y)
-                                       (array x' y')))]
+          screen-fn #(eutil/->screen % mvp width height)]
       ;; we can get intersections with either points, line-strips or
       ;; shapes, we need to convey sufficient information to the caller
       ;;
-      (if-let [point (some->> source-state
-                              :points
-                              seq
-                              (map (fn [[id [p _]]]
-                                     [id p (eutil/->screen p mvp width height)]))
-                              (filter within-radius?)
-                              (sort-by distance)
-                              first)]
+      (if-let [point (intersecting-point [x y] (:points source-state) radius screen-fn)]
         ;; we got a point
         {:entity point
-         :type :point})))
+         :type :point}
+
+        ;; no point, lets try a line
+        (if-let [line (intersecting-line [x y]
+                                         (:line-strips source-state)
+                                         (:points source-state)
+                                         radius
+                                         screen-fn)]
+          {:entity (-> line
+                       (update-in [:start] dissoc :screen-location)
+                       (update-in [:end] dissoc :screen-location))
+           :type   :line}))))
 
   (add-loader [_ loader]
     (let [key (.-key loader)

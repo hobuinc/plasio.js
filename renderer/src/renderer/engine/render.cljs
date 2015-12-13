@@ -437,24 +437,26 @@
       (draw/unprep-planes-state! gl))
 
 
-    #_(when-let [strips (-> state
+    (when-let [strips (-> state
                           :line-strips
                           :line-strips
                           vals
                           seq)]
       ;; we have line-strips to draw, so lets draw them
       (let [line-shader (s/create-get-line-shader gl)
-            position-loc (shaders/get-attrib-location gl line-shader "position")]
+            position-loc (get-in line-shader [:uniforms :position])]
         (doseq [s strips]
           (let [line-width (get-in s [:params :width] 3)
                 gl-buffer (:gl-buffer s)
+                color (if (get-in s [:params :hover])
+                        [1 1 0] [1 0 0])
                 line-mode (if (get-in s [:params :loop])
                             draw-mode/line-loop
                             draw-mode/line-strip)
                 prims (.-prims gl-buffer)]
             (.lineWidth gl line-width)
             (buffers/draw! gl
-                           :shader line-shader
+                           :shader (:shader line-shader)
                            :draw-mode line-mode
                            :viewport {:x 0 :y 0 :width width :height height}
                            :first 0
@@ -467,7 +469,7 @@
                                          :stride 12
                                          :buffer gl-buffer}]
                            :uniforms [{:name "mvp" :type :mat4 :values mvp}
-                                      {:name "color" :type :vec3 :values (ta/float32 (apply array [1 0 0]))}])))))
+                                      {:name "color" :type :vec3 :values (ta/float32 (apply array color))}])))))
 
     #_(doseq [l (concat
                 (-> state :text-labels vals)

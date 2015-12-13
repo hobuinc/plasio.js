@@ -84,8 +84,8 @@
         (let [vs (shaders/create-shader gl shader/vertex-shader line-vertex-shader)
               fs (shaders/create-shader gl shader/fragment-shader line-fragment-shader)
               s  (shaders/create-program gl vs fs)]
-          (reset! line-shader s)
-          s))))
+          (reset! line-shader (merge {:shader s}
+                                     (shader-uniforms-attribs gl s)))))))
 
 (let [line-handle-shader (atom nil)]
   (defn create-get-line-handle-shader [gl]
