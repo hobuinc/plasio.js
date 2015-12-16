@@ -28,8 +28,8 @@
 
     <script>
         var SERVER = "devdata.greyhound.io";
-        var RESOURCE = "autzen";
-        var IMAGERY_SOURCE = "local.elevation";
+        var RESOURCE = "civ-bnsf";
+        var IMAGERY_SOURCE = "mapbox.satellite";
 
         var lines = [];
 
@@ -76,16 +76,19 @@
 
                 totalBBox = bbox;
 
-                var loaders = {
-                    point: new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, bbox, schema, IMAGERY_SOURCE),
-                    transform: new PlasioLib.Loaders.TransformLoader()
-                };
+                var loaders = [
+                    new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, IMAGERY_SOURCE),
+                    new PlasioLib.Loaders.TransformLoader()
+                ];
 
-                var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, bbox);
+                var p = new PlasioLib.FrustumLODNodePolicy(loaders, r, {
+                    pointCloudBBox: bbox,
+                    normalize: true
+                });
 
-                for (var l in loaders) {
-                    r.addLoader(loaders[l].constructor);
-                }
+                loaders.forEach(function(l) {
+                    r.addLoader(l.constructor);
+                });
 
                 var handleResize = function () {
                     r.setRenderViewSize(window.innerWidth, window.innerHeight);
@@ -200,6 +203,7 @@
                 });
 
                 p.on("bbox", function (bbox) {
+                    console.log("-- -- bounding box:", bbox);
                     var x = bbox.maxs[0] - bbox.mins[0],
                             y = bbox.maxs[1] - bbox.mins[1],
                             z = bbox.maxs[2] - bbox.mins[2];

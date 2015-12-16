@@ -128,7 +128,6 @@
     (when overlays
       ;; we have a shader limit of 8 overlays at this time
       ;; TODO, Auto Detect texture unit count
-      (println "overlays:" overlays)
       (let [base-index 1
             indices (take (count overlays)
                           (iterate inc base-index))] ;; base index is 1 since we want to leave texture0 untouched
