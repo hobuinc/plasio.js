@@ -288,8 +288,9 @@
             :position (get-in buf [:transform :source :position])
             :mins (get-in buf [:transform :source :mins])
             :maxs (get-in buf [:transform :source :maxs])
+            :normalized (get-in buf [:transform :normalized-space?])
             :stride (get-in buf [:point-buffer :point-stride])
-            :total-points (get-in buf [:point-buffer :total-points])
+            :totalPoints (get-in buf [:point-buffer :total-points])
             :data (get-in buf [:point-buffer :source :data])))
         buffers)))
 

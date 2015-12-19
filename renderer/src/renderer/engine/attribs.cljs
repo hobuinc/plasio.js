@@ -78,12 +78,14 @@
   (let [position (aget transform "position")
         mins     (aget transform "mins")
         maxs     (aget transform "maxs")
+        normalized-space? (aget transform "normalize")
         model-matrix (translation-matrix position)
         uv-range     (-range mins maxs)]
     {:model-matrix model-matrix
      :offset       (aget transform "offset")
      :mins         mins
      :maxs         maxs
+     :normalized-space? normalized-space?
      :source {:position position
               :mins mins
               :maxs maxs}

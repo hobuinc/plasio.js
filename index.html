@@ -28,7 +28,7 @@
 
     <script>
         var SERVER = "devdata.greyhound.io";
-        var RESOURCE = "civ-bnsf";
+        var RESOURCE = "autzen";
         var IMAGERY_SOURCE = "mapbox.satellite";
 
         var lines = [];
@@ -139,7 +139,7 @@
                     }
                 });
 
-                f({element: e, renderer: r, policy: p});
+                f({element: e, renderer: r, policy: p, bbox: bbox});
             });
         };
 
@@ -241,6 +241,59 @@
                 };
 
                 doLOS = function() {
+                    var profiler = new PlasioLib.Features.Profiler(r, [[[0, 0, -1000], [0, 0, 1000]]], 50, s.bbox);
+                    console.time("timer");
+                    profiler.extractProfile(true, function(err, res) {
+                        console.timeEnd("timer");
+                        // we only sent down a single segment, so get results for the first one
+                        //
+                        var out = res[0];
+
+                        console.log(out);
+
+                        var canvas = document.createElement("canvas");
+                        canvas.width = 1000;
+                        canvas.height = 300;
+                        var ctx = canvas.getContext("2d");
+
+                        var mapr = function(ins, ine, inval, outs, oute) {
+                            return outs + (oute - outs) * (inval - ins) / (ine - ins);
+                        };
+
+                        var f = function(x, y, z) {
+                            // given a point, figure out where in the canvas it goes
+                            return [mapr(out.mins[0], out.maxs[0], x, 30, canvas.width - 30),
+                                    canvas.height - mapr(out.mins[1], out.maxs[1], y, 50, canvas.height - 50)];
+                        };
+
+
+                        var buffer = out.buffer;
+                        var numPoints = buffer.length / 7;
+                        ctx.fillStyle = "#010";
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                        var off = 0;
+                        ctx.fillStyle = "red";
+                        for (var i = 0 ; i < numPoints ; i ++) {
+                            var x = buffer[off], y = buffer[off + 1], z = buffer[off + 2];
+                            var r = buffer[off+3], g = buffer[off+4], b = buffer[off+5];
+
+                            var col = "rgb(" + r + "," + g + "," + b +")";
+                            var pos = f(x, y, z);
+
+                            ctx.fillStyle = col;
+                            ctx.fillRect(pos[0], pos[1], 2, 2);
+
+                            off += 7;
+                        }
+
+                        canvas.style.position = "absolute";
+                        canvas.style.bottom = "5px";
+                        canvas.style.left = "5px";
+
+                        document.body.appendChild(canvas);
+                    });
+                    /*
                     var identity = mat4.identity(mat4.create());
                     var view = identity;
 
@@ -302,6 +355,7 @@
                     }
 
                     document.body.appendChild(c);
+                    */
 
                     /*
                     var image = new Image();
