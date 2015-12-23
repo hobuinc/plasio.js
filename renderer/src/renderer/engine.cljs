@@ -495,10 +495,19 @@
                                          (:points source-state)
                                          radius
                                          screen-fn)]
-          {:entity (-> line
-                       (update-in [:start] dissoc :screen-location)
-                       (update-in [:end] dissoc :screen-location))
-           :type   :line}))))
+          (let [line-id (:line-id line)
+                ;; process all points for this segment into a point-id -> location map.
+                all-points (->> (get-in source-state [:line-strips line-id :points])
+                                ;; return pairs of [id location]
+                                (map (fn [id]
+                                       [id (first (get-in source-state [:points id]))])))
+                prev (get-in line [:start :id])
+                next (get-in line [:end :id])]
+            {:entity {:id line-id
+                      :prev prev
+                      :next next
+                      :all-points all-points}
+             :type   :line})))))
 
   (add-loader [_ loader]
     (let [key (.-key loader)

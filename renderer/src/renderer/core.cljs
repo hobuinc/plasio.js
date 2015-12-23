@@ -185,7 +185,8 @@
     (swap! state update-in [:line-strips] dissoc id))
 
   (push-line-strip-point [_ id point-id]
-    (swap! state update-in [:line-strips id :points] conj point-id))
+    (swap! state update-in [:line-strips id :points] conj point-id)
+    (println "++ points are now:" (get-in @state [:line-strips id :points])))
 
   (insert-line-strip-point [_ id point-id before-id]
     (swap! state update-in [:line-strips id :points]
