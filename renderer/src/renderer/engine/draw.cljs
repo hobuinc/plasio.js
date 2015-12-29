@@ -179,13 +179,6 @@
           (when-let [ps (:point-size point-buffer)]
             (set-uniform gl (override-uniform uniforms :pointSize ps)))
 
-          ;; setup textures if we need it
-          (when image-overlay
-            (doto gl
-              (.activeTexture tu/texture0)
-              (.bindTexture tt/texture-2d image-overlay)
-              (.uniform1i overlay-texture-location 0)))
-
           ;; setup attributes
           (.bindBuffer gl bo/array-buffer gl-buffer)
           (doseq [[name offset size] (:attributes point-buffer)]
@@ -199,12 +192,10 @@
           #_(.enable gl capability/depth-test)
           (.drawArrays gl draw-mode/points 0 total-points)
 
-
           ;; disable bound vertex array
           (doseq [[name _ _] (:attributes point-buffer)]
-            (let [loc (get known-attributes name)]
-              (doto gl
-                (.disableVertexAttribArray loc))))))
+            (when-let [loc (get-in shader [:attribs name] name)]
+              (.disableVertexAttribArray gl loc)))))
 
       ;; if we're supposed to render the bbox, render that too
       (when draw-bbox?
