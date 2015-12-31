@@ -57,6 +57,8 @@
   (update-plane [this id normal dist color opacity size])
   (remove-plane [this id])
   (remove-all-planes [this])
+  (add-highlight-segment [this id start end width])
+  (remove-highlight-segment [this id])
   (project-to-image [this projection-view-matrix coordinate-index resolution])
   (add-overlay [this id bounds image])
   (remove-overlay [this id])
@@ -225,6 +227,12 @@
   (remove-all-planes [_]
     (swap! state assoc-in [:planes] {}))
 
+  (add-highlight-segment [_ id start end width]
+    (swap! state assoc-in [:highlight-segments id] {:start start :end end :width width}))
+
+  (remove-highlight-segment [_ id]
+    (swap! state update :highlight-segments dissoc id))
+
   (project-to-image [this mat which res]
     ;; projection using matrix mat, picks _which_ coordinate (0, 1, 2) and res is the output image size
     (r/project-to-image @render-engine mat which res))
@@ -356,6 +364,8 @@
               :updatePlane (partial-js update-plane r)
               :removePlane (partial-js remove-plane r)
               :removeAllPlanes (partial-js remove-all-planes r)
+              :addHighlightSegment (partial-js add-highlight-segment r)
+              :removeHighlightSegment (partial-js remove-highlight-segment r)
               :projectToImage (partial-js project-to-image r)
               :addOverlay (partial-js add-overlay r)
               :removeOverlay (partial-js remove-overlay r)

@@ -329,3 +329,28 @@
 (defn line-distance-to-point [p s e]
   (js/Math.sqrt
     (line-distance-to-point-squared p s e)))
+
+
+(let [dir (js/vec3.create)
+      ndir (js/vec3.create)
+      mid (js/vec3.create)
+      right (js/vec3.create)
+      up (array 0 1 0)]
+  (defn segment->cutting-planes [start end width]
+    (let [s (apply array start)
+          e (apply array end)
+          _ (js/vec3.subtract dir e s)
+          _ (js/vec3.normalize ndir dir)
+          _ (js/vec3.lerp mid s e 0.5)
+          _ (js/vec3.cross right ndir up)]
+      {:plane      (array (aget right 0)
+                          (aget right 1)
+                          (aget right 2)
+                          (- (js/vec3.dot s right)))
+       :plane-half (array (aget ndir 0)
+                          (aget ndir 1)
+                          (aget ndir 2)
+                          (- (js/vec3.dot mid ndir)))
+       :widths     (array width (* (js/vec3.length dir) 0.5))})
+
+    ))

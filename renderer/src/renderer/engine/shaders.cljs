@@ -163,6 +163,11 @@
   uniform float sceneOverlayBlendContributions[8];
   uniform vec4 sceneOverlayBounds[8];
 
+  uniform int highlightSegmentsCount;
+  uniform vec4 segmentPlane[64];
+  uniform vec4 segmentHalfPlane[64];
+  uniform vec2 segmentWidths[64];
+
   attribute vec3 position;
   attribute vec3 color;
   attribute float intensity;
@@ -173,6 +178,12 @@
 
   varying vec3 fpos;
 
+  void inregion(vec3 point, vec4 plane, vec4 planeHalf, vec2 segmentWidths, out float val) {
+      vec2 dists = abs(vec2(dot(plane, vec4(point, 1.0)), dot(planeHalf, vec4(point, 1.0))));
+
+      vec2 r = vec2(1.0, 1.0) - step(segmentWidths, dists);
+      val = r.x * r.y;
+  }
 
   void main() {
       fpos = ((position.xyz - offset) * xyzScale);
@@ -240,6 +251,26 @@
                     out_color = mix(out_color, overlayColor.rgb, overlayColor.a * contribution);
             }
         }
+     }
+
+     if (highlightSegmentsCount > 0) {
+         for (int i = 0 ; i < 64 ; i ++) {
+             if (i >= highlightSegmentsCount)
+                 break;
+
+             vec4 plane = segmentPlane[i];
+             vec4 planeHalf = segmentHalfPlane[i];
+             vec2 segmentWidths = segmentWidths[i];
+
+             // check this point for whether its inside this plane
+             float val = 0.0;
+             inregion(wpos.xyz, plane, planeHalf, segmentWidths, val);
+
+             if (val > 0.0) {
+                 out_color = mix(out_color, vec3(1.0, 1.0, 0.0), 0.5);
+                 break;
+             }
+         }
      }
 
       out_intensity = intensity_color * intensity_f +

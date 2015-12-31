@@ -311,6 +311,9 @@
                 };
 
                 doLOS = function() {
+                    r.addHighlightSegment("what", [-5000, 0, 0], [5000, 0, 0], 100);
+                    r.addHighlightSegment("why", [1000, 0, 1000], [-1000, 0, -1000], 100);
+                    /*
                     var profiler = new PlasioLib.Features.Profiler(r, [[[-1000, 0, 0], [1000, 0, 0]]], 50);
                     console.time("timer");
                     profiler.extractProfile(false, function(err, res) {
@@ -320,6 +323,7 @@
                         var out = res[0];
                         renderProfile(out);
                     });
+                    */
                     /*
                     var identity = mat4.identity(mat4.create());
                     var view = identity;

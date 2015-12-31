@@ -10,7 +10,8 @@
             [cljs-webgl.constants.draw-mode :as draw-mode]
             [cljs-webgl.buffers :as buffers]
             [cljs-webgl.constants.capability :as capability]
-            [cljs-webgl.constants.buffer-object :as buffer-object]))
+            [cljs-webgl.constants.buffer-object :as buffer-object]
+            [renderer.engine.util :as eutil]))
 
 (defn typed-array? [v]
   (let [t (type v)]
@@ -102,7 +103,25 @@
              (size-f (:mins transform) (:maxs transform)))))
       bufs)))
 
-(defn draw-all-buffers [gl bufs scene-overlays shader
+
+(defn highlight-segs->shader-vals [segs]
+  ;; given segs as collection of maps with :start, :end and :width, returns a construct
+  ;; ready for GPU
+  ;;
+  (println "segs!:" segs)
+  (reduce
+    (fn [{:keys [planes half-planes widths]} {:keys [start end width]}]
+      (let [v (eutil/segment->cutting-planes start end width)]
+        {:planes      (.concat planes (:plane v))
+         :half-planes (.concat half-planes (:plane-half v))
+         :widths      (.concat widths (:widths v))}))
+    {:planes      (array)
+     :half-planes (array)
+     :widths      (array)}
+    segs))
+
+(defn draw-all-buffers [gl bufs scene-overlays highlight-segments
+                        shader
                         base-uniform-map proj mv ro width height hints draw-bbox?]
   (let [uniforms (uniforms-with-override
                    gl shader
@@ -159,6 +178,22 @@
           (.uniform1i gl overlay-count (count overlays))
           (.uniform1fv gl loc-conts (ta/float32 blend-contributions))
           (.uniform4fv gl loc-bounds (ta/float32 all-bounds)))))
+
+    (when-let [high-segs (seq highlight-segments)]
+      ;; if we have highlight segments, then we need to set the appropriate state for them
+      (let [total (count high-segs)
+            ;; convert the segments into something we can use to send down to the shader
+            segment-values (highlight-segs->shader-vals high-segs)
+            ;; get the uniform locations out
+            segment-count-loc (get-in shader [:uniforms "highlightSegmentsCount"])
+            planes-loc (get-in shader [:uniforms "segmentPlane"])
+            half-planes-loc (get-in shader [:uniforms "segmentHalfPlane"])
+            widths-loc (get-in shader [:uniforms "segmentWidths"])]
+        (println segment-values)
+        (.uniform1i gl segment-count-loc total)
+        (.uniform4fv gl planes-loc (ta/float32 (:planes segment-values)))
+        (.uniform4fv gl half-planes-loc (ta/float32 (:half-planes segment-values)))
+        (.uniform2fv gl widths-loc (ta/float32 (:widths segment-values)))))
 
     (when (:flicker-fix hints)
       (.disable gl (.-DEPTH_TEST gl)))
