@@ -108,7 +108,6 @@
   ;; given segs as collection of maps with :start, :end and :width, returns a construct
   ;; ready for GPU
   ;;
-  (println "segs!:" segs)
   (reduce
     (fn [{:keys [planes half-planes widths]} {:keys [start end width]}]
       (let [v (eutil/segment->cutting-planes start end width)]
@@ -189,7 +188,6 @@
             planes-loc (get-in shader [:uniforms "segmentPlane"])
             half-planes-loc (get-in shader [:uniforms "segmentHalfPlane"])
             widths-loc (get-in shader [:uniforms "segmentWidths"])]
-        (println segment-values)
         (.uniform1i gl segment-count-loc total)
         (.uniform4fv gl planes-loc (ta/float32 (:planes segment-values)))
         (.uniform4fv gl half-planes-loc (ta/float32 (:half-planes segment-values)))
@@ -198,7 +196,7 @@
     (when (:flicker-fix hints)
       (.disable gl (.-DEPTH_TEST gl)))
 
-    (doseq [{:keys [point-buffer image-overlay transform]} (sort-bufs bufs mv)]
+    (doseq [{:keys [point-buffer transform]} (sort-bufs bufs mv)]
       ;; if we have a loaded point buffer for this buffer, lets render it, we may still want to draw
       ;; the bbox if the point-buffer is not valid yet
       ;;
