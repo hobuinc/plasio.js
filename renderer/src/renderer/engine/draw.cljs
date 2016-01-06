@@ -120,9 +120,10 @@
     segs))
 
 (defn draw-all-buffers [gl bufs scene-overlays highlight-segments
-                        shader
+                        shader-context
                         base-uniform-map proj mv ro width height hints draw-bbox?]
-  (let [uniforms (uniforms-with-override
+  (let [shader (s/get-shader shader-context :renderer)
+        uniforms (uniforms-with-override
                    gl shader
                    base-uniform-map
                    (assoc ro
@@ -235,25 +236,26 @@
         ;; render the bounding box
         (.lineWidth gl 1)
         (when-let [params (:bbox-params transform)]
-          (buffers/draw! gl
-                         :shader (:shader params)
-                         :draw-mode draw-mode/lines
-                         :viewport {:x 0 :y 0 :width width :height height}
-                         :first 0
-                         :count 24
-                         :capabilities {capability/depth-test false}
-                         ;; this uniform setup is a little weird because this is what it looks like behind the scenes, we're
-                         ;; setting raw uniforms here
-                         :uniforms [{:name "m" :type :mat4 :values (:model-matrix transform)}
-                                    {:name "v" :type :mat4 :values mv}
-                                    {:name "p" :type :mat4 :values proj}]
-                         ;; just one attribute
-                         :attributes [{:location              (:position-location params)
-                                       :components-per-vertex 3
-                                       :type                  data-type/float
-                                       :stride                12
-                                       :offset                0
-                                       :buffer                (:buffer params)}]))))
+          (let [shader (s/get-shader shader-context :bbox)]
+            (buffers/draw! gl
+                           :shader (:shader shader)
+                           :draw-mode draw-mode/lines
+                           :viewport {:x 0 :y 0 :width width :height height}
+                           :first 0
+                           :count 24
+                           :capabilities {capability/depth-test false}
+                           ;; this uniform setup is a little weird because this is what it looks like behind the scenes, we're
+                           ;; setting raw uniforms here
+                           :uniforms [{:name "m" :type :mat4 :values (:model-matrix transform)}
+                                      {:name "v" :type :mat4 :values mv}
+                                      {:name "p" :type :mat4 :values proj}]
+                           ;; just one attribute
+                           :attributes [{:location              (get-in shader [:attribs "position"])
+                                         :components-per-vertex 3
+                                         :type                  data-type/float
+                                         :stride                12
+                                         :offset                0
+                                         :buffer                (:buffer params)}])))))
 
 
     (when (:flicker-fix hints)
@@ -276,9 +278,9 @@
           (reset! geom gl-buffer)))))
 
 ;; plane rendering stuff
-(defn prep-planes-state! [gl]
+(defn prep-planes-state! [gl shader-context]
   (let [geom (planes-geom gl)
-        {:keys [shader attribs]} (s/create-get-plane-shader gl)]
+        {:keys [shader attribs]} (s/get-shader shader-context :plane)]
     ;; setup vertex pointer
     (doto gl
       (.enable (.-BLEND gl))
@@ -288,9 +290,9 @@
       (.vertexAttribPointer (:position attribs) 3 data-type/float false 0 0)
       (.enableVertexAttribArray (:position attribs)))))
 
-(defn unprep-planes-state! [gl]
+(defn unprep-planes-state! [gl shader-context]
   ;; reverse the state here
-  (let [{a :attribs} (s/create-get-plane-shader gl)]
+  (let [{a :attribs} (s/get-shader shader-context :plane)]
     (doto gl
       (.disable (.-BLEND gl))
       (.disableVertexAttribArray (:position a))
@@ -331,8 +333,8 @@
           (js/mat4.translate t t (array 0 dist 0))
           (js/mat4.scale s s (array size size size)))))))
 
-(defn draw-plane! [gl mvp normal dist color opacity size]
-  (let [{u :uniforms} (s/create-get-plane-shader gl)
+(defn draw-plane! [gl shader-context mvp normal dist color opacity size]
+  (let [{u :uniforms} (s/get-shader shader-context :plane)
         world (plane-world-matrix normal dist size)]
     (doto gl
       (.uniform1f (:opacity u) opacity)

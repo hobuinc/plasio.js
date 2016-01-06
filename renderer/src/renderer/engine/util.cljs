@@ -197,12 +197,12 @@
                     (:mat @proj-matrix)))}))
 
 
-(defn draw-2d-sprite [gl texture x y width height viewport-width viewport-height]
+(defn draw-2d-sprite [gl shader-context texture x y width height viewport-width viewport-height]
   (let [{:keys [proj gl-buffer]} (create-get-2d-sprite-assets gl viewport-width viewport-height)
-        shader (s/create-get-sprite-shader gl)
-        position-loc (shaders/get-uniform-location gl shader "position")]
+        shader (s/get-shader shader-context :sprite)
+        position-loc (get-in shader [:attribs "position"])]
     (buffers/draw! gl
-                   :shader shader
+                   :shader (:shader shader)
                    :draw-mode draw-mode/triangles
                    :viewport {:x 0 :y 0 :width viewport-width :height viewport-height}
                    :first 0

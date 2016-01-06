@@ -150,7 +150,7 @@
   [gl buffer shader base-uniform-map proj mv render-options width height]
   (let [{:keys [point-buffer transform]} buffer
         attribs    [{:buffer (:gl-buffer point-buffer)
-                     :location (shaders/get-attrib-location gl shader "position")
+                     :location (get-in shader [:attribs "position"])
                      :components-per-vertex 3
                      :type data-type/float
                      :stride (:point-stride point-buffer)
@@ -169,7 +169,7 @@
                     :projectionMatrix proj
                     :modelViewMatrix  mv))]
     (buffers/draw! gl
-                   :shader shader
+                   :shader (:shader shader)
                    :draw-mode draw-mode/points
                    :first 0
                    :viewport viewport
@@ -258,9 +258,8 @@
 
 (defn render-state
   "Render the state in its current form"
-  [{:keys [source-state local-state] :as state}]
-  (let [gl (:gl state)
-        aloader (:attrib-loader state)
+  [{:keys [source-state local-state gl shader-context] :as state}]
+  (let [aloader (:attrib-loader state)
         [width height] (render-view-size state)
         cam (first (filter :active (get-in source-state [:view :cameras])))
         vw (:view source-state)
@@ -297,7 +296,7 @@
                                  vals)
                              (-> (:highlight-segments source-state)
                                  vals)
-                             (:shader state)
+                             shader-context
                              uniform-map
                              proj mv ro width height
                              hints
@@ -306,13 +305,13 @@
     ;; if there are any planes to be drawn, draw them here
     ;;
     (when-let [planes (seq (:planes source-state))]
-      (draw/prep-planes-state! gl)
+      (draw/prep-planes-state! gl shader-context)
       (doall
         (map (fn [[id [normal dist color opacity size]]]
                ;; draw the plane here
-               (draw/draw-plane! gl mvp normal dist color opacity size))
+               (draw/draw-plane! gl shader-context mvp normal dist color opacity size))
              planes))
-      (draw/unprep-planes-state! gl))
+      (draw/unprep-planes-state! gl shader-context))
 
 
     (when-let [strips (-> state
@@ -321,7 +320,7 @@
                           vals
                           seq)]
       ;; we have line-strips to draw, so lets draw them
-      (let [line-shader (s/create-get-line-shader gl)
+      (let [line-shader (s/get-shader shader-context :line)
             position-loc (get-in line-shader [:uniforms :position])]
         (doseq [s strips]
           (let [line-width (get-in s [:params :width] 3)
@@ -367,6 +366,7 @@
                 st (keyword st)
                 [x y _] (util/->screen pos mvp width height)]
             (util/draw-2d-sprite gl
+                                 shader-context
                                  (get textures st (:normal textures))
                                  x y 20 20 width height)))))
 
@@ -483,12 +483,11 @@
     m))
 
 
-(defn project-to-image [{:keys [source-state] :as state} proj which res]
+(defn project-to-image [{:keys [source-state gl shader-context] :as state} proj which res]
   ;; create an offscreen buffer, render to it, read pixels and destroy all the things
   ;;
-  (let [gl (:gl state)
-        target-buffer (create-fb-buffer gl res res)
-        shader (s/create-picker-shader gl)
+  (let [target-buffer (create-fb-buffer gl res res)
+        shader (s/get-shader shader-context :picker)
         aloader (:attrib-loader state)
         mv identity-matrix
         dp (:display source-state)
@@ -500,8 +499,6 @@
                (select-keys [:xyzScale :zrange :offset])
                (assoc :pointSize 1
                       :which which))]
-
-    (js/console.log "projecting!" proj mv dp which)
     (.bindFramebuffer gl fbo/framebuffer (:fb target-buffer))
 
     (buffers/clear-color-buffer gl 0.0 0.0 0.0 0.0)
@@ -526,9 +523,8 @@
 
 (defrecord PointPicker [picker-state]
   IPointPicker
-  (pick-point [this {:keys [source-state] :as state} client-x client-y]
-    (let [gl (:gl state)
-          [w h] (render-view-size state)
+  (pick-point [this {:keys [source-state gl shader-context] :as state} client-x client-y]
+    (let [[w h] (render-view-size state)
           dirt (:dirt @picker-state)
           ;; dirty flag keeps track of whether we need to re-render the buffers
           clean? (and (identical? (:display dirt) (:display source-state))
@@ -546,12 +542,6 @@
                                          :point-buffers (:point-buffers state)
                                          :width w
                                          :height h})
-        
-        ;; if we haven't loaded the shader yet, do so now
-        ;;
-        (when-not (:shader @picker-state)
-          (let [shader (s/create-picker-shader gl)]
-            (swap! picker-state assoc :shader shader)))
         
         ;; first determine if the size of the display has changed on us
         ;;
@@ -571,7 +561,7 @@
                    :y (:y bufs)
                    :z (:z bufs))))
         ;; now go ahead and render the three buffers and read the point
-        (let [shader (:shader @picker-state)]
+        (let [shader (s/get-shader shader-context :picker)]
           (draw-picker state shader (:x @picker-state) [1 0 0])
           (draw-picker state shader (:y @picker-state) [0 1 0])
           (draw-picker state shader (:z @picker-state) [0 0 1])

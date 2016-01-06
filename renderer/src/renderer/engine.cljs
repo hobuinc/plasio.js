@@ -414,7 +414,7 @@
                              :width width
                              :height height
                              :gl context
-                             :shader (shaders/create-shader context)
+                             :shader-context (shaders/create-shader-context context)
                              :picker (r/create-picker)
                              :attrib-loader (attribs/create-attribs-loader)
                              :stats-collector {:z (stats/make-stats)

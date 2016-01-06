@@ -183,12 +183,8 @@
         gl-buffer (buffers/create-buffer *gl-context*
                                          point-buffer
                                          buffer-object/array-buffer
-                                         buffer-object/static-draw)
-        shader (sh/create-get-bbox-shader *gl-context*)
-        position-location (shaders/get-attrib-location *gl-context* shader "pos")]
-    {:buffer gl-buffer
-     :shader shader
-     :position-location position-location}))
+                                         buffer-object/static-draw)]
+    {:buffer gl-buffer}))
 
 
 (defn gen-point-buffer [pos mins maxs]

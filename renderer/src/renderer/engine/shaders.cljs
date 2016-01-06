@@ -49,7 +49,8 @@
     {:uniforms uniform-locs
      :attribs attrib-locs}))
 
-(defn create-shader [gl]
+
+(defn- create-shader [gl]
   ;; make sure that needed extensions are addeded
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader)
         fs (shaders/create-shader gl shader/fragment-shader
@@ -57,66 +58,76 @@
                                     (str "#define have_frag_depth\n\n" frag-shader)
                                     frag-shader))
         shader (shaders/create-program gl vs fs)]
-    (merge
-      {:shader shader}
-      (shader-uniforms-attribs gl shader))))
+    shader))
 
 
-(defn create-picker-shader [gl]
+(defn- create-picker-shader [gl]
   (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader-picker)
         fs (shaders/create-shader gl shader/fragment-shader frag-shader-picker)]
     (shaders/create-program gl vs fs)))
 
 
-(def ^:private bbox-shader (atom nil))
+(defn- create-bbox-shader [gl]
+  (let [vs (shaders/create-shader gl shader/vertex-shader bbox-vertex-shader)
+        fs (shaders/create-shader gl shader/fragment-shader bbox-fragment-shader)
+        s (shaders/create-program gl vs fs)]
+    s))
 
-(defn create-get-bbox-shader [gl]
-  (if-let [s @bbox-shader]
-    s
-    (let [vs (shaders/create-shader gl shader/vertex-shader bbox-vertex-shader)
-          fs (shaders/create-shader gl shader/fragment-shader bbox-fragment-shader)
-          s  (shaders/create-program gl vs fs)]
-      (reset! bbox-shader s))))
+(defn- create-line-shader [gl]
+  (let [vs (shaders/create-shader gl shader/vertex-shader line-vertex-shader)
+        fs (shaders/create-shader gl shader/fragment-shader line-fragment-shader)
+        s (shaders/create-program gl vs fs)]
+    s))
 
-(let [line-shader (atom nil)]
-  (defn create-get-line-shader [gl]
-    (or @line-shader
-        (let [vs (shaders/create-shader gl shader/vertex-shader line-vertex-shader)
-              fs (shaders/create-shader gl shader/fragment-shader line-fragment-shader)
-              s  (shaders/create-program gl vs fs)]
-          (reset! line-shader (merge {:shader s}
-                                     (shader-uniforms-attribs gl s)))))))
+(defn- create-line-handle-shader [gl]
+  (let [vs (shaders/create-shader gl shader/vertex-shader line-handle-vertex-shader)
+        fs (shaders/create-shader gl shader/fragment-shader line-handle-fragment-shader)
+        s (shaders/create-program gl vs fs)]
+    s))
 
-(let [line-handle-shader (atom nil)]
-  (defn create-get-line-handle-shader [gl]
-    (or @line-handle-shader
-        (let [vs (shaders/create-shader gl shader/vertex-shader line-handle-vertex-shader)
-              fs (shaders/create-shader gl shader/fragment-shader line-handle-fragment-shader)
-              s  (shaders/create-program gl vs fs)]
-          (reset! line-handle-shader s)))))
+(defn- create-sprite-shader [gl]
+  (let [vs (shaders/create-shader gl shader/vertex-shader sprite-vertex-shader)
+        fs (shaders/create-shader gl shader/fragment-shader sprite-fragment-shader)
+        s (shaders/create-program gl vs fs)]
+    s))
 
-(let [sprite-shader (atom nil)]
-  (defn create-get-sprite-shader [gl]
-    (or @sprite-shader
-        (let [vs (shaders/create-shader gl shader/vertex-shader sprite-vertex-shader)
-              fs (shaders/create-shader gl shader/fragment-shader sprite-fragment-shader)
-              s  (shaders/create-program gl vs fs)]
-          (reset! sprite-shader s)))))
+(defn- create-plane-shader [gl]
+  (let [vs (shaders/create-shader gl shader/vertex-shader plane-vertex-shader)
+        fs (shaders/create-shader gl shader/fragment-shader plane-fragment-shader)
+        s (shaders/create-program gl vs fs)]
+    s))
+
+(def ^:private shader-creator-map
+  {:renderer create-shader
+   :picker create-picker-shader
+   :bbox create-bbox-shader
+   :line create-line-shader
+   :line-handle create-line-handle-shader
+   :sprite create-sprite-shader
+   :plane create-plane-shader})
 
 
-(let [plane-shader (atom nil)
-      uniforms #{"mvp" "world" "color" "opacity"}
-      attribs #{"position"}]
-  (defn create-get-plane-shader [gl]
-    (or @plane-shader
-        (let [vs (shaders/create-shader gl shader/vertex-shader plane-vertex-shader)
-              fs (shaders/create-shader gl shader/fragment-shader plane-fragment-shader)
-              s  (shaders/create-program gl vs fs)
-              uniforms (into {} (for [u uniforms]
-                                  [(keyword u) (shaders/get-uniform-location gl s u)]))
-              attribs (into {} (for [a attribs]
-                                 [(keyword a) (shaders/get-attrib-location gl s a)]))]
-          (reset! plane-shader {:shader s, :uniforms uniforms, :attribs attribs})))))
+(defprotocol IShaderContext
+  (get-shader [_ which]))
+
+(defrecord ShaderContext [context]
+  IShaderContext
+  (get-shader [_ which]
+    (if-let [shader (get-in @context [:shaders which])]
+      shader
+      (if-let [f (get shader-creator-map which)]
+        (let [gl (:gl-context @context)
+              s (f gl)
+              shader (merge {:shader s}
+                            (shader-uniforms-attribs gl s))]
+          (swap! context assoc-in [:shaders which] shader)
+          shader)
+        (throw (js/Error. (str "Unknown shader type requested: " which)))))))
+
+
+(defn create-shader-context [context]
+  (ShaderContext. (atom {:gl-context context})))
+
 
 (def vertex-shader
   "
