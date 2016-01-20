@@ -28,11 +28,11 @@
 
     <script>
         var SERVER = "devdata.greyhound.io";
-        var RESOURCE = "nyc";
+        var RESOURCE = "nepal";
         var IMAGERY_SOURCE = "mapbox.satellite";
 
         // WARN: Not a good idea!
-        PlasioLib.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = 500;
+        PlasioLib.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = 300;
 
         var lines = [];
 
@@ -232,8 +232,8 @@
                 console.log("Camera parameters:", camParams);
 
                 var appConfig = {
-                    pointCloudBounds: s.bbox,
-                }
+                    pointCloudBounds: s.bbox
+                };
 
                 var modeManager = new PlasioLib.ModeManager(e, r,
                         appConfig,

@@ -113,14 +113,16 @@
   (add-prop-listener [this korks f]
     (let [id (str (uuid/make-random))
           korks (map keyword (u/safe-korks korks))]
-                                        ; make sure the current value is sent on subscribe
+      ; make sure the current value is sent on subscribe
       (go (f (clj->js (get-in @state korks))))
-      (add-watch state id
-                 (fn [_ _ os ns]
-                   (let [v (get-in ns korks)
-                         o (get-in os korks)]
-                     (when-not (= v o)
-                       (go (f (clj->js v)))))))
+      ;; only send state updates on frame delimiters
+      (renderer.util/add-framed-watch
+        state id
+        (fn [_ _ os ns]
+          (let [v (get-in ns korks)
+                o (get-in os korks)]
+            (when-not (= v o)
+              (go (f (clj->js v)))))))
       id))
 
   (remove-prop-listener [this id]
