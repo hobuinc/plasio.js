@@ -197,8 +197,8 @@
   }
 
   void main() {
-      fpos = ((position.xyz - offset) * xyzScale);
-      vec4 wpos = modelMatrix * vec4(fpos, 1.0);
+      fpos = (position.xyz - offset);
+      vec4 wpos = (modelMatrix * vec4(fpos, 1.0)) * vec4(xyzScale, 1.0);
 
       vec4 mvPosition = modelViewMatrix * wpos;
       gl_Position = projectionMatrix * mvPosition;
