@@ -27,7 +27,7 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
-        var SERVER = "devdata.greyhound.io";
+        var SERVER = "http://devdata.greyhound.io";
         var RESOURCE = "nepal";
         var IMAGERY_SOURCE = null;
 
@@ -63,7 +63,7 @@
             var e = document.getElementById("app");
             var r = renderer.core.createRenderer(e);
 
-            get("http://" + SERVER + "/resource/" + RESOURCE + "/info", function(obj) {
+            get(SERVER + "/resource/" + RESOURCE + "/info", function(obj) {
                 var bbox = obj.bounds.slice(0);
                 var schema = obj.schema;
 
