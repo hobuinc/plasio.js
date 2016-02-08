@@ -80,7 +80,9 @@
                 totalBBox = bbox;
 
                 var loaders = [
-                    new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, IMAGERY_SOURCE),
+                    new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
+                        imagerySource: IMAGERY_SOURCE
+                    }),
                     new PlasioLib.Loaders.TransformLoader()
                 ];
 
