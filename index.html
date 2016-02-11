@@ -29,7 +29,9 @@
     <script>
         var SERVER = "http://devdata.greyhound.io";
         var RESOURCE = "nepal";
-        var IMAGERY_SOURCE = null;
+        var IMAGERY_SOURCE_0 = "local://elevation";
+        var IMAGERY_SOURCE_1 = "local://color";
+        //var IMAGERY_SOURCE_1 = "http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
 
         // WARN: Not a good idea!
         PlasioLib.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = 300;
@@ -81,7 +83,7 @@
 
                 var loaders = [
                     new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
-                        imagerySource: IMAGERY_SOURCE
+                        imagerySources: [IMAGERY_SOURCE_0, IMAGERY_SOURCE_1]
                     }),
                     new PlasioLib.Loaders.TransformLoader()
                 ];
@@ -138,9 +140,11 @@
                             maxColorComponent = 1 << 8;
                         }
 
+                                                     /*
                         r.setRenderOptions({
                             maxColorComponent: maxColorComponent
                         });
+                                                     */
                     }
                 });
 

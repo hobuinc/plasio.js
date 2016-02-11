@@ -180,7 +180,7 @@
   uniform vec2 segmentWidths[64];
 
   attribute vec3 position;
-  attribute vec3 color;
+  attribute vec3 color0, color1;
   attribute float intensity;
   attribute float classification;
 
@@ -208,7 +208,12 @@
 
       // compute color channels
       //
-      vec3 norm_color = color / maxColorComponent;
+      vec3 norm_color0 = color0 / maxColorComponent;
+      vec3 norm_color1 = color1 / maxColorComponent;
+  
+      vec3 norm_color = mix(norm_color0, norm_color1, 0.5);
+      
+
       vec3 map_color = mix(rampColorStart, rampColorEnd, nhclamp);
       vec3 inv_map_color = mix(rampColorEnd, rampColorStart, nhclamp);
 

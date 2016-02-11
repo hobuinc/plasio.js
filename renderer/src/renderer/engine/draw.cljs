@@ -220,7 +220,7 @@
               (doto gl
                 (.enableVertexAttribArray loc)
                 (.vertexAttribPointer loc size data-type/float false stride (* 4 offset)))
-              (throw (js/Error. (str "Don't know anything about attribute: " name)))))
+              #_(throw (js/Error. (str "Don't know anything about attribute: " name)))))
 
           ;; finally make the draw call
           #_(.enable gl capability/depth-test)
