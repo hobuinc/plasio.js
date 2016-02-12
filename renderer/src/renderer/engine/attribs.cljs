@@ -30,6 +30,7 @@
     {:point-stride (aget props "pointStride")
      :total-points total-points
      :attributes   (js->clj (aget props "attributes"))
+     :uniforms     (js->clj (aget props "uniforms"))
      :source       {:data (aget props "data")}
      :gl-buffer    (when-not (zero? total-points)
                      (buffers/create-buffer *gl-context*

@@ -28,10 +28,11 @@
 
     <script>
         var SERVER = "http://devdata.greyhound.io";
-        var RESOURCE = "nepal";
+        var RESOURCE = "nyc";
         var IMAGERY_SOURCE_0 = "local://elevation";
-        var IMAGERY_SOURCE_1 = "local://color";
-        //var IMAGERY_SOURCE_1 = "http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
+        var IMAGERY_SOURCE_1 = "local://intensity";
+        var IMAGERY_SOURCE_2 = "http://api.tiles.mapbox.com/v4/mapbox.comic/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
+        var IMAGERY_SOURCE_3 = "http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
 
         // WARN: Not a good idea!
         PlasioLib.FrustumLODNodePolicy.REJECT_ON_SCREEN_SIZE_RADIUS = 300;
@@ -83,7 +84,7 @@
 
                 var loaders = [
                     new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
-                        imagerySources: [IMAGERY_SOURCE_0, IMAGERY_SOURCE_1]
+                        imagerySources: [IMAGERY_SOURCE_1, null, IMAGERY_SOURCE_3]
                     }),
                     new PlasioLib.Loaders.TransformLoader()
                 ];
@@ -123,30 +124,6 @@
                     r.removeOverlay("1234");
                 };
                  */
-
-                var maxColorComponent = null;
-                r.addStatsListener("red", "col-listener", function(o, n) {
-                    if (maxColorComponent === null && n) {
-                        var keys = Object.keys(n);
-                        for (var i = 0 ; i < keys.length ; i ++) {
-                            var v = parseInt(keys[i]);
-                            if (v > 255) {
-                                maxColorComponent = 1 << 16;
-                                break;
-                            }
-                        }
-
-                        if (maxColorComponent === null) {
-                            maxColorComponent = 1 << 8;
-                        }
-
-                                                     /*
-                        r.setRenderOptions({
-                            maxColorComponent: maxColorComponent
-                        });
-                                                     */
-                    }
-                });
 
                 f({element: e, renderer: r, policy: p, bbox: bbox, loaders: loaders});
             });
@@ -269,12 +246,7 @@
                 };
 
                 r.setClearColor(0.4, 0, 0);
-                r.setRenderOptions({
-                    pointSize: 2,
-                    rgb_f: 1.0,
-                    overlay_f: 0.0,
-                    maxColorComponent: 1 << 8
-                });
+                r.setRenderOptions({pointSize: 2, colorBlendWeights: [1.0, 0.0, 0, 0]});
 
                 p.on("bbox", function (bbox) {
                     console.log("-- -- bounding box:", bbox);
@@ -319,12 +291,6 @@
                 };
 
                 doLOS = function() {
-                    p.hookedReload(function() {
-                        s.loaders[0].setColorSourceImagery("local.elevation");
-                        r.setRenderOptions({
-                            maxColorComponent: 1 << 8
-                        });
-                    });
                     /*
                     console.log("Loading secondary view...");
                     var sec = document.createElement("div");
@@ -345,9 +311,6 @@
                     profileRenderer.setRenderViewSize(640, 480);
                     profileRenderer.setRenderOptions({
                         pointSize: 2,
-                        rgb_f: 1.0,
-                        overlay_f: 0.0,
-                        maxColorComponent: 1 << 8
                     });
 
                     console.log("Secondary renderer created!");
@@ -464,16 +427,6 @@
         };
 
         ownerStartup();
-
-        var settings = function() {
-            return {
-                zrange: [-2000, 3000],
-                rampColorStart: [1, 0, 0],
-                rampColorEnd: [0, 1, 0],
-                rgb_f: 0.5,
-                map_f: 0.5
-            };
-        };
     </script>
 
     <button style="position:absolute;top:10px;right:280px;z-index:10000"

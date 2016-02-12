@@ -92,40 +92,18 @@
       (uniform :modelMatrix :mat4 identity-matrix)
 
       (uniform :pointSize :float 1.0)
-      (uniform :intensityBlend :float 0.0)
-      (uniform :maxColorComponent :float 1.0)
-
-      (uniform :rgb_f :float 0.0)
-      (uniform :class_f :float 0.0)
-      (uniform :map_f :float 0.0)
-      (uniform :imap_f :float 0.0)
-      (uniform :overlay_f :float 0.0)
-
-      (uniform :intensity_f :float 0.0)
-      (uniform :height_f :float 0.0)
-      (uniform :iheight_f :float 0.0)
 
       (uniform :xyzScale :vec3 [1 1 1])
-      (uniform :clampLower :float 0)
-      (uniform :clampHigher :float 1)
-
-      (uniform :colorClampLower :float 0)
-      (uniform :colorClampHigher :float 1)
-
-      (uniform :rampColorStart :vec3 [1 0 0])
-      (uniform :rampColorEnd :vec3 [0 1 0])
-
-      (uniform :zrange :vec2 [0 1])
-      (uniform :uvrange :vec4 [0 0 1 1])
       (uniform :offset :vec3 [0 0 0])
-      (uniform :klassRange :vec2 [0 1])
+
       (uniform :pointSizeAttenuation :vec2 [1 0])
       (uniform :screen :vec2 [1000 1000]) ;; not really but something
-      #_(uniform :do_plane_clipping :int 0)
       (uniform :circularPoints :int 0)
-      #_(uniform :planes :vec4 (repeat 24 0))
       (uniform :sceneOverlaysCount :int 0)
-      (uniform :highlightSegmentsCount :int 0)))
+      (uniform :highlightSegmentsCount :int 0)
+
+      (uniform :colorBlendWeights :vec4 [1 1 1 1])
+      (uniform :availableColors :vec4 [0 0 0 0])))
 
 (def ^:private picker-uniform-map
   (-> {}

@@ -208,7 +208,14 @@
           ;; override per buffer uniforms
           (set-uniform gl (override-uniform uniforms :modelMatrix (:model-matrix transform)))
           (set-uniform gl (override-uniform uniforms :offset (:offset transform)))
-          (set-uniform gl (override-uniform uniforms :uvrange (:uv-range transform)))
+
+          ;; if the buffer specifies addition uniforms set them here (things like availableColors) come through
+          ;; here
+          (when-let [u (seq (:uniforms point-buffer))]
+            (doseq [[uniform-name val] u]
+              (println "-- -- " u)
+              (set-uniform gl (override-uniform uniforms (keyword uniform-name) val))))
+            
 
           (when-let [ps (:point-size point-buffer)]
             (set-uniform gl (override-uniform uniforms :pointSize ps)))

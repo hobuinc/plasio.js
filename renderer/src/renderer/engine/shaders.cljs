@@ -138,35 +138,12 @@
   uniform mat4  modelMatrix;
 
   uniform float pointSize;
-  uniform float intensityBlend;
-  uniform float maxColorComponent;
-
-  uniform float rgb_f;
-  uniform float intensity_f;
-  uniform float class_f;
-  uniform float height_f;
-  uniform float iheight_f;
-  uniform float map_f;
-  uniform float imap_f;
-  uniform float overlay_f;
-
-  uniform vec3 xyzScale;
-
-  uniform float clampLower;
-  uniform float clampHigher;
-  uniform float colorClampLower;
-  uniform float colorClampHigher;
-  uniform vec2  zrange;
-  uniform vec4  uvrange;
   uniform vec3  offset;
-  uniform vec2  klassRange;
+
+  uniform vec3  xyzScale;
+
   uniform vec2  pointSizeAttenuation; // (actual size contribution, attenuated size contribution)
   uniform vec2  screen; // screen dimensions
-
-  uniform vec3 rampColorStart;
-  uniform vec3 rampColorEnd;
-
-  uniform sampler2D overlay;
 
   uniform int sceneOverlaysCount;
 
@@ -179,14 +156,13 @@
   uniform vec4 segmentHalfPlane[64];
   uniform vec2 segmentWidths[64];
 
+  uniform vec4 availableColors;
+  uniform vec4 colorBlendWeights;
+
   attribute vec3 position;
-  attribute vec3 color0, color1;
-  attribute float intensity;
-  attribute float classification;
+  attribute float color0, color1, color2, color3;
 
   varying vec3 out_color;
-  varying vec3 out_intensity;
-
   varying vec3 fpos;
 
   void inregion(vec3 point, vec4 plane, vec4 planeHalf, vec2 segmentWidths, out float val) {
@@ -196,52 +172,37 @@
       val = r.x * r.y;
   }
 
-  void main() {
-      fpos = (position.xyz - offset);
-      vec4 wpos = (modelMatrix * vec4(fpos, 1.0)) * vec4(xyzScale, 1.0);
-
-      vec4 mvPosition = modelViewMatrix * wpos;
-      gl_Position = projectionMatrix * mvPosition;
-      float nheight = (position.y - zrange.x) / (zrange.y - zrange.x);
-
-      float nhclamp = (nheight - colorClampLower) / (colorClampHigher - colorClampLower);
-
-      // compute color channels
-      //
-      vec3 norm_color0 = color0 / maxColorComponent;
-      vec3 norm_color1 = color1 / maxColorComponent;
+  const vec4 bitSh = vec4(256. * 256. * 256., 256. * 256., 256., 1.);
+  const vec4 bitMsk = vec4(0.,vec3(1./256.0));
   
-      vec3 norm_color = mix(norm_color0, norm_color1, 0.5);
-      
+  vec4 decompressColor(float c) {
+      vec4 comp = fract(c * bitSh);
+      comp -= comp.xxyz * bitMsk;
+      return vec4(comp.yzw, floor(c) / 256.0);
+  }
 
-      vec3 map_color = mix(rampColorStart, rampColorEnd, nhclamp);
-      vec3 inv_map_color = mix(rampColorEnd, rampColorStart, nhclamp);
+  void main() {
+     fpos = (position.xyz - offset);
+     vec4 wpos = (modelMatrix * vec4(fpos, 1.0)) * vec4(xyzScale, 1.0);
 
-      float iklass = (classification - klassRange.x) / (klassRange.y - klassRange.x);
-      vec3 class_color = mix(rampColorStart, rampColorEnd, iklass);
-
-      // compute intensity channels
-      float i = (intensity - clampLower) / (clampHigher - clampLower);
-      vec3 intensity_color = vec3(i, i, i);
-
-
-      vec3 height_color = vec3(nheight, nheight, nheight);
-      vec3 inv_height_color = vec3(1.0 - nheight, 1.0 - nheight, 1.0 - nheight);
-
-      vec2 rd = uvrange.zw - uvrange.xy;
-
-      vec2 uv = vec2(1.0 - (fpos.x - uvrange.x) / rd.x + (0.5 / rd.x),
-                     1.0 - (fpos.z - uvrange.y) / rd.y + (0.5 / rd.y));
-                     
-      vec3 overlay_color = texture2D(overlay, uv).xyz;
-
-      // turn the appropriate channels on
-      //
-      out_color = norm_color * rgb_f +
-              class_color * class_f +
-              map_color * map_f +
-              inv_map_color * imap_f +
-              overlay_color * overlay_f;
+     vec4 mvPosition = modelViewMatrix * wpos;
+     gl_Position = projectionMatrix * mvPosition;
+  
+     // compute color channels
+     //
+     vec4 norm_color0 = decompressColor(color0);
+     vec4 norm_color1 = decompressColor(color1);
+     vec4 norm_color2 = decompressColor(color2);
+     vec4 norm_color3 = decompressColor(color3);
+  
+     mat4 colors = mat4(norm_color0, norm_color1, norm_color2, norm_color3);
+  
+     float maxWeight = dot(availableColors, colorBlendWeights);
+     vec4  channelF = colorBlendWeights / maxWeight;
+  
+     vec4  finalColor = colors * channelF;
+  
+     out_color = finalColor.rgb;
 
      // we now need to blend in the scene overlay colors
      //
@@ -289,10 +250,6 @@
          }
      }
 
-      out_intensity = intensity_color * intensity_f +
-                  height_color * height_f +
-                  inv_height_color * iheight_f;
-
       float attenuatedPointSize = ((1.0 / tan(1.308/2.0)) * pointSize / (-mvPosition.z)) * screen.y / 2.0;
       gl_PointSize = dot(vec2(pointSize, attenuatedPointSize), pointSizeAttenuation);
   }")
@@ -339,20 +296,9 @@
   uniform sampler2D overlay;
 
   varying vec3 out_color;
-  varying vec3 out_intensity;
   varying vec3 fpos;
 
   void main() {
-  /*
-      if (do_plane_clipping > 0) {
-          for(int i = 0 ; i < 6 ; i ++) {
-              if (dot(planes[i], vec4(fpos, 1.0)) < 0.0)
-                  discard;
-          }
-      }
-      */
-
-
       if (circularPoints > 0) {
         float a = pow(2.0*(gl_PointCoord.x - 0.5), 2.0);
         float b = pow(2.0*(gl_PointCoord.y - 0.5), 2.0);
@@ -366,7 +312,7 @@
         // gl_FragDepthEXT = gl_FragCoord.z + 0.002*(1.0-pow(c, 1.0)) * gl_FragCoord.w;
 #endif
       }
-      gl_FragColor = vec4(mix(out_color, out_intensity, intensityBlend), 1.0);
+      gl_FragColor = vec4(out_color, 1.0);
   }")
 
 (def frag-shader-picker
