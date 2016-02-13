@@ -84,7 +84,7 @@
 
                 var loaders = [
                     new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
-                        imagerySources: [IMAGERY_SOURCE_1, null, IMAGERY_SOURCE_3]
+                        imagerySources: [IMAGERY_SOURCE_0, IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
                     }),
                     new PlasioLib.Loaders.TransformLoader()
                 ];
@@ -246,7 +246,7 @@
                 };
 
                 r.setClearColor(0.4, 0, 0);
-                r.setRenderOptions({pointSize: 2, colorBlendWeights: [1.0, 0.0, 0, 0]});
+                r.setRenderOptions({pointSize: 2, colorBlendWeights: [1.0, 1.0, 1, 1]});
 
                 p.on("bbox", function (bbox) {
                     console.log("-- -- bounding box:", bbox);
