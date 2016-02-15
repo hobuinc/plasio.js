@@ -210,7 +210,7 @@
         for (int i = 0 ; i < 8; i ++) {
             if (i >= sceneOverlaysCount)
                 break;
-  
+
             // only if this vertex is in our bounds do we care to shade it
             //
             vec4 bounds = sceneOverlayBounds[i]; // bounds are x1z1x2z2 packing

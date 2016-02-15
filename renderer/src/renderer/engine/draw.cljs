@@ -213,7 +213,6 @@
           ;; here
           (when-let [u (seq (:uniforms point-buffer))]
             (doseq [[uniform-name val] u]
-              (println "-- -- " u)
               (set-uniform gl (override-uniform uniforms (keyword uniform-name) val))))
             
 
