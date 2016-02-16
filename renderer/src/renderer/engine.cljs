@@ -158,9 +158,10 @@
     (async/into {} (async/merge chans))))
 
 (defn update-stat-for! [stats stat-type id pb]
-  (when-let [s (aget pb "stats" (name stat-type))]
-    (when-let [st (get stats stat-type)]
-      (stats/add-node! st id (js->clj s)))))
+  (when-let [js-stats (aget pb "stats")]
+    (when-let [s (aget js-stats (name stat-type))]
+      (when-let [st (get stats stat-type)]
+        (stats/add-node! st id (js->clj s))))))
 
 (let [stats-to-update #{:z :red :green :blue}]
   (defn update-stats! [stats id loaded-info]

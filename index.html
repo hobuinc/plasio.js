@@ -27,9 +27,10 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
-        var SERVER = "http://devdata.greyhound.io";
+        var SERVER = "54.158.231.26"; //"http://devdata.greyhound.io";
         var RESOURCE = "nyc";
-        var IMAGERY_SOURCE_0 = "local://elevation";
+        //var IMAGERY_SOURCE_0 = "local://elevation";
+        var IMAGERY_SOURCE_0 = "http://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{{z}}/{{y}}/{{x}}.jpg";
         var IMAGERY_SOURCE_1 = "local://intensity";
         var IMAGERY_SOURCE_2 = "http://api.tiles.mapbox.com/v4/mapbox.comic/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
         var IMAGERY_SOURCE_3 = "http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
@@ -47,7 +48,7 @@
                     return cb(JSON.parse(r.response));
                 }
 
-                throw new Error("HTTP/GET failed for: " + url);
+                throw new Error("" + url);
             };
 
             r.open("get", url);
@@ -66,7 +67,7 @@
             var e = document.getElementById("app");
             var r = renderer.core.createRenderer(e);
 
-            get(SERVER + "/resource/" + RESOURCE + "/info", function(obj) {
+            get("http://" + SERVER + "/resource/" + RESOURCE + "/info", function(obj) {
                 var bbox = obj.bounds.slice(0);
                 var schema = obj.schema;
 
@@ -84,7 +85,7 @@
 
                 var loaders = [
                     new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
-                        imagerySources: [IMAGERY_SOURCE_0, IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
+                        imagerySources: [IMAGERY_SOURCE_0] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
                     }),
                     new PlasioLib.Loaders.TransformLoader()
                 ];

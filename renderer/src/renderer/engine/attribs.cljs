@@ -97,7 +97,7 @@
 
 (defmethod rereify-attrib :point-buffer [[_ buf]]
   (let [source (get-in buf [:source :data])
-        needs-update? (.-update source)]
+        needs-update? (when source (.-update source))]
     (if needs-update?
       (do
         (println "re-reify needed!")
