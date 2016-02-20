@@ -163,7 +163,7 @@
       (when-let [st (get stats stat-type)]
         (stats/add-node! st id (js->clj s))))))
 
-(let [stats-to-update #{:z :red :green :blue}]
+(let [stats-to-update #{:z :intensity :red :green :blue}]
   (defn update-stats! [stats id loaded-info]
     (when-let [pb (:point-buffer loaded-info)]
       (doseq [s stats-to-update]
@@ -419,6 +419,7 @@
                              :picker (r/create-picker)
                              :attrib-loader (attribs/create-attribs-loader)
                              :stats-collector {:z (stats/make-stats)
+                                               :intensity (stats/make-stats)
                                                :red (stats/make-stats)
                                                :green (stats/make-stats)
                                                :blue (stats/make-stats)}

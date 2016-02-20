@@ -158,6 +158,14 @@
 
   uniform vec4 availableColors;
   uniform vec4 colorBlendWeights;
+  uniform vec4 clampsLow, clampsHigh;
+  
+  uniform vec4 sourceClampsLow, sourceClampsHigh;
+
+  uniform vec4 channelClampsPick0;
+  uniform vec4 channelClampsPick1;
+  uniform vec4 channelClampsPick2;
+  uniform vec4 channelClampsPick3;
 
   attribute vec3 position;
   attribute float color0, color1, color2, color3;
@@ -180,6 +188,25 @@
       comp -= comp.xxyz * bitMsk;
       return vec4(comp.yzw, floor(c) / 256.0);
   }
+  
+  vec4 clampColor(vec4 color, vec4 clampPick, float destLow, float destHigh) {
+      // recover source value
+      //
+      float channelRangeLow = dot(clampPick, sourceClampsLow);
+      float channelRangeHigh = dot(clampPick, sourceClampsHigh);
+
+      vec4 sr = vec4((channelRangeHigh - channelRangeLow));
+      vec4 sn = vec4(channelRangeLow);
+
+      vec4 source = color * sr + sn;
+
+      vec3 lowv = vec3(destLow);
+      vec3 highv = vec3(destHigh + 0.00001);
+  
+      vec3 coeff = 1.0 / (highv - lowv);
+  
+      return vec4((source.rgb - lowv) * coeff, color.a);
+  }
 
   void main() {
      fpos = (position.xyz - offset);
@@ -190,10 +217,10 @@
   
      // compute color channels
      //
-     vec4 norm_color0 = decompressColor(color0);
-     vec4 norm_color1 = decompressColor(color1);
-     vec4 norm_color2 = decompressColor(color2);
-     vec4 norm_color3 = decompressColor(color3);
+     vec4 norm_color0 = clampColor(decompressColor(color0), channelClampsPick0, clampsLow.x, clampsHigh.x);
+     vec4 norm_color1 = clampColor(decompressColor(color1), channelClampsPick1, clampsLow.y, clampsHigh.y);
+     vec4 norm_color2 = clampColor(decompressColor(color2), channelClampsPick2, clampsLow.z, clampsHigh.z);
+     vec4 norm_color3 = clampColor(decompressColor(color3), channelClampsPick3, clampsLow.w, clampsHigh.w);
   
      mat4 colors = mat4(norm_color0, norm_color1, norm_color2, norm_color3);
   

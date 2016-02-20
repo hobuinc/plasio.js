@@ -121,7 +121,8 @@
 
 (defn draw-all-buffers [gl bufs scene-overlays highlight-segments
                         shader-context
-                        base-uniform-map proj mv ro width height hints draw-bbox?]
+                        base-uniform-map proj mv ro width height hints
+                        rangeMins rangeMaxs draw-bbox?]
   (let [shader (s/get-shader shader-context :renderer)
         uniforms (uniforms-with-override
                    gl shader
@@ -129,7 +130,9 @@
                    (assoc ro
                      :screen [width height]
                      :projectionMatrix proj
-                     :modelViewMatrix  mv))
+                     :modelViewMatrix  mv
+                     :sourceClampsLow rangeMins
+                     :sourceClampsHigh rangeMaxs))
         overlays (->> scene-overlays
                       (take 8)
                       seq)]
@@ -212,6 +215,7 @@
           ;; if the buffer specifies addition uniforms set them here (things like availableColors) come through
           ;; here
           (when-let [u (seq (:uniforms point-buffer))]
+            (println "-- -- u" u)
             (doseq [[uniform-name val] u]
               (set-uniform gl (override-uniform uniforms (keyword uniform-name) val))))
             

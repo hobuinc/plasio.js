@@ -2,6 +2,7 @@
   "State renderer"
   (:require [renderer.log :as l]
             [renderer.util :refer [tap]]
+            [renderer.stats :as stats]
             [renderer.engine.util :as util]
             [renderer.engine.shaders :as s]
             [renderer.engine.attribs :as attribs]
@@ -103,6 +104,20 @@
       (uniform :highlightSegmentsCount :int 0)
 
       (uniform :colorBlendWeights :vec4 [1 1 1 1])
+      (uniform :clampsLow :vec4 [0 0 0 0])
+      (uniform :clampsHigh :vec4 [1 1 1 1])
+
+      ;; these encode all clamping ranges, upto 4 here for now, index 0: color, 1: zrange, 2: intensity
+      (uniform :sourceClampsLow :vec4 [0 0 0 0])
+      (uniform :sourceClampsHigh :vec4 [0 0 0 0])
+      
+      ;; the current set of sources advertize their pick from the source clamps using a vec4 each, is
+      ;; dotted with sourceClampsLow and sourceClampsHigh above to pick what range they want for clamping
+      (uniform :channelClampsPick0 :vec4 [1 0 0 0])
+      (uniform :channelClampsPick1 :vec4 [1 0 0 0])
+      (uniform :channelClampsPick2 :vec4 [1 0 0 0])
+      (uniform :channelClampsPick3 :vec4 [1 0 0 0])
+
       (uniform :availableColors :vec4 [0 0 0 0])))
 
 (def ^:private picker-uniform-map
@@ -234,10 +249,22 @@
                   (and (< d1 0) (< d2 0)))
                (map plane-distances (repeat mins) (repeat maxs) planes)))))
 
+(defn stats-range [stats stat-type]
+  (if-let [s (get stats stat-type)]
+    (let [histogram (stats/current-stats s)]
+      (if-let [ss (seq histogram)]
+        (let [all-values (map (comp js/parseFloat first) ss)]
+          [(apply min all-values)
+           (apply max all-values)])
+        [0 1]))
+    [0 1]))
+
 (defn render-state
   "Render the state in its current form"
   [{:keys [source-state local-state gl shader-context] :as state}]
   (let [aloader (:attrib-loader state)
+        stats   (:stats-collector state)
+
         [width height] (render-view-size state)
         cam (first (filter :active (get-in source-state [:view :cameras])))
         vw (:view source-state)
@@ -248,7 +275,18 @@
         mv   (mv-matrix gl eye tar)
         mvp  (mvp-matrix gl proj mv)
         ro (:render-options dp)
-        hints (get-in local-state [:display :render-hints])]
+        hints (get-in local-state [:display :render-hints])
+
+        zrange (stats-range stats :z)
+        irange (stats-range stats :intensity)
+
+        ;; ranges for color components, z and intensity
+        rangeMins [0 (zrange 0) (irange 0) 0]
+        rangeMaxs [255 (zrange 1) (irange 1) 0]]
+
+    (println "-- -- rangeMins" rangeMins ", rangeMaxs" rangeMaxs)
+
+    
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
@@ -278,6 +316,7 @@
                              uniform-map
                              proj mv ro width height
                              hints
+                             rangeMins rangeMaxs
                              false))
 
     ;; if there are any planes to be drawn, draw them here
