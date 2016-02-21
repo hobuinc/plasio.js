@@ -110,6 +110,11 @@
       ;; these encode all clamping ranges, upto 4 here for now, index 0: color, 1: zrange, 2: intensity
       (uniform :sourceClampsLow :vec4 [0 0 0 0])
       (uniform :sourceClampsHigh :vec4 [0 0 0 0])
+
+      ;; how much of the ramp color we want over the computed color, should generally be 0 or 1
+      ;; but feel free to have something in the middle and trip the fuck out
+      ;;
+      (uniform :channelRampContribution :vec4 [0 0 0 0])
       
       ;; the current set of sources advertize their pick from the source clamps using a vec4 each, is
       ;; dotted with sourceClampsLow and sourceClampsHigh above to pick what range they want for clamping
@@ -296,9 +301,6 @@
         rangeMins [0 (zrange 0) (irange 0) 0]
         rangeMaxs [255 (zrange 1) (irange 1) 0]]
 
-    (println "-- -- rangeMins" rangeMins ", rangeMaxs" rangeMaxs)
-
-    
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
@@ -317,7 +319,7 @@
                               (keep (partial attribs/attribs-in aloader))
                               (filter #(get-in % [:point-buffer :gl-buffer])))
                             (vals (:point-buffers state)))]
-      (println (count buffers-to-draw) "/" (count (:point-buffers state)))
+      #_(println (count buffers-to-draw) "/" (count (:point-buffers state)))
 
       (draw/draw-all-buffers gl buffers-to-draw
                              (-> (:scene-overlays state)

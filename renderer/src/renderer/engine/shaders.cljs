@@ -166,6 +166,8 @@
   uniform vec4 channelClampsPick1;
   uniform vec4 channelClampsPick2;
   uniform vec4 channelClampsPick3;
+  
+  uniform vec4 channelRampContribution;
 
   uniform vec3 channelColorRamp0Start;
   uniform vec3 channelColorRamp0End;
@@ -229,21 +231,21 @@
      vec4 mvPosition = modelViewMatrix * wpos;
      gl_Position = projectionMatrix * mvPosition;
   
-     // compute color channels
-     //
-     vec4 norm_color0 = clampColor(decompressColor(color0), channelClampsPick0,
-                                   clampsLow.x, clampsHigh.x,
-                                   channelColorRamp0Start, channelColorRamp0End);
-     vec4 norm_color1 = clampColor(decompressColor(color1), channelClampsPick1,
-                                   clampsLow.y, clampsHigh.y,
-                                   channelColorRamp1Start, channelColorRamp1End);
-     vec4 norm_color2 = clampColor(decompressColor(color2), channelClampsPick2,
-                                   clampsLow.z, clampsHigh.z,
-                                   channelColorRamp2Start, channelColorRamp2End);
-     vec4 norm_color3 = clampColor(decompressColor(color3), channelClampsPick3,
-                                   clampsLow.w, clampsHigh.w,
-                                   channelColorRamp3Start, channelColorRamp3End);
-
+     vec4 dcolor0 = decompressColor(color0);
+     vec4 dcolor1 = decompressColor(color1);
+     vec4 dcolor2 = decompressColor(color2);
+     vec4 dcolor3 = decompressColor(color3);
+  
+     vec4 rcolor0 = clampColor(dcolor0, channelClampsPick0, clampsLow.x, clampsHigh.x, channelColorRamp0Start, channelColorRamp0End);
+     vec4 rcolor1 = clampColor(dcolor1, channelClampsPick1, clampsLow.y, clampsHigh.y, channelColorRamp1Start, channelColorRamp1End);
+     vec4 rcolor2 = clampColor(dcolor2, channelClampsPick2, clampsLow.z, clampsHigh.z, channelColorRamp2Start, channelColorRamp2End);
+     vec4 rcolor3 = clampColor(dcolor3, channelClampsPick3, clampsLow.w, clampsHigh.w, channelColorRamp3Start, channelColorRamp3End);
+  
+     vec4 norm_color0 = mix(dcolor0, rcolor0, channelRampContribution.x);
+     vec4 norm_color1 = mix(dcolor1, rcolor1, channelRampContribution.y);
+     vec4 norm_color2 = mix(dcolor2, rcolor2, channelRampContribution.z);
+     vec4 norm_color3 = mix(dcolor3, rcolor3, channelRampContribution.w);
+  
      mat4 colors = mat4(norm_color0, norm_color1, norm_color2, norm_color3);
   
      float maxWeight = dot(availableColors, colorBlendWeights);
