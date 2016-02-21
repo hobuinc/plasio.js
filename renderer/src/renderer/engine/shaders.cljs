@@ -167,6 +167,18 @@
   uniform vec4 channelClampsPick2;
   uniform vec4 channelClampsPick3;
 
+  uniform vec3 channelColorRamp0Start;
+  uniform vec3 channelColorRamp0End;
+
+  uniform vec3 channelColorRamp1Start;
+  uniform vec3 channelColorRamp1End;
+
+  uniform vec3 channelColorRamp2Start;
+  uniform vec3 channelColorRamp2End;
+
+  uniform vec3 channelColorRamp3Start;
+  uniform vec3 channelColorRamp3End;
+
   attribute vec3 position;
   attribute float color0, color1, color2, color3;
 
@@ -189,7 +201,8 @@
       return vec4(comp.yzw, floor(c) / 256.0);
   }
   
-  vec4 clampColor(vec4 color, vec4 clampPick, float destLow, float destHigh) {
+  vec4 clampColor(vec4 color, vec4 clampPick, float destLow, float destHigh,
+      vec3 channelColorRampStart, vec3 channelColorRampEnd) {
       // recover source value
       //
       float channelRangeLow = dot(clampPick, sourceClampsLow);
@@ -204,8 +217,9 @@
       vec3 highv = vec3(destHigh + 0.00001);
   
       vec3 coeff = 1.0 / (highv - lowv);
+      vec3 newGray = (source.rgb - lowv) * coeff;
   
-      return vec4((source.rgb - lowv) * coeff, color.a);
+      return vec4(mix(channelColorRampStart, channelColorRampEnd, newGray.r), color.a);
   }
 
   void main() {
@@ -217,11 +231,19 @@
   
      // compute color channels
      //
-     vec4 norm_color0 = clampColor(decompressColor(color0), channelClampsPick0, clampsLow.x, clampsHigh.x);
-     vec4 norm_color1 = clampColor(decompressColor(color1), channelClampsPick1, clampsLow.y, clampsHigh.y);
-     vec4 norm_color2 = clampColor(decompressColor(color2), channelClampsPick2, clampsLow.z, clampsHigh.z);
-     vec4 norm_color3 = clampColor(decompressColor(color3), channelClampsPick3, clampsLow.w, clampsHigh.w);
-  
+     vec4 norm_color0 = clampColor(decompressColor(color0), channelClampsPick0,
+                                   clampsLow.x, clampsHigh.x,
+                                   channelColorRamp0Start, channelColorRamp0End);
+     vec4 norm_color1 = clampColor(decompressColor(color1), channelClampsPick1,
+                                   clampsLow.y, clampsHigh.y,
+                                   channelColorRamp1Start, channelColorRamp1End);
+     vec4 norm_color2 = clampColor(decompressColor(color2), channelClampsPick2,
+                                   clampsLow.z, clampsHigh.z,
+                                   channelColorRamp2Start, channelColorRamp2End);
+     vec4 norm_color3 = clampColor(decompressColor(color3), channelClampsPick3,
+                                   clampsLow.w, clampsHigh.w,
+                                   channelColorRamp3Start, channelColorRamp3End);
+
      mat4 colors = mat4(norm_color0, norm_color1, norm_color2, norm_color3);
   
      float maxWeight = dot(availableColors, colorBlendWeights);
@@ -300,9 +322,10 @@
    varying vec3 xyz;
 
    void main() {
-       vec3 fpos = ((position.xyz - offset) * xyzScale);
-       vec4 worldPos = modelMatrix * vec4(fpos, 1.0);
+       vec3 fpos = (position.xyz - offset);
+       vec4 worldPos = (modelMatrix * vec4(fpos, 1.0)) * vec4(xyzScale, 1.0);
        vec4 mvPosition = modelViewMatrix * worldPos;
+
        gl_Position = projectionMatrix * mvPosition;
        gl_PointSize = pointSize;
        xyz = which * worldPos.xyz;

@@ -27,10 +27,9 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
-        var SERVER = "54.158.231.26"; //"http://devdata.greyhound.io";
+        var SERVER = "http://54.158.231.26/"; //"http://devdata.greyhound.io";
         var RESOURCE = "nyc";
-        //var IMAGERY_SOURCE_0 = "local://elevation";
-        var IMAGERY_SOURCE_0 = "local://color-ramp?start=#0000FF&end=#00FF00";
+        var IMAGERY_SOURCE_0 = "local://intensity?start=#0000ff"
         var IMAGERY_SOURCE_1 = "local://intensity";
         var IMAGERY_SOURCE_2 = "http://api.tiles.mapbox.com/v4/mapbox.comic/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
         var IMAGERY_SOURCE_3 = "http://api.tiles.mapbox.com/v4/mapbox.satellite/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
@@ -67,7 +66,7 @@
             var e = document.getElementById("app");
             var r = renderer.core.createRenderer(e);
 
-            get("http://" + SERVER + "/resource/" + RESOURCE + "/info", function(obj) {
+            get(SERVER + "resource/" + RESOURCE + "/info", function(obj) {
                 var bbox = obj.bounds.slice(0);
                 var schema = obj.schema;
 
@@ -409,6 +408,8 @@
 
                     document.body.appendChild(c);
                     */
+                                  r.updatePlane("what",
+                                  [0, 1, 0], 0, [0, 255, 0], 0.9, 20000);
 
                     /*
                     var image = new Image();

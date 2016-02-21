@@ -118,6 +118,18 @@
       (uniform :channelClampsPick2 :vec4 [1 0 0 0])
       (uniform :channelClampsPick3 :vec4 [1 0 0 0])
 
+      (uniform :channelColorRamp0Start :vec3 [0 0 0])
+      (uniform :channelColorRamp0End :vec3 [1 1 1])
+
+      (uniform :channelColorRamp1Start :vec3 [0 0 0])
+      (uniform :channelColorRamp1End :vec3 [1 1 1])
+
+      (uniform :channelColorRamp2Start :vec3 [0 0 0])
+      (uniform :channelColorRamp2End :vec3 [1 1 1])
+
+      (uniform :channelColorRamp3Start :vec3 [0 0 0])
+      (uniform :channelColorRamp3End :vec3 [1 1 1])
+
       (uniform :availableColors :vec4 [0 0 0 0])))
 
 (def ^:private picker-uniform-map

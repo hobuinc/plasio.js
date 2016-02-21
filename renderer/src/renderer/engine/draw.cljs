@@ -215,7 +215,6 @@
           ;; if the buffer specifies addition uniforms set them here (things like availableColors) come through
           ;; here
           (when-let [u (seq (:uniforms point-buffer))]
-            (println "-- -- u" u)
             (doseq [[uniform-name val] u]
               (set-uniform gl (override-uniform uniforms (keyword uniform-name) val))))
             
@@ -346,6 +345,7 @@
 (defn draw-plane! [gl shader-context mvp normal dist color opacity size]
   (let [{u :uniforms} (s/get-shader shader-context :plane)
         world (plane-world-matrix normal dist size)]
+    (println "-- -- drawing plane:" normal dist color opacity size mvp world)
     (doto gl
       (.uniform1f (:opacity u) opacity)
       (.uniform3fv (:color u) (ta/float32 color))
