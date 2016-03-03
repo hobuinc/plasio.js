@@ -291,6 +291,10 @@
                     modeManager.activeMode = "camera";
                 };
 
+                
+                // Add a plane for testing for now
+                r.updatePlane("what", [0, 1, 0], 500, [0, 1, 1], 0.5, 20000);
+
                 doLOS = function() {
                     /*
                     console.log("Loading secondary view...");
@@ -408,8 +412,8 @@
 
                     document.body.appendChild(c);
                     */
-                                  r.updatePlane("what",
-                                  [0, 1, 0], 0, [0, 255, 0], 0.9, 20000);
+
+                    r.updatePlane("what", [0, 1, 0], 0, [0, 255, 0], 0.9, 20000);
 
                     /*
                     var image = new Image();

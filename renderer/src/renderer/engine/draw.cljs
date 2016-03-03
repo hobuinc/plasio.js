@@ -345,12 +345,11 @@
 (defn draw-plane! [gl shader-context mvp normal dist color opacity size]
   (let [{u :uniforms} (s/get-shader shader-context :plane)
         world (plane-world-matrix normal dist size)]
-    (println "-- -- drawing plane:" normal dist color opacity size mvp world)
     (doto gl
-      (.uniform1f (:opacity u) opacity)
-      (.uniform3fv (:color u) (ta/float32 color))
-      (.uniformMatrix4fv (:world u) false world)
-      (.uniformMatrix4fv (:mvp u) false mvp)
+      (.uniform1f (get u "opacity") opacity)
+      (.uniform3fv (get u "color") (ta/float32 color))
+      (.uniformMatrix4fv (get u "world") false world)
+      (.uniformMatrix4fv (get u "mvp") false mvp)
 
       (.drawArrays draw-mode/triangles 0 6))))
 

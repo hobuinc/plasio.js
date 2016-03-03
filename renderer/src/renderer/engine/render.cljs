@@ -337,11 +337,8 @@
     ;;
     (when-let [planes (seq (:planes source-state))]
       (draw/prep-planes-state! gl shader-context)
-      (doall
-        (map (fn [[id [normal dist color opacity size]]]
-               ;; draw the plane here
-               (draw/draw-plane! gl shader-context mvp normal dist color opacity size))
-             planes))
+      (doseq [[id [normal dist color opacity size]] planes]
+        (draw/draw-plane! gl shader-context mvp normal dist color opacity size))
       (draw/unprep-planes-state! gl shader-context))
 
 
