@@ -27,8 +27,8 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
-        var SERVER = "http://54.158.231.26/"; //"http://devdata.greyhound.io";
-        var RESOURCE = "nyc";
+        var SERVER = "http://54.158.26.88/"; //"http://devdata.greyhound.io";
+        var RESOURCE = "autzen-h";
         var IMAGERY_SOURCE_0 = "local://intensity?start=#0000ff"
         var IMAGERY_SOURCE_1 = "local://intensity";
         var IMAGERY_SOURCE_2 = "http://api.tiles.mapbox.com/v4/mapbox.comic/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
@@ -84,7 +84,7 @@
 
                 var loaders = [
                     new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
-                        imagerySources: [IMAGERY_SOURCE_3] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
+                        imagerySources: [IMAGERY_SOURCE_1] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
                     }),
                     new PlasioLib.Loaders.TransformLoader()
                 ];
@@ -292,9 +292,6 @@
                 };
 
                 
-                // Add a plane for testing for now
-                r.updatePlane("what", [0, 1, 0], 500, [0, 1, 1], 0.5, 20000);
-
                 doLOS = function() {
                     /*
                     console.log("Loading secondary view...");
