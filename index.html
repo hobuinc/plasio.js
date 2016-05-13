@@ -28,7 +28,7 @@
 
     <script>
         var SERVER = "http://data.greyhound.io/"; //"http://devdata.greyhound.io";
-        var RESOURCE = "nyc-h";
+        var RESOURCE = "autzen-h";
         var IMAGERY_SOURCE_0 = "local://intensity?start=#0000ff"
         var IMAGERY_SOURCE_1 = "local://elevation";
         var IMAGERY_SOURCE_2 = "http://api.tiles.mapbox.com/v4/mapbox.comic/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
@@ -82,38 +82,61 @@
 
                 totalBBox = bbox;
 
-                var loaders1 = [
+                var policy1 = new PlasioLib.FrustumLODNodePolicy("nyc1", [
                     new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
                         imagerySources: [IMAGERY_SOURCE_1] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
                     }),
                     new PlasioLib.Loaders.TransformLoader()
-                ];
-
-                var policy1 = new PlasioLib.FrustumLODNodePolicy(loaders1, r, {
+                ], r, {
                     pointCloudBBox: bbox,
                     normalize: true
                 });
 
-                var loaders2 = [
+                var policy2 = new PlasioLib.FrustumLODNodePolicy("nyc1", [
                     new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
-                        imagerySources: [IMAGERY_SOURCE_3] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
+                        imagerySources: ["local://color"] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
                     }),
                     new PlasioLib.Loaders.TransformLoader()
-                ];
-
-                var policy2 = new PlasioLib.FrustumLODNodePolicy(loaders2, r, {
+                ], r, {
+                    offset: [3200, 0, 0],
                     pointCloudBBox: bbox,
                     normalize: true
                 });
 
-                var p = new PlasioLib.MultiPolicyContainer({
-                    "nyc": policy1,
-                    "nyc2": policy2
+                var policy3 = new PlasioLib.FrustumLODNodePolicy("nyc3", [
+                    new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
+                        imagerySources: ["local://color"] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
+                    }),
+                    new PlasioLib.Loaders.TransformLoader()
+                ], r, {
+                    offset: [-3200, 0, 0],
+                    pointCloudBBox: bbox,
+                    normalize: true
                 });
 
-                loaders1.concat(loaders2).forEach(function(l) {
-                    r.addLoader(l.constructor);
+                var policy4 = new PlasioLib.FrustumLODNodePolicy("nyc4", [
+                    new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
+                        imagerySources: ["local://elevation"] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
+                    }),
+                    new PlasioLib.Loaders.TransformLoader()
+                ], r, {
+                    offset: [0, 0, 5000],
+                    pointCloudBBox: bbox,
+                    normalize: true
                 });
+
+                var policy5 = new PlasioLib.FrustumLODNodePolicy("nyc5", [
+                    new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
+                        imagerySources: ["local://elevation"] // , IMAGERY_SOURCE_1, IMAGERY_SOURCE_2, IMAGERY_SOURCE_3]
+                    }),
+                    new PlasioLib.Loaders.TransformLoader()
+                ], r, {
+                    offset: [0, 0, -5000],
+                    pointCloudBBox: bbox,
+                    normalize: true
+                });
+
+                var p = new PlasioLib.MultiPolicyContainer([policy1, policy2, policy3, policy4, policy5]);
 
                 var handleResize = function () {
                     r.setRenderViewSize(window.innerWidth, window.innerHeight);
@@ -142,7 +165,7 @@
                 };
                  */
 
-                f({element: e, renderer: r, policy: p, bbox: bbox, loaders: loaders1.concat(loaders2)});
+                f({element: e, renderer: r, policy: p, bbox: bbox});
             });
         };
 
@@ -263,7 +286,7 @@
                 r.setClearColor(0.4, 0, 0);
                 r.setRenderOptions({pointSize: 2, colorBlendWeights: [1, 1, 1, 1], clampsHigh: [890, 0, 0, 0], clampsLow:[-290, 0, 0, 0]});
 
-                p.on("bbox/nyc", function (bbox) {
+                p.on("bbox/any", function (bbox) {
                     console.log("-- -- bounding box:", bbox);
                     var x = bbox.maxs[0] - bbox.mins[0],
                             y = bbox.maxs[1] - bbox.mins[1],

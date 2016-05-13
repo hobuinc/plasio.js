@@ -134,18 +134,19 @@
                nil)))
 
 (defn- load-resource [loader params]
-  (let [c (async/chan)]
-    (.load loader params (fn [err data]
-                           (if err
-                             (async/close! c)
-                             (async/onto-chan c [data]))))
+  (let [c (async/chan)
+        load-fn (:load loader)]
+    (load-fn params (fn [err data]
+                      (if err
+                        (async/close! c)
+                        (async/onto-chan c [data]))))
     c))
 
 (defn- fetch-resource
   "Try to load the given resource, using the provided loader-id and parameters"
   [loader params]
   (go
-    [(keyword (aget loader "provides")) (<! (load-resource loader params))]))
+    [(keyword (:provides loader)) (<! (load-resource loader params))]))
 
 (defn- load-buffer-components
   "Load all components required for an ID, if they fail, just substitute a nil instead"
@@ -512,9 +513,14 @@
              :type   :line})))))
 
   (add-loader [_ loader]
-    (let [key (.-key loader)
+    ;; coerce the loader into something we understand, if its not a map convert it to one
+    (let [loader (if (map? loader) loader
+                     {:key (aget loader "key")
+                      :provides (aget loader "provides")
+                      :load (aget loader "load")})
+          key (:key loader)
           rs  (:run-state @state)]
-      (when-not (aget loader "provides")
+      (when-not (:provides loader)
         (throw (js/Error. "The loader doesn't advertise what it provides")))
       (swap! rs update-in [:loaders] assoc key loader)))
 
