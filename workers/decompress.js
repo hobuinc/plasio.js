@@ -30,6 +30,16 @@ function swapSpace(buffer, worldBoundsX, pointSize, numPoints, normalize) {
 	}
 }
 
+function fieldOffsetInSchema(schema, fieldName) {
+	var lcase = fieldName.toLowerCase();
+	for (var i = 0, il = schema.length ; i < il ; i ++) {
+		if (schema[i].name && schema[i].name.toLowerCase() === lcase) {
+			return i;
+		}
+	}
+	return -1;
+}
+
 function collectStats(buffer, pointSize, numPoints, collectFor) {
 	// We collect stats here, collectFor is a list of 3-tuples, where
 	// each element specifies the stats to collect, first item being the
@@ -88,6 +98,12 @@ var unpackBuffer = function(buffer, totalPoints, pointSize, schema) {
 			fields.push([2, DataView.prototype.getUint16]);
 		else if (s.type === "unsigned" && s.size === 1)
 			fields.push([1, DataView.prototype.getUint8]);
+		else if (s.type === "signed" && s.size === 4)
+			fields.push([4, DataView.prototype.getInt32]);
+		else if (s.type === "signed" && s.size === 2)
+			fields.push([2, DataView.prototype.getInt16]);
+		else if (s.type === "signed" && s.size === 1)
+			fields.push([1, DataView.prototype.getInt8]);
 		else
 			throw Error("Unrecognized schema field: " + JSON.stringify(s));
 
@@ -118,6 +134,26 @@ var unpackBuffer = function(buffer, totalPoints, pointSize, schema) {
 	return outBuffer;
 };
 
+var applyScaleAndOffset = function(buffer, numPoints, schema, scale, offset) {
+	var scaleX = scale[0], scaleY = scale[1], scaleZ = scale[2];
+	var offsetX = offset[0], offsetY = offset[1], offsetZ = offset[2];
+
+	var schemaX = fieldOffsetInSchema(schema, "x");
+	var schemaY = fieldOffsetInSchema(schema, "y");
+	var schemaZ = fieldOffsetInSchema(schema, "z");
+
+	var pointSizeInFloats = schema.length;
+
+	var offset = 0;
+	for (var i = 0, il = numPoints ; i < il ; i ++) {
+		buffer[offset + schemaX] = buffer[offset + schemaX] * scale[0];
+		buffer[offset + schemaY] = buffer[offset + schemaY] * scale[1];
+		buffer[offset + schemaZ] = buffer[offset + schemaZ] * scale[2];
+
+		offset += pointSizeInFloats;
+	}
+}
+
 var getColorChannelOffsets = function(schema) {
 	var red = null, green = null, blue = null;
 
@@ -144,7 +180,7 @@ var getIntensityOffset = function(schema) {
 }
 
 var totalSaved = 0;
-var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, normalize) {
+var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, normalize, scale, offset) {
     var x = new Module.DynamicLASZip();
 
     var abInt = new Uint8Array(ab);
@@ -164,8 +200,12 @@ var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, normalize) 
             x.addFieldUnsigned(f.size);
             needUnpack = true;
         }
+        else if (f.type === "signed") {
+            x.addFieldSigned(f.size);
+            needUnpack = true;
+        }
         else
-            throw new Error("Unrecognized field desc:", f);
+            throw new Error("Unrecognized field desc:" + JSON.stringify(f));
     });
 
     totalSaved += (numPoints * pointSize) - ab.byteLength;
@@ -196,6 +236,13 @@ var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, normalize) 
     // if we got any points, swap them
     if (numPoints > 0)
         swapSpace(b, worldBoundsX, pointSize, numPoints, normalize);
+
+	// if we have scale and offset specified for this point buffer, apply that now,
+	// NOTE THAT, we apply scaling and offset after the space swapping since we store
+	// 
+	if (scale || offset) {
+		applyScaleAndOffset(b, numPoints, schema, scale || [1, 1, 1], offset || [0, 0, 0]);
+	}
 
     // stats collection, if we have color, collect color stats
     //
@@ -230,7 +277,10 @@ self.onmessage = function(e) {
 	var worldBoundsX = data.worldBoundsX;
 	var normalize = data.normalize;
 
-	var w = decompressBuffer(schema, worldBoundsX, ab, numPoints, normalize);
+	var scale = data.scale;
+	var offset = data.offset;
+
+	var w = decompressBuffer(schema, worldBoundsX, ab, numPoints, normalize, scale, offset);
 
 	var res = w[0],
 		stats = w[1];
