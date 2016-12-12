@@ -5,15 +5,17 @@
   "main": "index.js",
   "scripts": {
     "dev": "node_modules/.bin/webpack --colors --progress --watch",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "devtest": "./node_modules/.bin/webpack-dev-server --config webpack.tests.config.js"
   },
   "devDependencies": {
     "async": "^1.4.2",
     "babel-core": "^6.2.1",
     "babel-loader": "^6.2.0",
+    "babel-plugin-transform-async-to-generator": "^6.16.0",
     "babel-polyfill": "^6.3.14",
     "babel-preset-es2015": "^6.1.18",
     "babel-runtime": "^6.2.0",
+    "bluebird": "^3.4.6",
     "buffer": "~2.7.0",
     "expose-loader": "^0.7.1",
     "gl-matrix": "^2.3.1",
@@ -22,17 +24,23 @@
     "js-md5": "^0.3.0",
     "lodash": "^3.3.1",
     "lru-cache": "^2.6.5",
+    "mocha": "^3.2.0",
+    "mocha-loader": "^1.0.0",
     "open": "0.0.5",
     "peerjs": "^0.3.14",
     "sha.js": "^2.3.0",
     "sphericalmercator": "^1.0.3",
     "ts-loader": "^1.2.2",
     "webpack": "^1.12.8",
-    "bluebird": "^3.4.6",
+    "webpack-dev-server": "^1.16.2",
     "whatwg-fetch": "^2.0.1"
+  },
+  "babel": {
+    "plugins": [
+      "transform-async-to-generator"
+    ]
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
-  }
+  "dependencies": {}
 }
