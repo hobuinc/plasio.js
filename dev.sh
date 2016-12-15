@@ -8,4 +8,6 @@ PWD=`pwd`
 mkdir -p lib/dist
 cp vendor/laz-perf.js lib/dist/
 
+cd lib && npm install && cd ..
+
 ./lib/node_modules/.bin/nf start
