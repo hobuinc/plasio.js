@@ -268,22 +268,59 @@ var decompressBuffer = function(schema, worldBoundsX, ab, numPoints, normalize, 
     return [b, stats];
 };
 
+function networkToNative(val) {
+	return ((val & 0x00FF) << 24) |
+		((val & 0xFF00) <<  8) |
+		((val >> 8)  & 0xFF00) |
+		((val >> 24) & 0x00FF);
+}
+
+function fetchBuffer(url, params, cb) {
+	var xhr = new XMLHttpRequest();
+
+	xhr.open("GET", url);
+	xhr.withCredentials = (params.creds === true);
+	xhr.responseType = "arraybuffer";
+
+	xhr.onload = function() {
+		if (xhr.status == 200) {
+			// successfully loaded stuff
+			var buffer = xhr.response;
+
+			var view = new DataView(buffer, buffer.byteLength - 4, 4);
+            var numPoints = networkToNative(view.getUint32(0));
+
+			cb(null, {
+				contentType: xhr.getResponseHeader('content-type'),
+				data: buffer.slice(0, buffer.byteLength - 4),
+				numPoints: numPoints
+			});
+		}
+		else {
+			cb(new Error('Failed to load buffer, response code:' + xhr.status));
+		}
+	};
+
+	xhr.send();
+}
+
 self.onmessage = function(e) {
 	var data = e.data;
 
 	var schema = data.schema;
-	var ab = data.buffer;
-	var numPoints = data.pointsCount;
 	var worldBoundsX = data.worldBoundsX;
-	var normalize = data.normalize;
+	var url = data.url;
+	var allowCreds = data.allowCreds;
 
 	var scale = data.scale;
 	var offset = data.offset;
 
-	var w = decompressBuffer(schema, worldBoundsX, ab, numPoints, normalize, scale, offset);
+	fetchBuffer(url, { creds: allowCreds }, function(err, data) {
+		var w = decompressBuffer(schema, worldBoundsX, data.data, data.numPoints, true, scale, offset);
 
-	var res = w[0],
-		stats = w[1];
+		var res = w[0],
+			stats = w[1];
 
-	postMessage({result: res, stats: stats}, [res.buffer]);
+		postMessage({result: res, stats: stats}, [res.buffer]);
+	});
 };
