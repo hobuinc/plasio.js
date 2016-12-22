@@ -133,30 +133,34 @@
                      (update! cursor [] mesh)))
                nil)))
 
-(defn- load-resource [loader params]
+(defn- load-resource [loader params load-params]
   (let [c (async/chan)
         load-fn (:load loader)]
-    (load-fn params (fn [err data]
-                      (if err
-                        (async/close! c)
-                        (async/onto-chan c [data]))))
+    (load-fn params load-params
+             (fn [err data]
+               (if err
+                 (async/close! c)
+                 (async/onto-chan c [data]))))
     c))
 
 (defn- fetch-resource
   "Try to load the given resource, using the provided loader-id and parameters"
-  [loader params]
+  [loader params load-params]
   (go
-    [(keyword (:provides loader)) (<! (load-resource loader params))]))
+    [(keyword (:provides loader)) (<! (load-resource loader params load-params))]))
 
 (defn- load-buffer-components
   "Load all components required for an ID, if they fail, just substitute a nil instead"
-  [all-loaders buffer-id]
+  [all-loaders buffer-id load-params]
   (let [comps (js/Object.keys buffer-id)
         chans (for [loader-id comps
                     :let [loader (get all-loaders loader-id)]
                     :when loader]
-                (fetch-resource loader (aget buffer-id loader-id)))]
-    (async/into {} (async/merge chans))))
+                (fetch-resource loader (aget buffer-id loader-id) load-params))
+        chan-no-nils (async/chan 1 (filter (fn [[_ v]]
+                                             (some? v))))]
+    (async/pipe (async/merge chans) chan-no-nils)
+    (async/into {} chan-no-nils)))
 
 (defn update-stat-for! [stats stat-type id pb]
   (when-let [js-stats (aget pb "stats")]
@@ -172,7 +176,7 @@
 
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
-  [cursor state-pb]
+  [cursor state-pb state-pb-load-params]
   (let [gl            (root cursor :gl)
         stats         (root cursor :stats-collector)
         attrib-loader (root cursor :attrib-loader)
@@ -181,8 +185,9 @@
                (fn [pb]
                  (add-remove state-pb pb
                              (fn [buffer-id]
-                               (let [decoded-id (util/decode-id buffer-id)]
-                                 (go (let [loaded-info (<! (load-buffer-components all-loaders decoded-id))]
+                               (let [decoded-id (util/decode-id buffer-id)
+                                     load-params (get state-pb-load-params buffer-id (js-obj))]
+                                 (go (let [loaded-info (<! (load-buffer-components all-loaders decoded-id load-params))]
                                        (update-stats! stats buffer-id loaded-info)
                                        (transact! cursor [buffer-id]
                                                   (fn [v]
@@ -441,9 +446,12 @@
          source-state "__internal-ss"
          (fn [_ _ old-state new-state]
            (let [cursor (StateCursor. run-state [] new-state)]
-             ;; if buffers changed, update them
+             ;; if buffers changed, update them, remember to pass the load params
+             ;; as well
              (when-not (identical? (:point-buffers old-state) (:point-buffers new-state))
-               (update-point-buffers (sub-cursor cursor [:point-buffers]) (:point-buffers new-state)))
+               (update-point-buffers (sub-cursor cursor [:point-buffers])
+                                     (:point-buffers new-state)
+                                     (:point-buffer-load-params new-state)))
 
              ;; if the labels changed update them
              (when-not (identical? (:text-labels old-state) (:text-labels new-state))

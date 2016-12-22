@@ -31,7 +31,7 @@
   (remove-all-scale-objects [this])
   (add-prop-listener [this korks f])
   (remove-prop-listener [this id])
-  (add-point-buffer [this id])
+  (add-point-buffer [this id load-params])
   (remove-point-buffer [this id])
   (add-loader [this loader])
   (remove-loader [this loader])
@@ -128,9 +128,12 @@
   (remove-prop-listener [this id]
     (remove-watch state id))
 
-  (add-point-buffer [this id]
-    ;; TODO: make sure that passed buffer is of javascript array buffer
-    (swap! state update-in [:point-buffers] conj (ru/encode-id id)))
+  (add-point-buffer [this id load-params]
+    (let [encoded-id (ru/encode-id id)]
+      (swap! state
+             #(-> %
+                  (update :point-buffers conj encoded-id)
+                  (assoc-in [:point-buffer-load-params encoded-id] load-params)))))
 
   (remove-point-buffer [this id]
     (swap! state update-in [:point-buffers]
