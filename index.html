@@ -69,20 +69,6 @@
 
             get(SERVER + "resource/" + RESOURCE + "/info", function(obj) {
                 var bbox = obj.bounds.slice(0);
-                var preScale = obj.scale ? obj.scale : null;
-                var preOffset = obj.offset ? obj.offset : null;
-                if (preScale && !preScale.length)
-                    preScale = [preScale, preScale, preScale];
-
-                var schema = obj.schema;
-
-                if (preScale && preOffset) {
-                    bbox = bbox.map((v, i) => {
-                        return bbox[i] * preScale[i % 3] + preOffset[i % 3];
-                    });
-
-                    console.log('Native bounds:', bbox);
-                }
 
                 // determine and set splitting cutoffs
                 var stopSplitLevel = Math.ceil(Math.log(obj.numPoints) / Math.log(4)) + 1;
@@ -94,13 +80,15 @@
                 bbox = [bbox[0], bbox[2], bbox[1], bbox[3], bbox[5], bbox[4]];
 
                 totalBBox = bbox;
+                var schema = obj.schema;
 
                 var policy1 = new PlasioLib.FrustumLODNodePolicy("nyc1", [
-                    new PlasioLib.Loaders.GreyhoundPipelineLoader(SERVER, RESOURCE, schema, {
-                        imagerySources: ["local://color"],
-                        preScale: preScale,
-                        preOffset: preOffset
-                    }),
+                    new PlasioLib.Loaders.GreyhoundPipelineLoader(
+                        SERVER,
+                        RESOURCE,
+                        schema,
+                        { imagerySources: ["local://color"] }
+                    ),
                     new PlasioLib.Loaders.TransformLoader()
                 ], r, {
                     pointCloudBBox: bbox,
