@@ -24,12 +24,18 @@
 (defmulti rereify-attrib first)
 (defmulti unreify-attrib first)
 
+(defn- coerce-uniforms [uniforms]
+  (into []
+        (for [i (range (.-length uniforms))
+              :let [uniform (aget uniforms i)]]
+          [(keyword (aget uniform 0)) (aget uniform 1)])))
+
 (defmethod reify-attrib :point-buffer [[_ props]]
   (let [total-points (aget props "totalPoints")]
     {:point-stride (aget props "pointStride")
      :total-points total-points
      :attributes   (js->clj (aget props "attributes"))
-     :uniforms     (js->clj (aget props "uniforms"))
+     :uniforms     (coerce-uniforms (aget props "uniforms"))
      :source       {:data (aget props "data")}
      :gl-buffer    (when-not (zero? total-points)
                      (buffers/create-buffer *gl-context*

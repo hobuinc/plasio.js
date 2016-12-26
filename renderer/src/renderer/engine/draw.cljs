@@ -50,31 +50,33 @@
     (throw (js/Error. (str "Trying to override unknown uniform: " (name key))))))
 
 (defn ^:private set-uniform
-  [gl-context {:keys [name type values transpose location]}]
-  (when-not location
-    (throw (js/Error. "Not sure what uniform you're trying to set, location is null")))
+  ([gl-content {:keys [:values] :as uniform}]
+    (set-uniform gl-content uniform values))
+  ([gl-context {:keys [type transpose location]} values]
+   (when-not location
+     (throw (js/Error. "Not sure what uniform you're trying to set, location is null")))
 
-  (when-not values
-    (throw (js/Error. "Not sure what values you're trying to set, they are null")))
+   (when-not values
+     (throw (js/Error. "Not sure what values you're trying to set, they are null")))
 
-  (let [uniform-location location]
-    (case type
-      :bool   (.uniform1fv gl-context uniform-location values)
-      :bvec2  (.uniform2fv gl-context uniform-location values)
-      :bvec3  (.uniform3fv gl-context uniform-location values)
-      :bvec4  (.uniform4fv gl-context uniform-location values)
-      :float  (.uniform1fv gl-context uniform-location values)
-      :vec2   (.uniform2fv gl-context uniform-location values)
-      :vec3   (.uniform3fv gl-context uniform-location values)
-      :vec4   (.uniform4fv gl-context uniform-location values)
-      :int    (.uniform1iv gl-context uniform-location values)
-      :ivec2  (.uniform2iv gl-context uniform-location values)
-      :ivec3  (.uniform3iv gl-context uniform-location values)
-      :ivec4  (.uniform4iv gl-context uniform-location values)
-      :mat2   (.uniformMatrix2fv gl-context uniform-location transpose values)
-      :mat3   (.uniformMatrix3fv gl-context uniform-location transpose values)
-      :mat4   (.uniformMatrix4fv gl-context uniform-location transpose values)
-      nil)))
+   (let [uniform-location location]
+     (case type
+       :bool (.uniform1fv gl-context uniform-location values)
+       :bvec2 (.uniform2fv gl-context uniform-location values)
+       :bvec3 (.uniform3fv gl-context uniform-location values)
+       :bvec4 (.uniform4fv gl-context uniform-location values)
+       :float (.uniform1fv gl-context uniform-location values)
+       :vec2 (.uniform2fv gl-context uniform-location values)
+       :vec3 (.uniform3fv gl-context uniform-location values)
+       :vec4 (.uniform4fv gl-context uniform-location values)
+       :int (.uniform1iv gl-context uniform-location values)
+       :ivec2 (.uniform2iv gl-context uniform-location values)
+       :ivec3 (.uniform3iv gl-context uniform-location values)
+       :ivec4 (.uniform4iv gl-context uniform-location values)
+       :mat2 (.uniformMatrix2fv gl-context uniform-location transpose values)
+       :mat3 (.uniformMatrix3fv gl-context uniform-location transpose values)
+       :mat4 (.uniformMatrix4fv gl-context uniform-location transpose values)
+       nil))))
 
 
 (defn size-f [mins maxs]
@@ -135,14 +137,16 @@
                      :sourceClampsHigh rangeMaxs))
         overlays (->> scene-overlays
                       (take 8)
-                      seq)]
-    ;; setup properties that won't change for each buffer
-    ;;
-    ;; Viewport, active shader
-    (.viewport gl 0 0 width height)
-    (.useProgram gl (:shader shader))
+                      seq)
+        ;; Set viewoprt
+        _ (.viewport gl 0 0 width height)
+        _ (.useProgram gl (:shader shader))
 
-    ;; setup all uniforms which don't change frame to frame
+        ;; get some of the most frequently used uniforms
+        uniform-model-matrix (get-in shader [:uniforms "modelMatrix"])
+        uniform-offset (get-in shader [:uniforms "offset"])]
+
+    ;; setup all uniforms which don't change buffer to buffer
     (doseq [[_ v] uniforms]
       (set-uniform gl v))
 
@@ -172,7 +176,7 @@
 
         ;; the supporting uniforms are also sort of complex to set, so lets just do that using the raw
         ;; gl api
-        (let [blend-contributions (apply array (repeat 8 1.0))
+        (let [blend-contributions (apply array (repeat 8 1.0)bufs )
               all-bounds (apply array
                                 (mapcat :bounds overlays))
               overlay-count (get-in shader [:uniforms "sceneOverlaysCount"])
@@ -200,7 +204,7 @@
     (when (:flicker-fix hints)
       (.disable gl (.-DEPTH_TEST gl)))
 
-    (doseq [{:keys [point-buffer transform]} (sort-bufs bufs mv)]
+    (doseq [{:keys [point-buffer transform]} bufs #_(sort-bufs bufs mv)]
       ;; if we have a loaded point buffer for this buffer, lets render it, we may still want to draw
       ;; the bbox if the point-buffer is not valid yet
       ;;
@@ -208,19 +212,20 @@
         (let [total-points (:total-points point-buffer)
               stride (:point-stride point-buffer)
               gl-buffer (:gl-buffer point-buffer)]
-          ;; override per buffer uniforms
-          (set-uniform gl (override-uniform uniforms :modelMatrix (:model-matrix transform)))
-          (set-uniform gl (override-uniform uniforms :offset (:offset transform)))
+          ;; override known per buffer uniforms
+          (.uniformMatrix4fv gl uniform-model-matrix false (:model-matrix transform))
+          (.uniform3fv       gl uniform-offset (:offset transform))
 
           ;; if the buffer specifies addition uniforms set them here (things like availableColors) come through
           ;; here
           (when-let [u (seq (:uniforms point-buffer))]
-            (doseq [[uniform-name val] u]
-              (set-uniform gl (override-uniform uniforms (keyword uniform-name) val))))
+            (doseq [[uniform-key val] u
+                    :let [uniform (get uniforms uniform-key)]]
+              (set-uniform gl uniform val)))
             
 
           (when-let [ps (:point-size point-buffer)]
-            (set-uniform gl (override-uniform uniforms :pointSize ps)))
+            (set-uniform gl (get uniforms :pointSize) ps))
 
           ;; setup attributes
           (.bindBuffer gl bo/array-buffer gl-buffer)
