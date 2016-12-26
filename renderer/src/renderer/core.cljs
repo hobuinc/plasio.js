@@ -1,6 +1,5 @@
 (ns renderer.core
   (:require [clojure.set :as set]
-            [cljs-uuid.core :as uuid]
             [renderer.engine :as r]
             [renderer.engine.util :as u]
             [renderer.util :as ru]
@@ -111,7 +110,7 @@
     (swap! state assoc-in [:scale-objects] []))
 
   (add-prop-listener [this korks f]
-    (let [id (str (uuid/make-random))
+    (let [id (str (ru/random-id))
           korks (map keyword (u/safe-korks korks))]
       ; make sure the current value is sent on subscribe
       (go (f (clj->js (get-in @state korks))))

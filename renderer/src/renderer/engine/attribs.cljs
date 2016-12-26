@@ -4,9 +4,9 @@
 
 (ns renderer.engine.attribs
   (:require [renderer.engine.util :as u]
+            [renderer.util :as rutil]
             [renderer.engine.specs :as specs]
             [renderer.engine.shaders :as sh]
-            [cljs-uuid.core :as uuid]
             [cljs-webgl.constants.webgl :as webgl]
             [cljs-webgl.constants.buffer-object :as buffer-object]
             [cljs-webgl.constants.texture-parameter-name :as tparams]
@@ -16,8 +16,7 @@
             [cljs-webgl.shaders :as shaders]))
 
 (defn- gen-id []
-  (-> (uuid/make-random)
-      str))
+  (rutil/random-id))
 
 (def ^:private ^:dynamic *gl-context* nil) ; The attribs creation and deletion executes in context of this gl-context
 

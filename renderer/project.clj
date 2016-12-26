@@ -2,20 +2,14 @@
   :description "State transactional 3D renderer for plasio.js"
   :url "http://github.com/verma/plasio.js"
 
-  :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.28"]
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [cljs-uuid "0.0.4"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/clojurescript "1.9.293"]
+                 [org.clojure/core.async "0.2.395"]
                  [rm-hull/cljs-webgl "0.1.5-SNAPSHOT"]
-                 [weasel "0.3.0"]
                  [cljsjs/gl-matrix "2.3.0-jenanwise-0"]]
 
-  :plugins [[lein-cljsbuild "1.0.6"]
-            [lein-doo "0.1.5-SNAPSHOT"]]
-  :profiles {:dev {:dependencies [[com.cemerick/piggieback "0.1.3"]]
-                   :repl-options {:nrepl-middleware [cemerick.piggieback/wrap-cljs-repl]}
-                   :plugins      [[com.cemerick/austin "0.1.5"]
-                                  ]}}
+  :plugins [[lein-cljsbuild "1.1.5"]
+            [lein-doo "0.1.7"]]
 
   :source-paths ["src"]
 
@@ -27,7 +21,7 @@
                                    :asset-path "renderer/target/dev"
                                    :output-dir "target/dev"
                                    :pretty-print true
-                                   :optimizations :none}}
+                                   :optimizations :whitespace}}
                        {:id "test"
                         :source-paths ["src" "test"]
                         :compiler {:output-to "target/test/testable.js"
