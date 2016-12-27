@@ -25,7 +25,7 @@
 
     <script>
         var SERVER = "http://dev.greyhound.io/"; //"http://devdata.greyhound.io";
-        var RESOURCE = "red-rocks-odd"; //"autzen-scaled";
+        var RESOURCE = "nyc-h"; //"autzen-scaled";
         //var RESOURCE = "ellipsoid-nyc";
         //var RESOURCE = "autzen-scaled"
         var IMAGERY_SOURCE_0 = "local://intensity?start=#0000ff"
@@ -38,7 +38,7 @@
             server: SERVER,
             resource: RESOURCE,
             imagerySources: [
-                IMAGERY_SOURCE_4
+                IMAGERY_SOURCE_3
             ],
             rendererOptions: {
                 pointSize: 2
@@ -52,6 +52,9 @@
             clampsHigh: [90, 0, 0, 0]
         });
         */
+        viewer.getRenderer().setRenderOptions({
+
+        })
 
         viewer.start();
     </script>
