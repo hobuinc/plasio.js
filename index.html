@@ -25,8 +25,8 @@
 
     <script>
         var SERVER = "http://dev.greyhound.io/"; //"http://devdata.greyhound.io";
-        //var RESOURCE = "nyc-h"; //"autzen-scaled";
-        var RESOURCE = "ellipsoid-nyc";
+        var RESOURCE = "nyc-h"; //"autzen-scaled";
+        //var RESOURCE = "ellipsoid-nyc";
         //var RESOURCE = "autzen-scaled"
         //var RESOURCE = "red-rocks-odd"
         var IMAGERY_SOURCE_0 = "local://intensity?start=#0000ff"
@@ -42,23 +42,18 @@
             server: SERVER,
             resource: RESOURCE,
             imagerySources: [
-                IMAGERY_SOURCE_3
+                IMAGERY_SOURCE_1
             ],
             rendererOptions: {
                 pointSize: 2
-            },
-            filter: {
-                "Path": "sed.laz"
             }
         });
 
         // Needed for autzen + elevation
-        /*
         viewer.getRenderer().setRenderOptions({
-            clampsLow: [-120, 0, 0, 0],
-            clampsHigh: [90, 0, 0, 0]
+            clampsLow: [-500, 0, 0, 0],
+            clampsHigh: [500, 0, 0, 0]
         });
-        */
 
         viewer.start();
 
