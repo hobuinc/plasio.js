@@ -25,10 +25,11 @@
 (defmulti unreify-attrib first)
 
 (defn- coerce-uniforms [uniforms]
-  (into []
-        (for [i (range (.-length uniforms))
-              :let [uniform (aget uniforms i)]]
-          [(keyword (aget uniform 0)) (aget uniform 1)])))
+  (when uniforms
+    (into []
+          (for [i (range (.-length uniforms))
+                :let [uniform (aget uniforms i)]]
+            [(keyword (aget uniform 0)) (aget uniform 1)]))))
 
 (defmethod reify-attrib :point-buffer [[_ props]]
   (let [total-points (aget props "totalPoints")]
