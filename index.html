@@ -27,8 +27,8 @@
         var SERVER = "http://dev.greyhound.io/"; //"http://devdata.greyhound.io";
         //var RESOURCE = "nyc-h"; //"autzen-scaled";
         //var RESOURCE = "ellipsoid-nyc";
-        //var RESOURCE = "autzen-scaled"
-        var RESOURCE = "dev/red-rocks-odd"
+        var RESOURCE = "nyc"
+        //var RESOURCE = "dev/ellipsoid-scaled";
         var IMAGERY_SOURCE_0 = "local://intensity?start=#0000ff"
         var IMAGERY_SOURCE_1 = "local://elevation";
         var IMAGERY_SOURCE_2 = "http://api.tiles.mapbox.com/v4/mapbox.comic/{{z}}/{{x}}/{{y}}.jpg70?access_token=pk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw"
@@ -42,7 +42,8 @@
             server: SERVER,
             resource: RESOURCE,
             brushes: [
-                    'local://field-color?field=Classification&scale=100'
+                    'remote://tms?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw'
+
             ],
             rendererOptions: {
                 pointSize: 2

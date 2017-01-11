@@ -106,7 +106,6 @@
         needs-update? (when source (.-update source))]
     (if needs-update?
       (do
-        (println "re-reify needed!")
         (aset source "update" false)
         (update buf :gl-buffer
                 (fn [b]
