@@ -24,10 +24,10 @@
     <script src="lib/dist/plasio-lib.js"></script>
 
     <script>
-        var SERVER = "http://dev.greyhound.io/"; //"http://devdata.greyhound.io";
+        var SERVER = "http://d[0-7].greyhound.io/"; //"http://devdata.greyhound.io";
         //var RESOURCE = "nyc-h"; //"autzen-scaled";
         //var RESOURCE = "ellipsoid-nyc";
-        var RESOURCE = "nyc"
+        var RESOURCE = "iowa"
         //var RESOURCE = "dev/ellipsoid-scaled";
         var IMAGERY_SOURCE_0 = "local://intensity?start=#0000ff"
         var IMAGERY_SOURCE_1 = "local://elevation";
@@ -42,8 +42,9 @@
             server: SERVER,
             resource: RESOURCE,
             brushes: [
-                    'remote://tms?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw'
-
+                'local://ramp?field=Intensity'
+                //'local://ramp?field=Z&step=20'
+                //'remote://tms?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw'
             ],
             rendererOptions: {
                 pointSize: 2
@@ -52,8 +53,8 @@
 
         // Needed for autzen + elevation
         viewer.getRenderer().setRenderOptions({
-            clampsLow: [-100, 0, 0, 0],
-            clampsHigh: [80, 0, 0, 0]
+            clampsLow: [0, 0, 0, 0],
+            clampsHigh: [256, 0, 0, 0]
         });
 
         viewer.start();
