@@ -33,7 +33,7 @@
 
                        {:id "release"
                         :source-paths ["src"]
-                        :compiler {:output-to "target/rel/renderer.js"
+                        :compiler {:output-to "target/rel/renderer.cljs.js"
                                    :output-dir "target/rel"
                                    :externs ["externs/webgl.js"]
                                    :pretty-print false

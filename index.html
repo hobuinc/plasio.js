@@ -15,16 +15,16 @@
   </style>
 
 <body>
-    <div id="app" style="width:100%;height:600px;"></div>
+    <div id="app" style="position:fixed; left:0;right:0;top:0;bottom:0"></div>
     <div id="stats"></div>
 
     <srcipt src="https://cdnjs.cloudflare.com/ajax/libs/gl-matrix/2.3.1/gl-matrix-min.js"></srcipt>
     <script src="renderer/target/dev/renderer.js"></script>
 
-    <script src="lib/dist/plasio-lib.js"></script>
+    <script src="lib/dist/plasio.js"></script>
 
     <script>
-        var SERVER = "http://d[0-7].greyhound.io/"; //"http://devdata.greyhound.io";
+        var SERVER = "http://x[0-7].greyhound.io/"; //"http://devdata.greyhound.io";
         //var RESOURCE = "nyc-h"; //"autzen-scaled";
         //var RESOURCE = "ellipsoid-nyc";
         var RESOURCE = "iowa"
@@ -38,12 +38,13 @@
         var IMAGERY_SOURCE_6 = "local://origin-id";
         var IMAGERY_SOURCE_7 = "local://point-source-id";
 
-        var viewer = new PlasioLib.PointCloudViewer(document.getElementById("app"), {
+        var viewer = new Plasio.PointCloudViewer(document.getElementById("app"), {
             server: SERVER,
             resource: RESOURCE,
             brushes: [
                 //'local://ramp?field=Intensity'
                 //'local://ramp?field=Z&step=20'
+                'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw',
                 'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw'
             ],
             rendererOptions: {
@@ -60,7 +61,12 @@
         viewer.start();
 
         function doLOS() {
-            viewer.setFilter(null);
+            viewer.setColorChannelBrushes([
+                'local://ramp?field=Intensity',
+                null,
+                'local://ramp?field=Z&step=20'
+            ]);
+            //viewer.setFilter(null);
         }
     </script>
 

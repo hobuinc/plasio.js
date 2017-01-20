@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # stage files correctly for deploying iowa-lidar stuff
 #
 
@@ -13,25 +13,21 @@ if [ -d $TARGETDIR ] ; then
     rm -rf $TARGETDIR
 fi
 
-echo " :: Building renderer ..."
+echo " :: Building renderer (cljs) ..."
 cd renderer && lein clean && lein cljsbuild once release && cd .. ;
 
 echo " :: Building lib ..."
-cd lib && ./node_modules/.bin/webpack --build --optimize-minimize  && cd .. ;
+cd lib && ./node_modules/.bin/webpack --build --optimize-minimize && cd .. ;
 
 
-echo " :: Prepping ..."
+echo " :: Preparing for staging ..."
 mkdir $TARGETDIR
-mkdir -p $TARGETDIR/lib/dist
-mkdir -p $TARGETDIR/workers
 
 cp -v \
-    renderer/target/rel/renderer.js \
+    renderer/target/rel/renderer.cljs.js \
     $TARGETDIR
 
-
-cp -v lib/dist/* $TARGETDIR/lib/dist
-cp -v workers/decompress.js $TARGETDIR/workers
+cp -v lib/dist/plasio.js $TARGETDIR/
 
 echo " :: Cleaning up ..."
 cd renderer && lein clean && cd ..
