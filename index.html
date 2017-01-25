@@ -27,7 +27,8 @@
         var SERVER = "http://x[0-7].greyhound.io/"; //"http://devdata.greyhound.io";
         //var RESOURCE = "nyc-h"; //"autzen-scaled";
         //var RESOURCE = "ellipsoid-nyc";
-        var RESOURCE = "iowa"
+        var RESOURCE='sncf';
+        //var RESOURCE = "iowa"
         //var RESOURCE = "dev/ellipsoid-scaled";
         var IMAGERY_SOURCE_0 = "local://intensity?start=#0000ff"
         var IMAGERY_SOURCE_1 = "local://elevation";
@@ -42,10 +43,11 @@
             server: SERVER,
             resource: RESOURCE,
             brushes: [
+                    'local://color'
                 //'local://ramp?field=Intensity'
                 //'local://ramp?field=Z&step=20'
-                'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw',
-                'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw'
+                //'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw',
+                //'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw'
             ],
             rendererOptions: {
                 pointSize: 2
