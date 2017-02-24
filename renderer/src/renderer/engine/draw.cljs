@@ -106,6 +106,17 @@
       bufs)))
 
 
+#_(let [frustum-buffer (atom nil)
+      point-buffer (js/Float32Array. 15)                    ;; a triangle fan, originating at our eye and going
+      ]
+  (defn update-get-frustum-geometry [gl-context proj mv]
+    (let [buffer (or @frustum-buffer
+                     (reset! frustum-buffer (.createBuffer gl-context)))]
+
+      )
+    ))
+
+
 (defn highlight-segs->shader-vals [segs]
   ;; given segs as collection of maps with :start, :end and :width, returns a construct
   ;; ready for GPU
@@ -201,6 +212,7 @@
         (.uniform4fv gl half-planes-loc (ta/float32 (:half-planes segment-values)))
         (.uniform2fv gl widths-loc (ta/float32 (:widths segment-values)))))
 
+    (println "xx" hints)
     (when (:flicker-fix hints)
       (.disable gl (.-DEPTH_TEST gl)))
 
@@ -243,33 +255,37 @@
           ;; disable bound vertex array
           (doseq [[name _ _] (:attributes point-buffer)]
             (when-let [loc (get-in shader [:attribs name] name)]
-              (.disableVertexAttribArray gl loc)))))
+              (.disableVertexAttribArray gl loc))))))
 
-      ;; if we're supposed to render the bbox, render that too
-      (when draw-bbox?
-        ;; render the bounding box
-        (.lineWidth gl 1)
-        (when-let [params (:bbox-params transform)]
-          (let [shader (s/get-shader shader-context :bbox)]
-            (buffers/draw! gl
-                           :shader (:shader shader)
-                           :draw-mode draw-mode/lines
-                           :viewport {:x 0 :y 0 :width width :height height}
-                           :first 0
-                           :count 24
-                           :capabilities {capability/depth-test false}
-                           ;; this uniform setup is a little weird because this is what it looks like behind the scenes, we're
-                           ;; setting raw uniforms here
-                           :uniforms [{:name "m" :type :mat4 :values (:model-matrix transform)}
-                                      {:name "v" :type :mat4 :values mv}
-                                      {:name "p" :type :mat4 :values proj}]
-                           ;; just one attribute
-                           :attributes [{:location              (get-in shader [:attribs "position"])
-                                         :components-per-vertex 3
-                                         :type                  data-type/float
-                                         :stride                12
-                                         :offset                0
-                                         :buffer                (:buffer params)}])))))
+
+    ;; if we were asked to draw bounding boxes, do that over the drawn area
+    (when draw-bbox?
+      ;; render the bounding box
+      (.lineWidth gl 1)
+      (doseq [{:keys [point-buffer transform]} bufs]
+        (when point-buffer
+          (when-let [params (:bbox-params transform)]
+            (let [shader (s/get-shader shader-context :bbox)]
+              (buffers/draw! gl
+                             :shader (:shader shader)
+                             :draw-mode draw-mode/lines
+                             :viewport {:x 0 :y 0 :width width :height height}
+                             :first 0
+                             :count 24
+                             :capabilities {capability/depth-test true}
+                             ;; this uniform setup is a little weird because this is what it looks like behind the scenes, we're
+                             ;; setting raw uniforms here
+                             :uniforms [{:name "m" :type :mat4 :values (:model-matrix transform)}
+                                        {:name "v" :type :mat4 :values mv}
+                                        {:name "p" :type :mat4 :values proj}]
+                             ;; just one attribute
+                             :attributes [{:location              (get-in shader [:attribs "position"])
+                                           :components-per-vertex 3
+                                           :type                  data-type/float
+                                           :stride                12
+                                           :offset                0
+                                           :buffer                (:buffer params)}]))))))
+
 
 
     (when (:flicker-fix hints)

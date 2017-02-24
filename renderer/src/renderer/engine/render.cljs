@@ -37,7 +37,7 @@
 (defn- projection-matrix [gl cam width height]
   (let [m (.-proj gl)
         aspect (if (< width height) (/ height width) (/ width height))
-        fov  (to-rads (or (:fov cam) 75))
+        fov  (to-rads (or (:fov cam) 70))
         near (or (:near cam) 1.0)
         far  (or (:far cam) 10000.0)]
     (if (= (:type cam) "perspective")
@@ -331,7 +331,7 @@
                              proj mv ro width height
                              hints
                              rangeMins rangeMaxs
-                             false))
+                             true))
 
     ;; if there are any planes to be drawn, draw them here
     ;;
