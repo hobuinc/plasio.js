@@ -331,7 +331,7 @@
                              proj mv ro width height
                              hints
                              rangeMins rangeMaxs
-                             true))
+                             false))
 
     ;; if there are any planes to be drawn, draw them here
     ;;
