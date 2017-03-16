@@ -13,3 +13,4 @@ node.core
 .idea/
 *.iml
 /lib/docs/
+/releases/
