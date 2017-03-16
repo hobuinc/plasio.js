@@ -27,6 +27,7 @@
     "jaguarjs-jsdoc": "0.0.1",
     "js-md5": "^0.3.0",
     "jsdoc": "^3.4.3",
+    "jsdoc-babel": "^0.3.0",
     "jsdoc-strip-async-await": "^0.1.0",
     "lodash": "^3.3.1",
     "lru-cache": "^2.6.5",
