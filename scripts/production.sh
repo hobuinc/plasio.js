@@ -5,8 +5,10 @@
 PWD=`pwd`
 TARGETDIR=$PWD/dist
 
-echo "Will reset the target directory: $TARGETDIR, press a key to begin..."
-read
+if [ "$1" != "--no-confirm" ] ; then
+        echo "Will reset the target directory: $TARGETDIR, press a key to begin..."
+        read
+fi
 
 if [ -d $TARGETDIR ] ; then
     echo " :: Found target dir, deleting..."

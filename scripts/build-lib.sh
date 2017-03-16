@@ -15,6 +15,5 @@ mkdir -p $TARGETDIR/lib/dist
 mkdir -p $TARGETDIR/workers
 
 cp -v lib/dist/* $TARGETDIR/lib/dist
-cp -v workers/decompress.js $TARGETDIR/workers
 
 echo "Done."
