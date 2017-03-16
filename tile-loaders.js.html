@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>tile-loaders.js - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="BaseBrush.html">BaseBrush</a><ul class='methods'><li data-type='method'><a href="BaseBrush.html#bufferNeedsRecolor">bufferNeedsRecolor</a></li><li data-type='method'><a href="BaseBrush.html#colorPoint">colorPoint</a></li><li data-type='method'><a href="BaseBrush.html#deserialize">deserialize</a></li><li data-type='method'><a href="BaseBrush.html#nodeSelectionStrategy">nodeSelectionStrategy</a></li><li data-type='method'><a href="BaseBrush.html#prepare">prepare</a></li><li data-type='method'><a href="BaseBrush.html#rampConfiguration">rampConfiguration</a></li><li data-type='method'><a href="BaseBrush.html#requiredSchemaFields">requiredSchemaFields</a></li><li data-type='method'><a href="BaseBrush.html#serialize">serialize</a></li><li data-type='method'><a href="BaseBrush.html#stagingAttributes">stagingAttributes</a></li><li data-type='method'><a href="BaseBrush.html#unprepare">unprepare</a></li></ul></li><li><a href="BaseLoader.html">BaseLoader</a></li><li><a href="Box.html">Box</a><ul class='methods'><li data-type='method'><a href="Box.html#.fromBounds">fromBounds</a></li><li data-type='method'><a href="Box.html#bounds">bounds</a></li><li data-type='method'><a href="Box.html#intersects">intersects</a></li><li data-type='method'><a href="Box.html#subdivide">subdivide</a></li></ul></li><li><a href="BrushFactory.html">BrushFactory</a><ul class='methods'><li data-type='method'><a href="BrushFactory.html#.availableBrushes">availableBrushes</a></li><li data-type='method'><a href="BrushFactory.html#.createBrush">createBrush</a></li><li data-type='method'><a href="BrushFactory.html#.deregisterBrush">deregisterBrush</a></li><li data-type='method'><a href="BrushFactory.html#.deserializeBrushes">deserializeBrushes</a></li><li data-type='method'><a href="BrushFactory.html#.registerBrush">registerBrush</a></li><li data-type='method'><a href="BrushFactory.html#.serializeBrushes">serializeBrushes</a></li></ul></li><li><a href="BufferDownloadPipeline.html">BufferDownloadPipeline</a><ul class='methods'><li data-type='method'><a href="BufferDownloadPipeline.html#queue">queue</a></li></ul></li><li><a href="Device.html">Device</a><ul class='methods'><li data-type='method'><a href="Device.html#.caps">caps</a></li><li data-type='method'><a href="Device.html#.deviceSupportsPlasio">deviceSupportsPlasio</a></li><li data-type='method'><a href="Device.html#.overrideProperty">overrideProperty</a></li></ul></li><li><a href="Frustum.html">Frustum</a><ul class='methods'><li data-type='method'><a href="Frustum.html#update">update</a></li></ul></li><li><a href="FrustumLODNodePolicy.html">FrustumLODNodePolicy</a><ul class='methods'><li data-type='method'><a href="FrustumLODNodePolicy.html#hookedReload">hookedReload</a></li><li data-type='method'><a href="FrustumLODNodePolicy.html#start">start</a></li><li data-type='method'><a href="FrustumLODNodePolicy.html#stop">stop</a></li></ul></li><li><a href="GeoTransform.html">GeoTransform</a><ul class='methods'><li data-type='method'><a href="GeoTransform.html#coordinateSpaceBounds">coordinateSpaceBounds</a></li><li data-type='method'><a href="GeoTransform.html#coordinateSpaceCenter">coordinateSpaceCenter</a></li><li data-type='method'><a href="GeoTransform.html#coordinateSpaceRange">coordinateSpaceRange</a></li><li data-type='method'><a href="GeoTransform.html#transform">transform</a></li></ul></li><li><a href="GreyhoundPipelineLoader.html">GreyhoundPipelineLoader</a><ul class='methods'><li data-type='method'><a href="GreyhoundPipelineLoader.html#.load">load</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#loadHierarchyInfo">loadHierarchyInfo</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#queryFor">queryFor</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#setColorChannelBrush">setColorChannelBrush</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#setFilter">setFilter</a></li></ul></li><li><a href="LocalColorLoader.html">LocalColorLoader</a><ul class='methods'><li data-type='method'><a href="LocalColorLoader.html#additionalSchemaItems">additionalSchemaItems</a></li><li data-type='method'><a href="LocalColorLoader.html#channelColorRamp">channelColorRamp</a></li><li data-type='method'><a href="LocalColorLoader.html#colorPoint">colorPoint</a></li><li data-type='method'><a href="LocalColorLoader.html#needPropagation">needPropagation</a></li><li data-type='method'><a href="LocalColorLoader.html#prep">prep</a></li><li data-type='method'><a href="LocalColorLoader.html#propagationParamsFromLastPrep">propagationParamsFromLastPrep</a></li><li data-type='method'><a href="LocalColorLoader.html#queryFor">queryFor</a></li></ul></li><li><a href="ModeManager.html">ModeManager</a></li><li><a href="module-point-buffer-cache.PointBufferCache.html">PointBufferCache</a></li><li><a href="module-point-buffer-cache-PointBufferCache.PointBufferCache.html">PointBufferCache</a></li><li><a href="PointCloudViewer.html">PointCloudViewer</a><ul class='methods'><li data-type='method'><a href="PointCloudViewer.html#.canRunPlasio">canRunPlasio</a></li><li data-type='method'><a href="PointCloudViewer.html#getGeoTransform">getGeoTransform</a></li><li data-type='method'><a href="PointCloudViewer.html#getModeManager">getModeManager</a></li><li data-type='method'><a href="PointCloudViewer.html#getRenderer">getRenderer</a></li><li data-type='method'><a href="PointCloudViewer.html#setColorChannelBrushes">setColorChannelBrushes</a></li><li data-type='method'><a href="PointCloudViewer.html#setFilter">setFilter</a></li><li data-type='method'><a href="PointCloudViewer.html#start">start</a></li></ul></li><li><a href="TileLoader.html">TileLoader</a><ul class='methods'><li data-type='method'><a href="TileLoader.html#.loadImage">loadImage</a></li></ul></li><li><a href="TreeInfoCache.html">TreeInfoCache</a><ul class='methods'><li data-type='method'><a href="TreeInfoCache.html#nodeInfo">nodeInfo</a></li></ul></li><li><a href="TreeWalker.html">TreeWalker</a><ul class='methods'><li data-type='method'><a href="TreeWalker.html#clearAllNodes">clearAllNodes</a></li><li data-type='method'><a href="TreeWalker.html#walk">walk</a></li></ul></li></ul><h3>Modules</h3><ul><li><a href="module-point-buffer-cache.html">point-buffer-cache</a></li></ul><h3>Global</h3><ul><li><a href="global.html#accumulateStats">accumulateStats</a></li><li><a href="global.html#ClampSelector">ClampSelector</a></li><li><a href="global.html#compressColor">compressColor</a></li><li><a href="global.html#DEFAULT_TILE_SIZE">DEFAULT_TILE_SIZE</a></li><li><a href="global.html#enclosesBounds">enclosesBounds</a></li><li><a href="global.html#equalBounds">equalBounds</a></li><li><a href="global.html#hue2rgb">hue2rgb</a></li><li><a href="global.html#minmax">minmax</a></li><li><a href="global.html#NodeSelectionStrategy">NodeSelectionStrategy</a></li><li><a href="global.html#Parseabrush'sstringrepresentationintoausabledatastructure.">Parse a brush's string representation into a usable data structure.</a></li><li><a href="global.html#pickOne">pickOne</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">tile-loaders.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>// tile-loaders.js
+// A whole bunch of tile loaders
+//
+
+const SphericalMercator = require("sphericalmercator");
+const LRU = require("lru-cache");
+
+import { Promise } from 'bluebird';
+import { Device } from './device';
+import { pickOne } from './util';
+
+/**
+ * The default dimensions of the a fetched tile.
+ * @const
+ * @type {number}
+ */
+const DEFAULT_TILE_SIZE = 256;
+
+const QUALITY_LEVELS = [
+    [15, 5],
+    [18, 10],
+    [21, 25]
+];
+
+var cache = new LRU(Device.caps().imageryCacheSize);
+
+/**
+ * Loads imagery tiles for the specified imagery server.
+ */
+export class TileLoader {
+    /**
+     * Load image from a remote server, the image is assembled locally.
+     * @param {String} serverURL A server URL template, should have placeholders for `{{x}}`, `{{y}}` and `{{z}}`.
+     * @param {Number[]} geoBounds A 4-element array with geo bounds of the imagery, no Z bounds.
+     * @param {Number} quality A quality hint, can be either 0, 1, or 2.  Higher quality means more imagery will be fetched
+     * things will be slower.
+     * @param {String} scheme Imagery scheme, `tms` or `osm`.
+     * @returns {HTMLCanvasElement} A canvas with the images laid out.  The dimensions of of the canvas are set using {@linkcode DEFAULT_TILE_SIZE}.
+     */
+    static async loadImage(serverURL, geoBounds, quality, scheme ) {
+        const imageryBounds = geoBounds;
+        const url = serverURL;
+        const layout = scheme;
+
+        // Check if we've already downloaded this image
+        const key = TileLoader._cacheKey(imageryBounds, url, quality, layout);
+        const image = cache.get(key);
+        if (image)
+            return image;
+
+        // need to download and assemble stuff
+        const qualityLevel = QUALITY_LEVELS[quality];
+
+        const s = new SphericalMercator();
+        const tiles = TileLoader._tilesForRegion(s, qualityLevel, imageryBounds);
+
+        const images = await TileLoader._loadAllTiles(tiles, url);
+
+        const c = TileLoader.emptyCanvas();
+        const ctx = c.getContext("2d");
+        TileLoader._drawTilesToCanvas(ctx, imageryBounds, images);
+
+        cache.set(key, c);
+        return c;
+    }
+
+    static emptyCanvas() {
+        const c = document.createElement("canvas");
+        c.width = DEFAULT_TILE_SIZE;
+        c.height = DEFAULT_TILE_SIZE;
+
+        return c;
+    }
+
+    static _detailLevel(s, quality, bounds) {
+        // convert spherical to lat long
+        //
+        const sw = bounds.slice(0, 2);
+        const ne = bounds.slice(2);
+
+        const l = s.inverse(sw).concat(s.inverse(ne));
+        const [startZoom, maxImages] = quality;
+
+        // find a zoom factor for which we have a reasonable number of times to fetch
+        let z = startZoom;
+        let range = null;
+        while(z > 0) {
+            range = s.xyz(l, z);
+            var c = (range.maxX - range.minX + 1) * (range.maxY - range.minY + 1);
+
+            if (c &lt; maxImages)
+                break;
+            z --;
+        }
+
+        return {
+            region: l,
+            zoom: z,
+            range: range
+        };
+    }
+
+    static _forwardBBoxCenter(s, b) {
+        const box = s.forward(b.slice(0, 2)).concat(s.forward(b.slice(2, 4)));
+        return [[
+            box[0] + (box[2] - box[0]) / 2,
+            box[1] + (box[3] - box[1]) / 2
+        ], box];
+    }
+
+    static _tilesForRegion(s, quality, bounds) {
+        // give a region, figure out all the tiles needed with their
+        const {zoom, range, region} = TileLoader._detailLevel(s, quality, bounds);
+        const [regionCenter, regionBox] = TileLoader._forwardBBoxCenter(s, region);
+
+
+        let tiles = [];
+        for (let y = range.minY ; y &lt;= range.maxY ; y ++) {
+            for (let x = range.minX ; x &lt;= range.maxX ; x++) {
+                const b = s.bbox(x, y, zoom);
+                const [center, tileBBox] = TileLoader._forwardBBoxCenter(s, b);
+                tiles.push({
+                    center: center,
+                    bbox: tileBBox,
+                    x: x,
+                    y: y,
+                    zoom: zoom,
+                    offset: [regionCenter[0] - center[0], regionCenter[1] - center[1]]
+                });
+            }
+        }
+
+        return tiles;
+    }
+
+    static async _fetchTile(tile, formatURL) {
+        return new Promise((resolve, reject) => {
+            const url = formatURL
+                .replace("{{x}}", tile.x.toString())
+                .replace("{{y}}", tile.y.toString())
+                .replace("{{z}}", tile.zoom.toString());
+
+            const image = new Image();
+            image.crossOrigin = '';
+
+            image.onerror = function () {
+                reject(new Error("Image tile failed to load"));
+            };
+
+            image.onload = function () {
+                resolve({
+                    tile: tile, image: image
+                });
+            };
+
+            image.src = pickOne(url);
+        });
+    }
+
+    static async _loadAllTiles(tiles, formatURL) {
+        return await Promise.all(
+            tiles.map(t => TileLoader._fetchTile(t, formatURL))
+        );
+    }
+
+    static _drawTilesToCanvas(ctx, bbox, tiles) {
+        const rangex = bbox[2] - bbox[0];
+        const rangey = bbox[3] - bbox[1];
+
+        const fx = DEFAULT_TILE_SIZE / rangex;
+        const fy = DEFAULT_TILE_SIZE / rangey;
+
+        for (let i = 0, il = tiles.length ; i &lt; il ; i++) {
+            const t = tiles[i];
+
+            const tileWidth = (t.tile.bbox[2] - t.tile.bbox[0]) * fx;
+            const tileHeight = (t.tile.bbox[3] - t.tile.bbox[1]) * fy;
+
+            const tilex = - t.tile.offset[0] * fx;
+            const tiley = t.tile.offset[1] * fy;
+
+
+            const x = (DEFAULT_TILE_SIZE / 2) + tilex - (tileWidth / 2);
+            const y = (DEFAULT_TILE_SIZE / 2) + tiley - (tileHeight / 2);
+
+            ctx.drawImage(t.image, x, y, tileWidth, tileHeight);
+        }
+    }
+
+    static _cacheKey(imageryBounds, url, quality, layout) {
+        return imageryBounds.map(e => e.toFixed(3)).join(":") + url + quality + layout;
+    }
+}
+
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Thu Mar 16 2017 14:20:22 GMT-0500 (CDT) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>

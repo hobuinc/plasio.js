@@ -1,0 +1,3249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Global - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="BaseBrush.html">BaseBrush</a><ul class='methods'><li data-type='method'><a href="BaseBrush.html#bufferNeedsRecolor">bufferNeedsRecolor</a></li><li data-type='method'><a href="BaseBrush.html#colorPoint">colorPoint</a></li><li data-type='method'><a href="BaseBrush.html#deserialize">deserialize</a></li><li data-type='method'><a href="BaseBrush.html#nodeSelectionStrategy">nodeSelectionStrategy</a></li><li data-type='method'><a href="BaseBrush.html#prepare">prepare</a></li><li data-type='method'><a href="BaseBrush.html#rampConfiguration">rampConfiguration</a></li><li data-type='method'><a href="BaseBrush.html#requiredSchemaFields">requiredSchemaFields</a></li><li data-type='method'><a href="BaseBrush.html#serialize">serialize</a></li><li data-type='method'><a href="BaseBrush.html#stagingAttributes">stagingAttributes</a></li><li data-type='method'><a href="BaseBrush.html#unprepare">unprepare</a></li></ul></li><li><a href="BaseLoader.html">BaseLoader</a></li><li><a href="Box.html">Box</a><ul class='methods'><li data-type='method'><a href="Box.html#.fromBounds">fromBounds</a></li><li data-type='method'><a href="Box.html#bounds">bounds</a></li><li data-type='method'><a href="Box.html#intersects">intersects</a></li><li data-type='method'><a href="Box.html#subdivide">subdivide</a></li></ul></li><li><a href="BrushFactory.html">BrushFactory</a><ul class='methods'><li data-type='method'><a href="BrushFactory.html#.availableBrushes">availableBrushes</a></li><li data-type='method'><a href="BrushFactory.html#.createBrush">createBrush</a></li><li data-type='method'><a href="BrushFactory.html#.deregisterBrush">deregisterBrush</a></li><li data-type='method'><a href="BrushFactory.html#.deserializeBrushes">deserializeBrushes</a></li><li data-type='method'><a href="BrushFactory.html#.registerBrush">registerBrush</a></li><li data-type='method'><a href="BrushFactory.html#.serializeBrushes">serializeBrushes</a></li></ul></li><li><a href="BufferDownloadPipeline.html">BufferDownloadPipeline</a><ul class='methods'><li data-type='method'><a href="BufferDownloadPipeline.html#queue">queue</a></li></ul></li><li><a href="Device.html">Device</a><ul class='methods'><li data-type='method'><a href="Device.html#.caps">caps</a></li><li data-type='method'><a href="Device.html#.deviceSupportsPlasio">deviceSupportsPlasio</a></li><li data-type='method'><a href="Device.html#.overrideProperty">overrideProperty</a></li></ul></li><li><a href="Frustum.html">Frustum</a><ul class='methods'><li data-type='method'><a href="Frustum.html#update">update</a></li></ul></li><li><a href="FrustumLODNodePolicy.html">FrustumLODNodePolicy</a><ul class='methods'><li data-type='method'><a href="FrustumLODNodePolicy.html#hookedReload">hookedReload</a></li><li data-type='method'><a href="FrustumLODNodePolicy.html#start">start</a></li><li data-type='method'><a href="FrustumLODNodePolicy.html#stop">stop</a></li></ul></li><li><a href="GeoTransform.html">GeoTransform</a><ul class='methods'><li data-type='method'><a href="GeoTransform.html#coordinateSpaceBounds">coordinateSpaceBounds</a></li><li data-type='method'><a href="GeoTransform.html#coordinateSpaceCenter">coordinateSpaceCenter</a></li><li data-type='method'><a href="GeoTransform.html#coordinateSpaceRange">coordinateSpaceRange</a></li><li data-type='method'><a href="GeoTransform.html#transform">transform</a></li></ul></li><li><a href="GreyhoundPipelineLoader.html">GreyhoundPipelineLoader</a><ul class='methods'><li data-type='method'><a href="GreyhoundPipelineLoader.html#.load">load</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#loadHierarchyInfo">loadHierarchyInfo</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#queryFor">queryFor</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#setColorChannelBrush">setColorChannelBrush</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#setFilter">setFilter</a></li></ul></li><li><a href="LocalColorLoader.html">LocalColorLoader</a><ul class='methods'><li data-type='method'><a href="LocalColorLoader.html#additionalSchemaItems">additionalSchemaItems</a></li><li data-type='method'><a href="LocalColorLoader.html#channelColorRamp">channelColorRamp</a></li><li data-type='method'><a href="LocalColorLoader.html#colorPoint">colorPoint</a></li><li data-type='method'><a href="LocalColorLoader.html#needPropagation">needPropagation</a></li><li data-type='method'><a href="LocalColorLoader.html#prep">prep</a></li><li data-type='method'><a href="LocalColorLoader.html#propagationParamsFromLastPrep">propagationParamsFromLastPrep</a></li><li data-type='method'><a href="LocalColorLoader.html#queryFor">queryFor</a></li></ul></li><li><a href="ModeManager.html">ModeManager</a></li><li><a href="module-point-buffer-cache.PointBufferCache.html">PointBufferCache</a></li><li><a href="module-point-buffer-cache-PointBufferCache.PointBufferCache.html">PointBufferCache</a></li><li><a href="PointCloudViewer.html">PointCloudViewer</a><ul class='methods'><li data-type='method'><a href="PointCloudViewer.html#.canRunPlasio">canRunPlasio</a></li><li data-type='method'><a href="PointCloudViewer.html#getGeoTransform">getGeoTransform</a></li><li data-type='method'><a href="PointCloudViewer.html#getModeManager">getModeManager</a></li><li data-type='method'><a href="PointCloudViewer.html#getRenderer">getRenderer</a></li><li data-type='method'><a href="PointCloudViewer.html#setColorChannelBrushes">setColorChannelBrushes</a></li><li data-type='method'><a href="PointCloudViewer.html#setFilter">setFilter</a></li><li data-type='method'><a href="PointCloudViewer.html#start">start</a></li></ul></li><li><a href="TileLoader.html">TileLoader</a><ul class='methods'><li data-type='method'><a href="TileLoader.html#.loadImage">loadImage</a></li></ul></li><li><a href="TreeInfoCache.html">TreeInfoCache</a><ul class='methods'><li data-type='method'><a href="TreeInfoCache.html#nodeInfo">nodeInfo</a></li></ul></li><li><a href="TreeWalker.html">TreeWalker</a><ul class='methods'><li data-type='method'><a href="TreeWalker.html#clearAllNodes">clearAllNodes</a></li><li data-type='method'><a href="TreeWalker.html#walk">walk</a></li></ul></li></ul><h3>Modules</h3><ul><li><a href="module-point-buffer-cache.html">point-buffer-cache</a></li></ul><h3>Global</h3><ul><li><a href="global.html#accumulateStats">accumulateStats</a></li><li><a href="global.html#ClampSelector">ClampSelector</a></li><li><a href="global.html#compressColor">compressColor</a></li><li><a href="global.html#DEFAULT_TILE_SIZE">DEFAULT_TILE_SIZE</a></li><li><a href="global.html#enclosesBounds">enclosesBounds</a></li><li><a href="global.html#equalBounds">equalBounds</a></li><li><a href="global.html#hue2rgb">hue2rgb</a></li><li><a href="global.html#minmax">minmax</a></li><li><a href="global.html#NodeSelectionStrategy">NodeSelectionStrategy</a></li><li><a href="global.html#Parseabrush'sstringrepresentationintoausabledatastructure.">Parse a brush's string representation into a usable data structure.</a></li><li><a href="global.html#pickOne">pickOne</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">Global</h1>
+    
+
+    
+
+
+
+
+<section>
+
+<header>
+    
+        <h2>
+        
+        </h2>
+        
+    
+</header>
+
+<article>
+    <div class="container-overview">
+    
+        
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+        
+
+        
+    
+    </div>
+
+    
+
+    
+
+    
+
+     
+
+    
+
+    
+        <h3 class="subsection-title">Members</h3>
+
+        
+            
+<h4 class="name" id="ClampSelector"><span class="type-signature">(constant) </span>ClampSelector<span class="type-signature"></span></h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="brush.js.html">brush.js</a>, <a href="brush.js.html#line44">line 44</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>NONE</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>No color clamping is required, use the passed down color as is.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>COLOR_RANGE</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Clamp to color range bounds, 0 to 1 on the GPU.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>Z_RANGE</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Use the current Z range as min and max clamping factors.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>INTENSITY_RANGE</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Use the current Intensity range as min and max clamping factors.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<div class="description">
+    <p>Point shader programs provide certain ranges picked from the current point cloud stats to clamp certain coloring
+attributes against.  E.g. when coloring points based on elevation, the shader provides a clamping range that represents
+the current min and max Z values.  When computing final color these ranges are used to show the correct color based on
+the color computed for the point (from the brush) and the clamping set through the UI.</p>
+<p>If you are creating a brush which needs to use color ramps, then the value returned here represents the color scaling factor
+you're using.</p>
+</div>
+
+
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="DEFAULT_TILE_SIZE"><span class="type-signature">(constant) </span>DEFAULT_TILE_SIZE<span class="type-signature"> :number</span></h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="tile-loaders.js.html">tile-loaders.js</a>, <a href="tile-loaders.js.html#line17">line 17</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>The default dimensions of the a fetched tile.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">number</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+        
+            
+<h4 class="name" id="NodeSelectionStrategy"><span class="type-signature">(constant) </span>NodeSelectionStrategy<span class="type-signature"></span></h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="brush.js.html">brush.js</a>, <a href="brush.js.html#line24">line 24</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>NONE</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Doesn't affect any other nodes.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>ALL</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>May potentially affect all loaded nodes.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>ANCESTORS</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>May potentially affect all ancestor nodes.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<div class="description">
+    <p>A coloring strategy may affect one or more nodes in the point cloud tree. E.g. painting a point buffer by the source
+color may not affect other nodes, since that information is pretty much constant.  However, painting a buffer by elevation
+may be affected when we discover that the stats used to compute colors for some of nodes are now outdated since we now have
+much finer stats, lets say a buffer was colored considering Y range as -100 to 100, but now since we downloaded more data
+we see that the stats are actually -100 to 110.  Since the shaders will now see scaling factors as -100 to 110, the
+coloring we performed considering -100 to 100 range are incorrect and would need to be recolored.</p>
+<p>This situation is even more evident with remote imagery.  When viewing buffers from higher (closer to the root) tree nodes, we download lower
+resolution imagery, but as we zoom into certain areas of the point cloud we download imagery with higher resolution with
+very obvious color differences from the lower resolution ones.  This causes points with very different colors being placed
+right next to each other when rendering.  What we really need to do is propagate any new imagery downloads up the tree and have those
+tree nodes recolored with any new imagery.  Under this strategy we affect nodes that are current buffer's ancesotors.</p>
+<p>Node selection strategy when determine which nodes are affected by a painting of a point buffer.</p>
+</div>
+
+
+
+
+
+
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Methods</h3>
+
+        
+            
+
+    
+
+    <h4 class="name" id="accumulateStats"><span class="type-signature"></span>accumulateStats<span class="signature">(into, newStats)</span><span class="type-signature"> &rarr; {<a href="global.html#BufferStats">BufferStats</a>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line778">line 778</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Merge stats into an already existing stats object.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>into</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#BufferStats">BufferStats</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A set of stats histograms to merge the new stats into.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>newStats</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#BufferStats">BufferStats</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A set of stats histograms that need to be merged into <code>original</code>.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>The updated buffer stats.</p>
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#BufferStats">BufferStats</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="compressColor"><span class="type-signature"></span>compressColor<span class="signature">(color)</span><span class="type-signature"> &rarr; {number}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line504">line 504</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Compresses a RGB[A] color to a single floating point representation which can then be
+decoded in GLSL shader programs.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>color</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A 3 element array of numbers representing RGB color triplet.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>A single float representing the encoded color.</p>
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">number</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="enclosesBounds"><span class="type-signature"></span>enclosesBounds<span class="signature">(boundsA, boundsB)</span><span class="type-signature"> &rarr; {Boolean}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line754">line 754</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Determines if <code>boundA</code> is a region enclosing <code>boundsB</code>.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>boundsA</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A 6-element array which forms the containing bounds.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>boundsB</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A 6-element array which forms the contained bounds.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>true if <code>boundsA</code> encloses <code>boundsB</code>, false otherwise.  If <code>boundsA</code> is the same as <code>boundsB</code> then <code>boundsA</code> is determined
+to enclose <code>boundsA</code> and returns true.</p>
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="equalBounds"><span class="type-signature"></span>equalBounds<span class="signature">(boundsA, boundsB)</span><span class="type-signature"> &rarr; {Boolean}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line768">line 768</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Determines if <code>boundA</code> is the same as <code>boundsB</code></p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>boundsA</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>First bounds to compare.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>boundsB</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Second bounds to compare.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>true if <code>boundsA</code> is the same as <code>boundsB</code>, false otherwise.</p>
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Boolean</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="hue2rgb"><span class="type-signature"></span>hue2rgb<span class="signature">(h, s, l)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line255">line 255</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Converts an HSL color value to RGB. Conversion formula
+adapted from http://en.wikipedia.org/wiki/HSL_color_space.
+Assumes h, s, and l are contained in the set [0, 1] and
+returns r, g, and b in the set [0, 255].</p>
+<p>Credits: http://stackoverflow.com/questions/2353211/hsl-to-rgb-color-conversion</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>h</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Number Number  h       The hue</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>s</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Number  The saturation</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>l</code></td>
+            
+
+            <td class="type">
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Number  The lightness</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>Array     The RGB representation</p>
+</div>
+
+
+
+    
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="minmax"><span class="type-signature"></span>minmax<span class="signature">(arrayOfNumbers)</span><span class="type-signature"> &rarr; {Array.&lt;Number>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line732">line 732</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Determines the largest and the smallest number in the supplied array.  Returns a 2-element array with <code>[min, max]</code> and elements.
+If there are no elements in <code>arrayOfNumbers</code> then <code>max &gt; min</code> is returned.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>arrayOfNumbers</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>An array of number.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>A pair of numbers as <code>[min, max]</code>.</p>
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Array.&lt;Number></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="Parseabrush'sstringrepresentationintoausabledatastructure."><span class="type-signature"></span>Parse a brush's string representation into a usable data structure.<span class="signature">(spec)</span><span class="type-signature"> &rarr; {<a href="global.html#ParsedSpec">ParsedSpec</a>}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line673">line 673</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>spec</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The spec string to parse e.g. <tt>local://color?a=1&amp;b=2</tt>.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>The parse out brush specification.</p>
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type"><a href="global.html#ParsedSpec">ParsedSpec</a></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+        
+            
+
+    
+
+    <h4 class="name" id="pickOne"><span class="type-signature"></span>pickOne<span class="signature">(str)</span><span class="type-signature"> &rarr; {String}</span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line800">line 800</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Given a string with available ranged replacements, this function picks a valid extrapolated string.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>str</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A string with some ranged replacements.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <p>An extrapolated string.</p>
+</div>
+
+
+
+<dl class="param-type">
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">String</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+        
+    
+
+    
+        <h3 class="subsection-title">Type Definitions</h3>
+
+        
+                
+<h4 class="name" id="BufferParams">BufferParams</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="brush.js.html">brush.js</a>, <a href="brush.js.html#line86">line 86</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>geoTransform</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="GeoTransform.html">GeoTransform</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>The geo transform instance for the loaded resource.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>renderSpaceBounds</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>The render space bounds of the particular point buffer being prepped for painting.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>bufferStats</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#BufferStats">BufferStats</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>The collected stats for the buffer that needs painting.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>pointCloudBufferStats</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#BufferStats">BufferStats</a></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>The cumulative stats of the point cloud, after the buffer stats have been merged in.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>treePath</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>The node's tree path.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>lastStagedAttributes</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object.&lt;String, Object></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last"><p>If this node is being being re-colored this holds the last staged attributes for this brush.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<div class="description">
+    <p>Per-buffer parameters as passed to several brush functions.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="BufferStats">BufferStats</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="brush.js.html">brush.js</a>, <a href="brush.js.html#line69">line 69</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>The keys of this object are lower-case names of schema field names e.g. <tt>red</tt>, <tt>z</tt> etc.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object.&lt;string, <a href="global.html#BufferStatsHistogram">BufferStatsHistogram</a>></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>{
+    "z": {
+        "100": 10,
+        "110": 8,
+        "120": 9
+        // ...
+    }
+    "red": {
+        // ...
+    }
+}</code></pre>
+
+
+
+            
+                
+<h4 class="name" id="BufferStatsHistogram">BufferStatsHistogram</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="brush.js.html">brush.js</a>, <a href="brush.js.html#line57">line 57</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>Buffer stats histogram, the keys of this map are always numbers represented as strings and the values are the frequency values.</p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object.&lt;string, Number></span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>{
+    "100": 10,
+    "110": 8,
+    "120": 9
+    // ...
+}</code></pre>
+
+
+
+            
+                
+
+    
+
+    <h4 class="name" id="cameraChangeCallbackFn"><span class="type-signature"></span>cameraChangeCallbackFn<span class="signature">(eyePosition, targetPosition, isFinal, isDeserializing)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="point-cloud-viewer.js.html">point-cloud-viewer.js</a>, <a href="point-cloud-viewer.js.html#line44">line 44</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>eyePosition</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The position of the eye.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>targetPosition</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Number></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The position of the point the camera is looking at.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>isFinal</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>This value is <tt>false<tt> when the camera is transitioning, <tt>true</tt> when the camera
+has finally settled at its final position.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>isDeserializing</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Boolean</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>This value is <tt>true</tt> when the camera properties changed because a saved state
+is being applied, <tt>false</tt> if the camera change is due to a user action.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+                
+
+    
+
+    <h4 class="name" id="hookedReloadCallback"><span class="type-signature"></span>hookedReloadCallback<span class="signature">()</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="frustum-lod.js.html">frustum-lod.js</a>, <a href="frustum-lod.js.html#line664">line 664</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>A hooked reload callback function.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+                
+
+    
+
+    <h4 class="name" id="nodeAddCallback"><span class="type-signature"></span>nodeAddCallback<span class="signature">(node, weight)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="frustum-lod.js.html">frustum-lod.js</a>, <a href="frustum-lod.js.html#line503">line 503</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>A function invoked for each node to either add or remove it.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>node</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="Box.html">Box</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The node to add or remove.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>weight</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Number</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The weight for the node.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+                
+
+    
+
+    <h4 class="name" id="nodeRemoveCallback"><span class="type-signature"></span>nodeRemoveCallback<span class="signature">(node)</span><span class="type-signature"></span></h4>
+
+    
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="frustum-lod.js.html">frustum-lod.js</a>, <a href="frustum-lod.js.html#line511">line 511</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+<div class="description">
+    <p>A function invoked for each node to either add or remove it.</p>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>node</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="Box.html">Box</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The node to add or remove.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="NodeSelectionParams">NodeSelectionParams</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="brush.js.html">brush.js</a>, <a href="brush.js.html#line51">line 51</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>strategy</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type"><a href="global.html#NodeSelectionStrategy">NodeSelectionStrategy</a></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>A <a href="global.html#NodeSelectionStrategy"><code>NodeSelectionStrategy</code></a> to use to select candidate nodes.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>params</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>An arbitrary object to avoid per node computations (pre-calculate values and return as this).</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+                
+<h4 class="name" id="ParsedSpec">ParsedSpec</h4>
+
+
+
+
+
+<dl class="details">
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="util.js.html">util.js</a>, <a href="util.js.html#line665">line 665</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+    <h5 class="subsection-title">Properties:</h5>
+
+    
+
+<table class="props">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>scheme</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The scheme for the spec.  A scheme basically namespaces brushes. e.g. <tt>local</tt>.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>The name of the spec. e.g. <tt>elevation</tt>.</p></td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>params</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Object.&lt;String, String></span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last"><p>Parse out parameters similar to a URLs query string.</p></td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<div class="description">
+    <p>A parsed out representation of a brush spec, e.g. <tt>local://elevation</tt></p>
+</div>
+
+
+
+    <h5>Type:</h5>
+    <ul>
+        <li>
+            
+<span class="param-type">Object</span>
+
+
+        </li>
+    </ul>
+
+
+
+
+
+
+            
+    
+
+    
+</article>
+
+</section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Thu Mar 16 2017 14:20:22 GMT-0500 (CDT) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>

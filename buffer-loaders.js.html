@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>buffer-loaders.js - Documentation</title>
+
+    <script src="scripts/prettify/prettify.js"></script>
+    <script src="scripts/prettify/lang-css.js"></script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc.css">
+</head>
+<body>
+
+<input type="checkbox" id="nav-trigger" class="nav-trigger" />
+<label for="nav-trigger" class="navicon-button x">
+  <div class="navicon"></div>
+</label>
+
+<label for="nav-trigger" class="overlay"></label>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="BaseBrush.html">BaseBrush</a><ul class='methods'><li data-type='method'><a href="BaseBrush.html#bufferNeedsRecolor">bufferNeedsRecolor</a></li><li data-type='method'><a href="BaseBrush.html#colorPoint">colorPoint</a></li><li data-type='method'><a href="BaseBrush.html#deserialize">deserialize</a></li><li data-type='method'><a href="BaseBrush.html#nodeSelectionStrategy">nodeSelectionStrategy</a></li><li data-type='method'><a href="BaseBrush.html#prepare">prepare</a></li><li data-type='method'><a href="BaseBrush.html#rampConfiguration">rampConfiguration</a></li><li data-type='method'><a href="BaseBrush.html#requiredSchemaFields">requiredSchemaFields</a></li><li data-type='method'><a href="BaseBrush.html#serialize">serialize</a></li><li data-type='method'><a href="BaseBrush.html#stagingAttributes">stagingAttributes</a></li><li data-type='method'><a href="BaseBrush.html#unprepare">unprepare</a></li></ul></li><li><a href="BaseLoader.html">BaseLoader</a></li><li><a href="Box.html">Box</a><ul class='methods'><li data-type='method'><a href="Box.html#.fromBounds">fromBounds</a></li><li data-type='method'><a href="Box.html#bounds">bounds</a></li><li data-type='method'><a href="Box.html#intersects">intersects</a></li><li data-type='method'><a href="Box.html#subdivide">subdivide</a></li></ul></li><li><a href="BrushFactory.html">BrushFactory</a><ul class='methods'><li data-type='method'><a href="BrushFactory.html#.availableBrushes">availableBrushes</a></li><li data-type='method'><a href="BrushFactory.html#.createBrush">createBrush</a></li><li data-type='method'><a href="BrushFactory.html#.deregisterBrush">deregisterBrush</a></li><li data-type='method'><a href="BrushFactory.html#.deserializeBrushes">deserializeBrushes</a></li><li data-type='method'><a href="BrushFactory.html#.registerBrush">registerBrush</a></li><li data-type='method'><a href="BrushFactory.html#.serializeBrushes">serializeBrushes</a></li></ul></li><li><a href="BufferDownloadPipeline.html">BufferDownloadPipeline</a><ul class='methods'><li data-type='method'><a href="BufferDownloadPipeline.html#queue">queue</a></li></ul></li><li><a href="Device.html">Device</a><ul class='methods'><li data-type='method'><a href="Device.html#.caps">caps</a></li><li data-type='method'><a href="Device.html#.deviceSupportsPlasio">deviceSupportsPlasio</a></li><li data-type='method'><a href="Device.html#.overrideProperty">overrideProperty</a></li></ul></li><li><a href="Frustum.html">Frustum</a><ul class='methods'><li data-type='method'><a href="Frustum.html#update">update</a></li></ul></li><li><a href="FrustumLODNodePolicy.html">FrustumLODNodePolicy</a><ul class='methods'><li data-type='method'><a href="FrustumLODNodePolicy.html#hookedReload">hookedReload</a></li><li data-type='method'><a href="FrustumLODNodePolicy.html#start">start</a></li><li data-type='method'><a href="FrustumLODNodePolicy.html#stop">stop</a></li></ul></li><li><a href="GeoTransform.html">GeoTransform</a><ul class='methods'><li data-type='method'><a href="GeoTransform.html#coordinateSpaceBounds">coordinateSpaceBounds</a></li><li data-type='method'><a href="GeoTransform.html#coordinateSpaceCenter">coordinateSpaceCenter</a></li><li data-type='method'><a href="GeoTransform.html#coordinateSpaceRange">coordinateSpaceRange</a></li><li data-type='method'><a href="GeoTransform.html#transform">transform</a></li></ul></li><li><a href="GreyhoundPipelineLoader.html">GreyhoundPipelineLoader</a><ul class='methods'><li data-type='method'><a href="GreyhoundPipelineLoader.html#.load">load</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#loadHierarchyInfo">loadHierarchyInfo</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#queryFor">queryFor</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#setColorChannelBrush">setColorChannelBrush</a></li><li data-type='method'><a href="GreyhoundPipelineLoader.html#setFilter">setFilter</a></li></ul></li><li><a href="LocalColorLoader.html">LocalColorLoader</a><ul class='methods'><li data-type='method'><a href="LocalColorLoader.html#additionalSchemaItems">additionalSchemaItems</a></li><li data-type='method'><a href="LocalColorLoader.html#channelColorRamp">channelColorRamp</a></li><li data-type='method'><a href="LocalColorLoader.html#colorPoint">colorPoint</a></li><li data-type='method'><a href="LocalColorLoader.html#needPropagation">needPropagation</a></li><li data-type='method'><a href="LocalColorLoader.html#prep">prep</a></li><li data-type='method'><a href="LocalColorLoader.html#propagationParamsFromLastPrep">propagationParamsFromLastPrep</a></li><li data-type='method'><a href="LocalColorLoader.html#queryFor">queryFor</a></li></ul></li><li><a href="ModeManager.html">ModeManager</a></li><li><a href="module-point-buffer-cache.PointBufferCache.html">PointBufferCache</a></li><li><a href="module-point-buffer-cache-PointBufferCache.PointBufferCache.html">PointBufferCache</a></li><li><a href="PointCloudViewer.html">PointCloudViewer</a><ul class='methods'><li data-type='method'><a href="PointCloudViewer.html#.canRunPlasio">canRunPlasio</a></li><li data-type='method'><a href="PointCloudViewer.html#getGeoTransform">getGeoTransform</a></li><li data-type='method'><a href="PointCloudViewer.html#getModeManager">getModeManager</a></li><li data-type='method'><a href="PointCloudViewer.html#getRenderer">getRenderer</a></li><li data-type='method'><a href="PointCloudViewer.html#setColorChannelBrushes">setColorChannelBrushes</a></li><li data-type='method'><a href="PointCloudViewer.html#setFilter">setFilter</a></li><li data-type='method'><a href="PointCloudViewer.html#start">start</a></li></ul></li><li><a href="TileLoader.html">TileLoader</a><ul class='methods'><li data-type='method'><a href="TileLoader.html#.loadImage">loadImage</a></li></ul></li><li><a href="TreeInfoCache.html">TreeInfoCache</a><ul class='methods'><li data-type='method'><a href="TreeInfoCache.html#nodeInfo">nodeInfo</a></li></ul></li><li><a href="TreeWalker.html">TreeWalker</a><ul class='methods'><li data-type='method'><a href="TreeWalker.html#clearAllNodes">clearAllNodes</a></li><li data-type='method'><a href="TreeWalker.html#walk">walk</a></li></ul></li></ul><h3>Modules</h3><ul><li><a href="module-point-buffer-cache.html">point-buffer-cache</a></li></ul><h3>Global</h3><ul><li><a href="global.html#accumulateStats">accumulateStats</a></li><li><a href="global.html#ClampSelector">ClampSelector</a></li><li><a href="global.html#compressColor">compressColor</a></li><li><a href="global.html#DEFAULT_TILE_SIZE">DEFAULT_TILE_SIZE</a></li><li><a href="global.html#enclosesBounds">enclosesBounds</a></li><li><a href="global.html#equalBounds">equalBounds</a></li><li><a href="global.html#hue2rgb">hue2rgb</a></li><li><a href="global.html#minmax">minmax</a></li><li><a href="global.html#NodeSelectionStrategy">NodeSelectionStrategy</a></li><li><a href="global.html#Parseabrush'sstringrepresentationintoausabledatastructure.">Parse a brush's string representation into a usable data structure.</a></li><li><a href="global.html#pickOne">pickOne</a></li></ul>
+</nav>
+
+<div id="main">
+    
+    <h1 class="page-title">buffer-loaders.js</h1>
+    
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/* @flow */
+
+// buffer-loaders.js
+// Load stuff from remote buffers
+//
+
+var util = require("./util");
+var _ = require("lodash");
+var LRU = require("lru-cache");
+var vec3 = require("gl-matrix").vec3;
+
+const LoaderWorker = require('worker-loader?inline!./loader-worker');
+
+import { Promise } from 'bluebird';
+
+import { TileLoader } from "./tile-loaders";
+import { BaseLoader } from "./base-loader";
+import { GeoTransform } from "./geotransform";
+import { ClampSelector } from "./brush";
+import { BrushFactory } from "./brush-factory";
+import { PointBufferCache } from "./point-buffer-cache";
+
+import { Device } from "./device";
+
+
+class BufferLoader {
+    constructor(loaderCount) {
+        this.loaderCount = loaderCount;
+
+        this.loaders = [];
+        for (var i = 0; i &lt; this.loaderCount; i++) {
+            this.loaders.push(this._newWorker(i));
+        }
+    }
+
+    _newWorker(index) {
+        const w = new LoaderWorker();
+
+        w.id = index;
+        w.processQueue = {};
+
+        w.onmessage = (e) => {
+            this._processResponse(w, e.data);
+        };
+
+        w.onerror = (e) => {
+            console.log("WARNING: Worker crashed!", w);
+            this._handleError(w);
+        };
+
+        return w;
+    }
+
+    _processResponse(worker, data) {
+        const requestId = data.id;
+        const task = data.task;
+
+        const success = data.success;
+        const buffer = data.buffer;
+        const numPoints = data.numPoints;
+        const stats = data.stats;
+
+        const {resolve, reject} = worker.processQueue[requestId];
+        if (!resolve || !reject)
+            return console.log('WARNING: Got a response from a webworker for request which has no associated completion promise');
+
+        // Clear out this item from waiting requests and
+        delete worker.processQueue[requestId];
+        console.log('buffer-loader: worker ' +  worker.id + ' queue now has: ' + Object.keys(worker.processQueue).length + ' items.');
+
+        if (success) {
+            resolve({
+                buffer: buffer,
+                stats: stats,
+                numPoints: numPoints
+            });
+        }
+        else {
+            reject(new Error('Webworker reported error while trying to process task'));
+        }
+    }
+
+    _handleError(worker) {
+        const id = worker.id;
+        this.loaders = this.loaders.filter(w => w.id != id);
+
+        console.log('WARNING: Worker with id', id, 'was decomissioned');
+    }
+
+    push(params) {
+        util.checkParam(params, 'server');
+        util.checkParam(params, 'resource');
+        util.checkParam(params, 'bounds');
+        util.checkParam(params, 'fullGeoBounds');
+        util.checkParam(params, 'scale');
+        util.checkParam(params, 'offset');
+        util.checkParam(params, 'allowCreds');
+        util.checkParam(params, 'schema');
+        util.checkParam(params, 'weight');
+        util.checkParam(params, 'depthBegin');
+        util.checkParam(params, 'depthEnd');
+
+        // find a loader with the minimum amount of load
+        const candidate = this.loaders.sort((a, b) =>
+            Object.keys(a.processQueue).length - Object.keys(b.processQueue).length)[0];
+        const requestId = util.randomId();
+
+        return new Promise((resolve, reject) => {
+            candidate.processQueue[requestId] = {
+                resolve: resolve,
+                reject: reject,
+                worker: candidate
+            };
+
+            candidate.postMessage({
+                id: requestId,
+                task: params
+            });
+        });
+    }
+}
+
+var isParent = function(a, b) {
+	let ab = a.bounds;
+	let bb = b.bounds;
+
+	return ab[0] &lt;= bb[0] &amp;&amp; ab[1] &lt;= bb[1] &amp;&amp; ab[2] &lt;= bb[2] &amp;&amp;
+			ab[3] >= bb[3] &amp;&amp; ab[4] >= bb[4] &amp;&amp; ab[5] >= bb[5];
+};
+
+var isQuadParent = function(a, b) {
+	let ab = a.bounds;
+	let bb = b.bounds;
+
+	return ab[0] &lt;= bb[0] &amp;&amp; ab[2] &lt;= bb[2] &amp;&amp;
+		ab[3] >= bb[3] &amp;&amp; ab[5] >= bb[5];
+};
+
+var isSameQuad = function(a, b) {
+	let ab = a.bounds;
+	let bb = b.bounds;
+
+	return ab[0] === bb[0] &amp;&amp; ab[2] === bb[2] &amp;&amp;
+		ab[3] === bb[3] &amp;&amp; ab[5] === bb[5];
+};
+
+let snode = function(n) {
+	return JSON.stringify(n.bounds);
+};
+
+let inRange = function(x, z, [x1, y1, z1, x2, y2, z2]) {
+    return x >= x1 &amp;&amp; x &lt;= x2 &amp;&amp;
+        z >= z1 &amp;&amp; z &lt;= z2;
+};
+
+let recolorNode = function(toColor, bounds, propData) {
+    // only points that are in range of node's bounding box
+    // will need to be colored
+    //
+    // console.time("recolorNode");
+    let targetBufs = toColor.b;
+
+    let readPixel = (p, x, z) => {
+        let o = 4 * (p.imageData.width * z + x);
+        let d = p.imageData.data;
+
+        return [
+            d[o],
+            d[o + 1],
+            d[o + 2]
+        ];
+    };
+
+    let imgw = imageData.width,
+        imgh = imageData.height;
+
+    let [x1, y1, z1, x2, y2, z2] = bounds;
+
+    let fx = imgw / (x2 - x1),
+        fz = imgh / (z2 - z1);
+
+
+    for (var i = 0, il = targetBufs.length ; i &lt; il ; i ++) {
+        let b = targetBufs[i];
+
+        let wasBufferTouched = false;
+        let targetBuf = b.data;
+        let totalPoints = b.totalPoints;
+        let targetps = b.pointSize / 4;
+        let offset = 0;
+
+        for (let j = 0; j &lt; totalPoints; j++) {
+            let x = targetBuf[offset + 0],
+                y = targetBuf[offset + 1],
+                z = targetBuf[offset + 2];
+
+            if (inRange(x, z, bounds)) {
+                // this point needs to be recolored
+                let imgx = Math.floor(util.maprange(x1, x2, x, imageData.width, 0)),
+                    imgz = Math.floor(util.maprange(z1, z2, z, imageData.height, 0));
+
+                for (var ci = 0, cil = _.size(propData) ; ci &lt; cil ; ci ++) {
+                    let col = readPixel(propData[ci], imgx, imgz);
+                    let coloffset = propData[ci].offset;
+
+                    targetBuf[offset + coloffset] = util.compressColor(col);
+                }
+
+                
+                wasBufferTouched = true;
+            }
+            offset += targetps;
+        }
+
+
+        // the renderer would need to be told to reload this buffer again when
+        // it renders next (which will be right after we add the node buffer).
+        //
+        if (wasBufferTouched) {
+            targetBuf.update = true;
+        }
+    }
+
+    // console.timeEnd("recolorNode");
+};
+
+let black = [0,0,0];
+
+// A local proxy class to handle dealing with tile loaders and provide an interface
+// as we locally expect it to be
+class TileLoaderProxy {
+    constructor(params) {
+        this.url = params.url;
+        
+        let pp = params.params || {};
+        this.loader = new TileLoader(params.url, pp.layout, pp.quality);
+        this.params = params;
+    }
+
+    queryFor(params) {
+        let localParams = this.loader.queryFor(params);
+        return {
+            type: 'remote',
+            params: {
+                url: this.url,
+                params: localParams
+            }
+        };
+    }
+
+    additionalSchemaItems() {
+        // we don't really need anything from the server for tiling
+        return [];
+    }
+
+    needPropagation() {
+        return true;
+    }
+
+    async prep(p) {
+        // fetch imagery here!
+        const result = await TileLoader.load(this.params.params);
+        const img = result.image;
+
+        const w = img.width,
+              h = img.height;
+        const imageData = img.getContext("2d").getImageData(0, 0, w, h).data;
+
+        this.data = {
+            imageData: imageData,
+            w: w, h: h
+        };
+
+        this.prepParams = {
+            renderSpaceBounds: p.renderSpaceBounds
+        };
+    }
+
+    colorPoint(point) {
+        if (!this.data)
+            return black;
+
+        const x = point.x,
+              z = point.z;
+
+        const bounds = this.prepParams.renderSpaceBounds;
+        const {imageData, w, h} = this.data;
+
+        let col = Math.floor(util.maprange(bounds[0], bounds[3], x, w, 0)),
+            row = Math.floor(util.maprange(bounds[2], bounds[5], z, h, 0));
+
+        let offset = 4 * (row * w + col);
+        return [
+            imageData[offset],
+            imageData[offset + 1],
+            imageData[offset + 2]
+        ];
+    }
+
+    propagationParamsFromLastPrep() {
+        return this.data;
+    }
+
+    channelClampsPick() {
+        return [1, 0, 0, 0];
+    }
+
+    channelColorRamp() {
+        return [[0, 0, 0], [1, 1, 1]];
+    }
+
+    channelRampContribution() {
+        return 0;
+    }
+}
+
+let fieldOrBlack = function(field, scale) {
+    let c = [0, 0, 0];
+    const s = scale || 1000;
+    return function(p) {
+        if (p[field]) {
+            let colOffset = Math.floor(p[field] * s) % 360;
+            return util.hslToRgb(colOffset/360, 0.6, 0.6, c);
+        }
+        return black;
+    }
+}
+
+let updateStatsRange = (function() {
+    let stats = {};
+    return function(id, histogram) {
+        let currentRange = stats[id] || [Number.MAX_SAFE_INTEGER, Number.MIN_SAFE_INTEGER]; // note, they are reversed.
+        let vals = _.keys(histogram).map(x => parseInt(x));
+
+        currentRange[0] = Math.min(currentRange[0], _.min(vals));
+        currentRange[1] = Math.max(currentRange[1], _.max(vals));
+
+        stats[id] = currentRange;
+        return currentRange;
+    };
+})();
+
+
+let localComputeFunctions = {
+    'origin-id': fieldOrBlack('originid'),
+    'point-id': fieldOrBlack('pointid', 1),
+    'point-source-id': fieldOrBlack('pointsourceid'),
+    'elevation': (function() {
+        let c = [0, 0, 0];
+        return function(p) {
+            let range = this.zrange;
+            let g = Math.floor(util.maprange(range[0], range[1], p.y, 0, 255));
+            c[0] = g; c[1] = g; c[2] = g;
+            return c;
+        };
+    })(),
+    'color': (function() {
+        let c = [0, 0, 0];
+        return function(p) {
+            c[0] = (p.red == null) ? 0 : Math.floor(p.red * this.colorScale);
+            c[1] = (p.green == null) ? 0 : Math.floor(p.green * this.colorScale);
+            c[2] = (p.blue == null) ? 0 : Math.floor(p.blue * this.colorScale);
+
+            return c;
+        };
+    })(),
+    'intensity': (function() {
+        let c = [0, 0, 0];
+        return function(p) {
+            let [l, h] = this.intensityRange;
+            let g = (p.intensity == null) ? 0 : Math.floor(util.maprange(l, h, p.intensity, 0, 255));
+            c[0] = g; c[1] = g; c[2] = g;
+            return c;
+        };
+    })(),
+    'classification': fieldOrBlack('classification')
+};
+
+let neededFields = {
+    'origin-id': [["OriginId"]],
+    'point-id': [["PointId"]],
+    'point-source-id': [["PointSourceId"]],
+    'color': [["Red", "Green", "Blue"]],
+    'intensity': [["Intensity"]],
+    'classification': [["Classification"]],
+};
+
+/**
+ * Point coloring based on local point information.
+ */
+class LocalColorLoader {
+    /**
+     * Constructs a clocal color loader
+     * @param params The coloring specific params.
+     * @param params.url {String} The URL for the color source.
+     */
+    constructor(params) {
+        this.url = params.url;
+        
+        let [url, localParams] = util.parseURLParams(params.url);
+        
+        let match = url.match(/^local:\/\/(.*)/);
+        if (!match)
+            throw new Error("LocalColorLoader initialized without a local:// source");
+
+        this.subtype = match[1];
+        this.fn = localComputeFunctions[this.subtype];
+
+        this.start = util.parseColor(localParams.start);
+        this.end = util.parseColor(localParams.end);
+
+        if (!this.fn)
+            throw new Error('Local color channel not recognized: ' + this.subtype);
+    }
+
+    /**
+     * Generate required query for state-less loading of this color source
+     * @param params Arbitrary tree node information parameters.
+     * @return An arbitrary object which will be serialized for buffer querying.
+     */
+    queryFor(params) {
+        return {
+            type: 'local',
+            params: {
+                url: this.url
+            }
+        };
+    }
+
+    /**
+     * List addition schema items this color source may required.
+     * @return {String[]} A array of schema item names.
+     */
+    additionalSchemaItems() {
+        // based on the supported subtype we ask for things we want
+        //
+        let fields = neededFields[this.subtype.toLowerCase()];
+        if (fields == null)
+            return [];
+
+        return fields;
+    }
+
+    /**
+     * Return true if this color source needs propagation to parent buffers.  This is for imagery sources
+     * where a higher resolution image would need to be applied to buffers higher up on the tree.
+     * @return {boolean}
+     */
+    needPropagation() {
+        return false;
+    }
+
+    /**
+     * Given the point information, return the color.
+     * @param p The point object, with items available in the respective schema field names, e.g. p.x or p.intensity
+     * @return {Number[]} A 3-tuple representing color as RGB.
+     */
+    colorPoint(p) {
+        return this.fn.call(this, p);
+    }
+
+    /**
+     * Prepare the colorizer for the next batch of incoming points.
+     * @param p
+     */
+    async prep(p) {
+        // most don't need any prep
+        let is16bit = _.some(_.keys(p.stats.red), v => parseFloat(v) >= 256);
+
+        this.colorScale = is16bit ? (1 / (1 &lt;&lt; 8)) : 1;
+        this.zrange = updateStatsRange('z', p.stats.z);
+        this.intensityRange = updateStatsRange('intensity', p.stats.intensity);
+    }
+
+    /**
+     *
+     * @return {null}
+     */
+    propagationParamsFromLastPrep() {
+        return null;
+    }
+
+    channelClampsPick() {
+        if (this.subtype === "intensity")
+            return [0, 0, 1, 0];
+        else if (this.subtype === "elevation")
+            return [0, 1, 0, 0];
+
+        return [1, 0, 0, 0];
+    }
+
+    /**
+     * Get the start and end color for color ramp.
+     * @return {Number[]} A 2-tuple of 3-tuple arrays representing a pair of RGB triplets.
+     */
+    channelColorRamp() {
+        return [this.start || [0, 0, 0],
+                this.end || [1, 1, 1]];
+    }
+
+    channelRampContribution() {
+        // we want the shaders to recompute the ramps for intensity and elevation
+        // but leave the others untouched
+        if (this.subtype === "intensity" ||
+            this.subtype === "elevation")
+            return 1;
+        return 0;
+    }
+}
+
+const loader = new BufferLoader(Device.caps().loaderCount);
+let   pointCloudBufferStats = {};
+
+/**
+ * A buffer loader which loads buffers from greyhound/entwine backend
+ * @extends BaseLoader
+ */
+export class GreyhoundPipelineLoader extends BaseLoader {
+    /**
+     * A static field describing a namespace for this loader.
+     * @return {string}
+     */
+    static get key() {
+        return "greyhound";
+    }
+
+    /**
+     * A static field describing the kind of data this loader provides.  Values can be 'point-buffer'
+     * or 'transform'
+     * @return {string}
+     */
+    static get provides() {
+        return "point-buffer";
+    }
+
+    /**
+     * Construct an instance of a point buffer loader.
+     * @param server {string} The server address.
+     * @param resource {string} The name of the resource.
+     * @param schema {object} Schema definition
+     * @param params Buffer loader initialization parameters.
+     * @param params.brushes {BaseBrush[]} An array of brush specifications.
+     * @param [params.allowGreyhoundCredentials] {boolean} Whether to send credentials when making HTTP queries. Defaults to false.
+     * @param [params.filter] {object} A JSON object specifying the filter to use. Defaults to no filter.
+     */
+    constructor(server, resource, schema, params) {
+        super();
+
+        const brushes = util.checkParam(params, 'brushes');
+        const allowGreyhoundCreds = util.checkParam(params, 'allowGreyhoundCredentials', false);
+        const filter = util.checkParam(params, 'filter', null);
+
+        this.server = server;
+        this.resource = resource;
+        this.brushes = [null, null, null, null];
+        this.compressed = true;
+        this.sourceSchema = schema;
+        this.allowGreyhoundCreds = allowGreyhoundCreds;
+        this.filter = filter;
+
+        // set all of the loaders
+        brushes.map((brush, i) => {
+            this.setColorChannelBrush(i, brush);
+        });
+
+        if (this.compressed)
+            console.log("Compressed buffers have been requested, make sure laz-perf is available, or you'd see errors.");
+
+        if (!this.compressed)
+            throw new Error('Uncompressed buffers are not supported.');
+    }
+
+    static _buildSchema(schema, brushes) {
+        // basic attributes if supported
+        const availableFields = new Map(schema.map(s => [s.name.toLowerCase(), s]));
+        const neededFields = new Set(["x", "y", "z"]);
+
+        // if a loader needs additional items get those in as well
+        brushes.forEach((brush) => {
+            if (brush != null) {
+                const brushSchemaItems = brush.requiredSchemaFields();
+
+                // only add these entries if all fields are available
+                if (brushSchemaItems.every(item => availableFields.has(item.toLowerCase()))) {
+                    brushSchemaItems.forEach(item => neededFields.add(item.toLowerCase()));
+                }
+            }
+        });
+
+
+        return Array.from(neededFields).map(field => {
+            const fieldDesc = Object.assign({}, availableFields.get(field));
+            if (fieldDesc.size == 8)
+                fieldDesc.size = 4
+
+            return fieldDesc;
+        });
+    }
+
+    static _schemaHasColor(schema) {
+        // if all three color channels exist in schema, we decide it has color
+        const allNames = new Set(schema.map(s => s.name.toLowerCase()));
+        return allNames.has('red') &amp;&amp; allNames.has('green') &amp;&amp; allNames.has('blue');
+    }
+
+    static _decomposePoint(buf, off, schema) {
+        let r = {};
+        schema.forEach((s, i) => {
+            r[s.name.toLowerCase()] = buf[off + i];
+        });
+
+        return r;
+    }
+
+    static _createPointDecomposer(schema) {
+        let r = {};
+        let offsets = [];
+        schema.forEach((s, i) => {
+            let field = s.name.toLowerCase();
+            let offset = i;
+
+            offsets.push([field, offset]);
+        });
+
+        let totalItems = schema.length;
+
+        return function(buff, off) {
+            for (var i = 0 ; i &lt; totalItems ; i++) {
+                r[offsets[i][0]] = buff[off + offsets[i][1]];
+            }
+
+            return r;
+        }
+    }
+
+    /**
+     * Generate a query for this loader given the specified parameters.
+     * @param params
+     * @return {object} An object which encodes all needed settings to successfully query a remote resource.  This
+     * object should be
+     */
+    queryFor(params) {
+        const renderSpaceBounds = util.checkParam(params, 'renderSpaceBounds');
+        const geoTransform = util.checkParam(params, 'geoTransform');
+
+        const depthBegin = util.checkParam(params, 'depthBegin');
+        const depthEnd = util.checkParam(params, 'depthEnd');
+
+        const treePath = util.checkParam(params, 'treePath');
+
+        let schema = GreyhoundPipelineLoader._buildSchema(this.sourceSchema, this.brushes);
+        let brushes = BrushFactory.serializeBrushes(this.brushes);
+
+        let result = {
+            server: this.server,
+            resource: this.resource,
+            depthBegin: depthBegin,
+            depthEnd: depthEnd,
+            renderSpaceBounds: renderSpaceBounds,
+            schema: schema,
+            brushes: brushes,
+            fullGeoBounds: geoTransform.fullGeoBounds,
+            scale: geoTransform.scale,
+            offset: geoTransform.offset,
+            treePath: treePath,
+            creds: this.allowGreyhoundCreds == true
+        };
+
+        if (this.filter)
+            result.filter = this.filter;
+
+        return result;
+    }
+
+
+    /**
+     * Asynchronously load hierarchy information for the given render space bounds.
+     * @param renderSpaceBounds {Number[]} A 6-element array specifying the render space bounds for the region to query.
+     * @param geoTransform {GeoTransform} The geo transform object for currently loaded resource.
+     * @param depthBegin {Number} The start depth for query.
+     * @param depthEnd {Number} The end depth for query.
+     * @return Returns the hierarchy information.
+     */
+    async loadHierarchyInfo(renderSpaceBounds, geoTransform, depthBegin, depthEnd) {
+        const treeSpaceBounds = geoTransform.transform(renderSpaceBounds, 'render', 'tree');
+
+        let qs =
+            "bounds=" + encodeURIComponent(JSON.stringify(treeSpaceBounds)) + "&amp;" +
+            "depthBegin=" + depthBegin + "&amp;" +
+            "depthEnd=" + depthEnd + "&amp;" +
+            "scale=" + encodeURIComponent(JSON.stringify(geoTransform.scale)) + "&amp;" +
+            "offset=" + encodeURIComponent(JSON.stringify(geoTransform.offset));
+
+        if (this.filter) {
+            qs = qs + "&amp;filter=" + encodeURIComponent(JSON.stringify(this.filter));
+        }
+
+
+        var u = util.joinPath(util.pickOne(this.server), "resource", this.resource, "hierarchy") + "?" + qs;
+        return await util.getJson(u, { creds: this.allowGreyhoundCreds });
+    }
+
+    /**
+     * Sets the brush spec for a specific color channel at the given index. Up to 4 color channels can be set at index 0-3 inclusive.
+     * @param index {Number} The index to set the color source as
+     * @param source {string} The color source specification e.g. &lt;tt>local://color&lt;/tt>.
+     */
+    setColorChannelBrush(index, source) {
+        if (index >= 4)
+            throw new Error('Index needs to be less than 4 when setting color channel');
+
+        this.brushes[index] = (source == null) ? null : BrushFactory.createBrush(source);
+    }
+
+    /**
+     * Set the filter specification to the given parameter
+     * @param filter {object} Filter specification as a javascript object.`
+     */
+    setFilter(filter) {
+        this.filter = filter;
+    }
+
+    static async _colorizeBufferWithTasks(buffer, schema, totalPoints, sizeInBytes, colorizers) {
+        if (totalPoints === 0)
+            return b;
+
+        let inputPointSizeInFloats = sizeInBytes / 4; // the point as it came from the source, normalized to floats
+        let totalColorChannels = _.size(colorizers);
+        let outputPointSizeInFloats = 3 + totalColorChannels; // 3 is for X, Y and Z and one float per color channel
+
+        // allocate destination array, has all need color channels
+        let coloredBuffer = new Float32Array(totalPoints * outputPointSizeInFloats);
+        let decomposePoint = this._createPointDecomposer(schema);
+
+        var taskFn = function (start, end) {
+            return new Promise((resolve) => {
+                let offr = inputPointSizeInFloats * start;
+                let offw = outputPointSizeInFloats * start;
+
+                for (let i = start; i &lt; end; i++) {
+                    // get the current point as a float array
+                    let p = decomposePoint(buffer, offr);
+
+                    // position
+                    coloredBuffer[offw] = p.x;
+                    coloredBuffer[offw + 1] = p.y;
+                    coloredBuffer[offw + 2] = p.z;
+
+                    // all color channels
+                    for (let ci = 0 ; ci &lt; totalColorChannels ; ci ++) {
+                        let colorizer = colorizers[ci];
+                        let col = colorizer == null ? black : colorizer.colorPoint(p);
+
+                        coloredBuffer[offw + 3 + ci] = util.compressColor(col);
+                    }
+
+                    offw += outputPointSizeInFloats;
+                    offr += inputPointSizeInFloats;
+                }
+
+                resolve();
+            });
+        };
+
+        // when we don't have a ton of points to color, just color them in one go and return the results
+        const BATCH_SIZE = 10000;
+
+        if (totalPoints &lt; BATCH_SIZE) {
+            taskFn(0, totalPoints);
+            return coloredBuffer;
+        }
+
+        let allTasks = [];
+        for (let i = 0 ; i &lt; totalPoints ; i += BATCH_SIZE) {
+            const start = i;
+            const end = Math.min(i + BATCH_SIZE, totalPoints);
+
+            allTasks.push(taskFn(start, end));
+        }
+
+        await Promise.all(allTasks);
+        return coloredBuffer;
+    }
+
+    static async _colorizeBuffer(schema, buffer, totalPoints, sizeInBytes, renderSpaceBounds, colorizers, params, stats) {
+        // prep all colorizers which may include fetching imagery
+        await Promise.all(colorizers.map(c => c.prep({
+            currentParams: params, stats: stats, renderSpaceBounds: renderSpaceBounds
+        })));
+
+        // if we have no colorizers, just return the input buffer as it is
+        //
+        if (colorizers.length === 0)
+            return buffer;
+
+        return await this._colorizeBufferWithTasks(buffer, schema, totalPoints, sizeInBytes, colorizers);
+    }
+
+    static _imageryToAvailableColors(brushes) {
+        const r = [];
+        let count = brushes.filter(brush => brush != null).length;
+        for (let i = 0 ; i &lt; 4 ; i ++) {
+            r.push((i &lt; count) ? 1 : 0);
+        }
+        return r;
+    };
+
+
+    static async _internalLoad(params, loadParams) {
+        const server = util.checkParam(params, 'server');
+        const resource = util.checkParam(params, 'resource');
+
+        const schema = util.checkParam(params, 'schema');
+        const depthBegin = util.checkParam(params, 'depthBegin');
+        const depthEnd = util.checkParam(params, 'depthEnd');
+
+        const renderSpaceBounds = util.checkParam(params, 'renderSpaceBounds');
+
+        const fullGeoBounds = util.checkParam(params, 'fullGeoBounds');
+        const scale = util.checkParam(params, 'scale');
+        const offset = util.checkParam(params, 'offset');
+
+        const brushes = util.checkParam(params, 'brushes');
+        const treePath = util.checkParam(params, 'treePath');
+
+        const geoTransform = new GeoTransform(fullGeoBounds, scale, offset);
+        const treeSpaceBounds = geoTransform.transform(renderSpaceBounds, 'render', 'tree');
+
+        const [fullPointCloudRangeX] = geoTransform.coordinateSpaceRange('geo');
+
+
+        const weight = util.checkParam(loadParams, 'weight');
+
+        // compute the incoming point size? Even though we may request the points in unsigned,
+        // they are all delivered after conversion into floats
+        //
+        const incomingPointSize = 4 * schema.length;
+
+        const query =  {
+            server: server,
+            resource: resource,
+            bounds: treeSpaceBounds,
+            depthBegin: depthBegin,
+            depthEnd: depthEnd,
+            fullGeoBounds: fullGeoBounds,
+            scale: scale,
+            offset: offset,
+            allowCreds: params.creds,
+            schema: schema,
+            weight: weight
+        };
+
+        if (params.filter) {
+            query.filter = params.filter;
+        }
+
+        // decompress data, buffer.response is inaccessible beyond this point
+        const decompressedData = await loader.push(query);
+
+        const decompressedBuffer = decompressedData.buffer;
+        const totalIncomingPoints = decompressedData.numPoints;
+        const decompressedStats = decompressedData.stats;
+
+        if (totalIncomingPoints === 0) {
+            return {
+                totalPoints: 0
+            };
+        }
+
+        pointCloudBufferStats = util.accumulateStats(pointCloudBufferStats, decompressedStats);
+
+        // build up attributes for this buffer
+        let attribs = [["position", 0, 3]];
+        let attribOffset = 3;
+
+        // color processing
+        let neededColorChannels = brushes.filter(b => b != null).length;
+
+        // Push a color attribute for each needed color channel, only one float per channel
+        // because we do some fancy color compression into a single float
+        //
+        for(let i = 0 ; i &lt; neededColorChannels ; i ++) {
+            attribs.push(["color" + i, attribOffset, 1]);
+            attribOffset = attribOffset + 1;
+        }
+
+        // get all colorizers we need
+        const brushObjects = BrushFactory.deserializeBrushes(brushes);
+        const downloadedBufferParams = {
+            data: decompressedBuffer,
+            totalPoints: totalIncomingPoints,
+            renderSpaceBounds: renderSpaceBounds,
+            bufferStats: decompressedStats,
+            pointCloudBufferStats: pointCloudBufferStats,
+            treePath: treePath,
+            schema: schema,
+            geoTransform: geoTransform
+        };
+
+        const buf = await PointBufferCache.getInstance().push(downloadedBufferParams, brushObjects);
+
+        // prepare uniforms
+        const cleanupBrushes = brushObjects.filter(b => b != null);
+        const channelClampPicks = [];
+        const channelRampContribution = [0, 0, 0, 0];
+        const channelColorRamps = [];
+
+        cleanupBrushes.forEach((b, i) => {
+            // each brush needs to tell us what particular value does its color
+            // clamping requires.
+            const {selector, start, end} = b.rampConfiguration();
+            if (selector !== ClampSelector.NONE) {
+                // Color ramps are needed.
+                const pickArray = [0, 0, 0, 0];
+                pickArray[selector - 1] = 1.0;
+
+                channelClampPicks.push(["channelClampsPick" + i, pickArray]);
+
+                channelColorRamps.push(["channelColorRamp" + i + "Start", start || [0, 0, 0]]);
+                channelColorRamps.push(["channelColorRamp" + i + "End", end || [1, 1, 1]]);
+
+                // Mark this particular channel as required ramp contribution
+                channelRampContribution[i] = 1;
+            }
+        });
+
+        const result = {
+            pointStride: (3 + neededColorChannels) * 4,
+            totalPoints: totalIncomingPoints,
+            attributes: attribs,
+            uniforms: [["availableColors", GreyhoundPipelineLoader._imageryToAvailableColors(brushes)]]
+                .concat(channelClampPicks)
+                .concat(channelColorRamps)
+                .concat([["channelRampContribution", channelRampContribution]]),
+            data: buf,
+            stats: decompressedStats
+        };
+
+        return result;
+    }
+
+    /**
+     * Load resource for given params which were initially generated through queryFor method.
+     * @param params {object} The parameters as generated by the queryFor method, this object should be treated as an
+     * opaque object.
+     * @param loadParams {object} Additional load time parameters.
+     * @param loadParams.weight {Number} Weight of the resource being loaded, higher weight means they are queued first for downloading.
+     * @param cb The callback called when the load completes.
+     * @return {Promise.&lt;T>} A promise which resolves to the loaded buffer.
+     */
+    static load(params, loadParams, cb) {
+        return GreyhoundPipelineLoader._internalLoad(params, loadParams).then((res) => {
+            if(cb) cb(null, res);
+            return res;
+        }).catch((err) => {
+            console.log('buffer load failed with params:', params, loadParams, err);
+            if(cb) cb(err);
+            else throw err;
+        })
+    };
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.3</a> on Thu Mar 16 2017 14:20:22 GMT-0500 (CDT) using the <a href="https://github.com/clenemt/docdash">docdash</a> theme.
+</footer>
+
+<script>prettyPrint();</script>
+<script src="scripts/linenumber.js"></script>
+</body>
+</html>
