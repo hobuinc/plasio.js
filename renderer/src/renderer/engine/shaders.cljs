@@ -417,7 +417,13 @@
 	   gl_FragColor = encode_float(s); }")
 
 (def bbox-vertex-shader
-  "attribute vec3 pos; uniform mat4 p, v, m; void main() { gl_Position = p * v * m * vec4(pos * vec3(1.0, 1.0, 1.0), 1.0); }")
+  "attribute vec3 pos; uniform vec3 offset; uniform mat4 p, v, m; void main() {
+     vec3 fpos = (pos.xyz - offset);
+     vec4 worldPos = (m * vec4(fpos, 1.0));
+     vec4 mvPosition = v * worldPos;
+
+     gl_Position = p * mvPosition;
+   }")
 
 (def bbox-fragment-shader
   "void main() { gl_FragColor = vec4(1.0, 1.0, 0.0, 1.0); }")

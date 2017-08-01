@@ -266,6 +266,7 @@
         (when point-buffer
           (when-let [params (:bbox-params transform)]
             (let [shader (s/get-shader shader-context :bbox)]
+              (println "-- --" (:offset transform))
               (buffers/draw! gl
                              :shader (:shader shader)
                              :draw-mode draw-mode/lines
@@ -277,7 +278,8 @@
                              ;; setting raw uniforms here
                              :uniforms [{:name "m" :type :mat4 :values (:model-matrix transform)}
                                         {:name "v" :type :mat4 :values mv}
-                                        {:name "p" :type :mat4 :values proj}]
+                                        {:name "p" :type :mat4 :values proj}
+                                        {:name "offset" :type :vec3 :values (:offset transform)}]
                              ;; just one attribute
                              :attributes [{:location              (get-in shader [:attribs "position"])
                                            :components-per-vertex 3
