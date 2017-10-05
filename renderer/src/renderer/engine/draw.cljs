@@ -216,7 +216,7 @@
     (when (:flicker-fix hints)
       (.disable gl (.-DEPTH_TEST gl)))
 
-    (doseq [{:keys [point-buffer transform]} bufs #_(sort-bufs bufs mv)]
+    (doseq [{:keys [point-buffer transform] :as b} bufs #_(sort-bufs bufs mv)]
       ;; if we have a loaded point buffer for this buffer, lets render it, we may still want to draw
       ;; the bbox if the point-buffer is not valid yet
       ;;

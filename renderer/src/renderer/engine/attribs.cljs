@@ -33,7 +33,8 @@
 
 (defmethod reify-attrib :point-buffer [[_ props]]
   (let [total-points (aget props "totalPoints")]
-    {:point-stride (aget props "pointStride")
+    {:key          (aget props "key")
+     :point-stride (aget props "pointStride")
      :total-points total-points
      :attributes   (js->clj (aget props "attributes"))
      :uniforms     (coerce-uniforms (aget props "uniforms"))

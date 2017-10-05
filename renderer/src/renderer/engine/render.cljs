@@ -299,8 +299,9 @@
 
         ;; ranges for color components, z and intensity
         rangeMins [0 (zrange 0) (irange 0) 0]
-        rangeMaxs [255 (zrange 1) (irange 1) 0]]
+        rangeMaxs [255 (zrange 1) (irange 1) 0]
 
+        visibility (:resource-visibility source-state)]
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
@@ -317,7 +318,10 @@
                             (comp
                               (map :attribs-id)
                               (keep (partial attribs/attribs-in aloader))
-                              (filter #(get-in % [:point-buffer :gl-buffer])))
+                              (filter #(get-in % [:point-buffer :gl-buffer]))
+                              (filter #(get visibility
+                                            (get-in % [:point-buffer :key])
+                                            true)))
                             (vals (:point-buffers state)))]
       #_(println (count buffers-to-draw) "/" (count (:point-buffers state)))
 

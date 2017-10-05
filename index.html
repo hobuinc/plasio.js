@@ -56,6 +56,11 @@
 
         viewer.start();
 
+        function setVisibility() {
+            var resources = viewer.getLoadedResources();
+            viewer.setResourceVisibility(resources[0].key, !resources[0].visible);
+        }
+
         function doLOS() {
             Plasio.FrustumLODNodePolicy.pauseView = !Plasio.FrustumLODNodePolicy.pauseView;
             console.log('pause view:', Plasio.FrustumLODNodePolicy.pauseView);
@@ -78,7 +83,7 @@
             onclick="javascript:disablePointPicker();">Disable Point Picker</button>
 
     <button style="position:absolute;top:50px;right:150px;z-index:10000"
-            onclick="javascript:doLOS();">LOS</button>
+            onclick="javascript:setVisibility();">LOS</button>
 
 </body>
 </html>

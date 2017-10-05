@@ -68,7 +68,8 @@
   (get-loaded-buffers [this])
   (add-stats-listener [this which id f])
   (remove-stats-listener [this which id])
-  (force-update [this]))
+  (force-update [this])
+  (set-resource-visibility [this resource-key show?]))
 
 (defrecord PlasioRenderer [state local-state render-engine]
   IPlasioRenderer
@@ -317,7 +318,10 @@
     (r/remove-stats-listener @render-engine which id))
 
   (force-update [_]
-    (swap! state update :force-update-count (fnil inc 0))))
+    (swap! state update :force-update-count (fnil inc 0)))
+
+  (set-resource-visibility [_ resource-key show?]
+    (swap! state assoc-in [:resource-visibility resource-key] show?)))
 
 
 (defn partial-js
@@ -384,4 +388,5 @@
               :getLoadedBuffers (partial-js get-loaded-buffers r)
               :addStatsListener (partial-js add-stats-listener r)
               :removeStatsListener (partial-js remove-stats-listener r)
-              :forceUpdate (partial-js force-update r)})))
+              :forceUpdate (partial-js force-update r)
+              :setResourceVisibility (partial-js set-resource-visibility r)})))
