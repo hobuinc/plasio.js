@@ -1,5 +1,6 @@
 .flowconfig
 .DS_Store
+package-lock.json
 \#*\#
 .\#*
 /etcd/
