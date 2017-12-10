@@ -4,12 +4,14 @@
             [cljs-webgl.constants.shader :as shader]
             [clojure.string :as s]))
 
-
 (declare vertex-shader)
 (declare frag-shader)
 
 (declare vertex-shader-picker)
 (declare frag-shader-picker)
+
+(declare vertex-shader-edl)
+(declare frag-shader-edl)
 
 (declare bbox-vertex-shader)
 (declare bbox-fragment-shader)
@@ -49,6 +51,30 @@
     {:uniforms uniform-locs
      :attribs attrib-locs}))
 
+(defn create-program
+  "Returns a linked shader program composed of the compiled shader objects
+   specified by the `shaders` parameter. Throws an error if the program was
+   not linked successfully.  Same as what is provided by cljs-webgl, but reports
+   errors when linking fails
+
+  Relevant OpenGL ES reference pages:
+
+  * [glCreateProgram](http://www.khronos.org/opengles/sdk/docs/man/xhtml/glCreateProgram.xml)
+  * [glAttachShader](http://www.khronos.org/opengles/sdk/docs/man/xhtml/glAttachShader.xml)
+  * [glLinkProgram](http://www.khronos.org/opengles/sdk/docs/man/xhtml/glLinkProgram.xml)"
+  [gl-context & shaders]
+  (let [program (.createProgram gl-context)]
+
+    (doseq [shader shaders]
+      (.attachShader gl-context program shader))
+
+    (.linkProgram gl-context program)
+
+    (when-not (shaders/get-program-parameter gl-context program shader/link-status)
+      (throw (js/Error. (.getProgramLogInfo gl-context program))))
+
+    (.useProgram gl-context program)
+    program))
 
 (defn- create-shader [gl]
   ;; make sure that needed extensions are addeded
@@ -57,7 +83,7 @@
                                   (if (.getExtension gl "EXT_frag_depth")
                                     (str "#define have_frag_depth\n\n" frag-shader)
                                     frag-shader))
-        shader (shaders/create-program gl vs fs)]
+        shader (create-program gl vs fs)]
     shader))
 
 
@@ -66,6 +92,10 @@
         fs (shaders/create-shader gl shader/fragment-shader frag-shader-picker)]
     (shaders/create-program gl vs fs)))
 
+(defn- create-edl-shader [gl]
+  (let [vs (shaders/create-shader gl shader/vertex-shader vertex-shader-edl)
+        fs (shaders/create-shader gl shader/fragment-shader frag-shader-edl)]
+    (shaders/create-program gl vs fs)))
 
 (defn- create-bbox-shader [gl]
   (let [vs (shaders/create-shader gl shader/vertex-shader bbox-vertex-shader)
@@ -100,6 +130,7 @@
 (def ^:private shader-creator-map
   {:renderer create-shader
    :picker create-picker-shader
+   :edl create-edl-shader
    :bbox create-bbox-shader
    :line create-line-shader
    :line-handle create-line-handle-shader
@@ -187,6 +218,9 @@
   varying vec3 out_color;
   varying vec3 fpos;
 
+  varying float logDepth;
+
+
   void inregion(vec3 point, vec4 plane, vec4 planeHalf, vec2 segmentWidths, out float val) {
       vec2 dists = abs(vec2(dot(plane, vec4(point, 1.0)), dot(planeHalf, vec4(point, 1.0))));
 
@@ -230,7 +264,9 @@
 
      vec4 mvPosition = modelViewMatrix * wpos;
      gl_Position = projectionMatrix * mvPosition;
-  
+
+     logDepth = log2(-mvPosition.z);
+
      vec4 dcolor0 = decompressColor(color0);
      vec4 dcolor1 = decompressColor(color1);
      vec4 dcolor2 = decompressColor(color2);
@@ -275,7 +311,7 @@
                     vec2 uuvv = vec2(1.0 - (wpos.x - bounds.x) / (bounds.z - bounds.x),
                                      (wpos.z - bounds.y) / (bounds.w - bounds.y));
 
-                    vec4 overlayColor = texture2D(sceneOverlays[i], uuvv);
+                    vec4 overlayColor = vec4(1.0, 1.0, 1.0, 1.0); //texture2D(sceneOverlays[i], uuvv);
                     out_color = mix(out_color, overlayColor.rgb, overlayColor.a * contribution);
             }
         }
@@ -349,6 +385,7 @@
 
   varying vec3 out_color;
   varying vec3 fpos;
+  varying float logDepth;
 
   void main() {
       if (circularPoints > 0) {
@@ -364,7 +401,7 @@
         // gl_FragDepthEXT = gl_FragCoord.z + 0.002*(1.0-pow(c, 1.0)) * gl_FragCoord.w;
 #endif
       }
-      gl_FragColor = vec4(out_color, 1.0);
+      gl_FragColor = vec4(out_color, logDepth);
   }")
 
 (def frag-shader-picker
@@ -415,6 +452,67 @@
    void main() {
        float s = xyz.x + xyz.y + xyz.z;
 	   gl_FragColor = encode_float(s); }")
+
+(def vertex-shader-edl
+  "precision mediump float;
+
+   const vec2 scale = vec2(0.5, 0.5);
+
+   attribute vec2 position;
+   varying vec2 texUV;
+
+   void main() {
+       texUV = position * scale + scale;
+       gl_Position = vec4(position, 0.0, 1.0);
+   }")
+
+(def frag-shader-edl
+  "precision mediump float;
+   uniform float screenWidth;
+   uniform float screenHeight;
+   uniform sampler2D colorMap;
+
+   uniform float radius;
+   uniform float edlStrength;
+
+
+   varying vec2 texUV;
+
+   float contribution(vec2 uv, float sourceDepth) {
+       float d = texture2D(colorMap, uv).a;
+       if (d != 0.0) {
+         if (sourceDepth == 0.0) return 100.0;
+         return max(0.0, sourceDepth - d);
+       }
+       return 0.0;
+   }
+
+   float response(vec2 uv, float depth, vec2 pixelSize) {
+       float sum = 0.0;
+
+       sum += contribution(uv + pixelSize * vec2(-1.0, -1.0) * radius, depth);
+       sum += contribution(uv + pixelSize * vec2( 0.0, -1.0) * radius, depth);
+       sum += contribution(uv + pixelSize * vec2( 1.0, -1.0) * radius, depth);
+       sum += contribution(uv + pixelSize * vec2(-1.0,  0.0) * radius, depth);
+       sum += contribution(uv + pixelSize * vec2( 1.0,  0.0) * radius, depth);
+       sum += contribution(uv + pixelSize * vec2(-1.0,  1.0) * radius, depth);
+       sum += contribution(uv + pixelSize * vec2( 0.0,  1.0) * radius, depth);
+       sum += contribution(uv + pixelSize * vec2( 1.0,  1.0) * radius, depth);
+
+       return sum / 8.0;
+   }
+
+   void main() {
+     vec2 screenSize = vec2(screenWidth, screenHeight);
+     vec2 pixelSize = vec2(1.0, 1.0) / screenSize;
+
+     float depth = texture2D(colorMap, texUV).a;
+     float r = response(texUV, depth, pixelSize);
+     float shade = exp(-r * 300.0 * edlStrength);
+
+	   gl_FragColor = vec4(texture2D(colorMap, texUV).rgb * shade, 1.0);
+	 }")
+
 
 (def bbox-vertex-shader
   "attribute vec3 pos; uniform vec3 offset; uniform mat4 p, v, m; void main() {

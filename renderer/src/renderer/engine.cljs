@@ -421,6 +421,7 @@
                              :width width
                              :height height
                              :gl context
+                             :edl-context (r/edl-create context width height)
                              :shader-context (shaders/create-shader-context context)
                              :picker (r/create-picker)
                              :attrib-loader (attribs/create-attribs-loader)

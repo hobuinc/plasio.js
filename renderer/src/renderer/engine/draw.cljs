@@ -27,7 +27,7 @@
       (#{:int :tex} typ)                        (ta/int32 v)
       :else (throw (js/Error. (str "Don't know how to coerce type: " typ))))))
 
-(defn- uniforms-with-override [gl shader which-map opts]
+(defn uniforms-with-override [gl shader which-map opts]
   (let [uniforms (reduce
                    (fn [m [k v]]
                      (update-in m [k]
@@ -49,7 +49,7 @@
     (assoc curr :values (coerce value (:type curr)))
     (throw (js/Error. (str "Trying to override unknown uniform: " (name key))))))
 
-(defn ^:private set-uniform
+(defn set-uniform
   ([gl-content {:keys [:values] :as uniform}]
     (set-uniform gl-content uniform values))
   ([gl-context {:keys [type transpose location]} values]
@@ -132,11 +132,55 @@
      :widths      (array)}
     segs))
 
+
+(defn draw-all-buffers--buffers-only [gl bufs shader uniforms]
+  (let [uniform-model-matrix (get-in shader [:uniforms "modelMatrix"])
+        uniform-offset (get-in shader [:uniforms "offset"])]
+    (doseq [{:keys [point-buffer transform] :as b} bufs]
+      (when point-buffer
+        (let [total-points (:total-points point-buffer)
+              stride (:point-stride point-buffer)
+              gl-buffer (:gl-buffer point-buffer)]
+          ;; override known per buffer uniforms
+          (.uniformMatrix4fv gl uniform-model-matrix false (:model-matrix transform))
+          (.uniform3fv gl uniform-offset (:offset transform))
+
+          ;; if the buffer specifies addition uniforms set them here (things like availableColors) come through
+          ;; here
+          (when-let [u (seq (:uniforms point-buffer))]
+            (doseq [[uniform-key val] u
+                    :let [uniform (get uniforms uniform-key)]
+                    :when uniform]
+              (set-uniform gl uniform val)))
+
+          (when-let [ps (:point-size point-buffer)]
+            (set-uniform gl (get uniforms :pointSize) ps))
+
+          ;; setup attributes
+          (.bindBuffer gl bo/array-buffer gl-buffer)
+          (doseq [[name offset size] (:attributes point-buffer)]
+            (if-let [loc (get-in shader [:attribs name])]
+              (doto gl
+                (.enableVertexAttribArray loc)
+                (.vertexAttribPointer loc size data-type/float false stride (* 4 offset)))
+              #_(throw (js/Error. (str "Don't know anything about attribute: " name)))))
+
+          ;; finally make the draw call
+          #_(.enable gl capability/depth-test)
+          (.drawArrays gl draw-mode/points 0 total-points)
+
+          ;; disable bound vertex array
+          (doseq [[name _ _] (:attributes point-buffer)]
+            (when-let [loc (get-in shader [:attribs name] name)]
+              (.disableVertexAttribArray gl loc))))))))
+
 (defn draw-all-buffers [gl bufs scene-overlays highlight-segments
                         shader-context
                         base-uniform-map proj mv ro width height hints
-                        rangeMins rangeMaxs draw-bbox?]
-  (let [shader (s/get-shader shader-context :renderer)
+                        rangeMins rangeMaxs
+                        shader-key
+                        draw-specs-set]
+  (let [shader (s/get-shader shader-context shader-key)
         uniforms (uniforms-with-override
                    gl shader
                    base-uniform-map
@@ -151,18 +195,15 @@
                       seq)
         ;; Set viewoprt
         _ (.viewport gl 0 0 width height)
-        _ (.useProgram gl (:shader shader))
-
-        ;; get some of the most frequently used uniforms
-        uniform-model-matrix (get-in shader [:uniforms "modelMatrix"])
-        uniform-offset (get-in shader [:uniforms "offset"])]
+        _ (.useProgram gl (:shader shader))]
 
     ;; setup all uniforms which don't change buffer to buffer
     (doseq [[_ v] uniforms]
       (set-uniform gl v))
 
     ;; if we have overlays, active texture units
-    (when overlays
+    (when (and (contains? draw-specs-set ::overlays)
+               overlays)
       ;; we have a shader limit of 8 overlays at this time
       ;; TODO, Auto Detect texture unit count
       (let [base-index 1
@@ -187,7 +228,7 @@
 
         ;; the supporting uniforms are also sort of complex to set, so lets just do that using the raw
         ;; gl api
-        (let [blend-contributions (apply array (repeat 8 1.0)bufs )
+        (let [blend-contributions (apply array (repeat 8 1.0))
               all-bounds (apply array
                                 (mapcat :bounds overlays))
               overlay-count (get-in shader [:uniforms "sceneOverlaysCount"])
@@ -197,76 +238,37 @@
           (.uniform1fv gl loc-conts (ta/float32 blend-contributions))
           (.uniform4fv gl loc-bounds (ta/float32 all-bounds)))))
 
-    (when-let [high-segs (seq highlight-segments)]
-      ;; if we have highlight segments, then we need to set the appropriate state for them
-      (let [total (count high-segs)
-            ;; convert the segments into something we can use to send down to the shader
-            segment-values (highlight-segs->shader-vals high-segs)
-            ;; get the uniform locations out
-            segment-count-loc (get-in shader [:uniforms "highlightSegmentsCount"])
-            planes-loc (get-in shader [:uniforms "segmentPlane"])
-            half-planes-loc (get-in shader [:uniforms "segmentHalfPlane"])
-            widths-loc (get-in shader [:uniforms "segmentWidths"])]
-        (.uniform1i gl segment-count-loc total)
-        (.uniform4fv gl planes-loc (ta/float32 (:planes segment-values)))
-        (.uniform4fv gl half-planes-loc (ta/float32 (:half-planes segment-values)))
-        (.uniform2fv gl widths-loc (ta/float32 (:widths segment-values)))))
+    (when (contains? draw-specs-set ::highlight-segments)
+      (when-let [high-segs (seq highlight-segments)]
+        ;; if we have highlight segments, then we need to set the appropriate state for them
+        (let [total (count high-segs)
+              ;; convert the segments into something we can use to send down to the shader
+              segment-values (highlight-segs->shader-vals high-segs)
+              ;; get the uniform locations out
+              segment-count-loc (get-in shader [:uniforms "highlightSegmentsCount"])
+              planes-loc (get-in shader [:uniforms "segmentPlane"])
+              half-planes-loc (get-in shader [:uniforms "segmentHalfPlane"])
+              widths-loc (get-in shader [:uniforms "segmentWidths"])]
+          (.uniform1i gl segment-count-loc total)
+          (.uniform4fv gl planes-loc (ta/float32 (:planes segment-values)))
+          (.uniform4fv gl half-planes-loc (ta/float32 (:half-planes segment-values)))
+          (.uniform2fv gl widths-loc (ta/float32 (:widths segment-values))))))
 
-    (println "xx" hints)
     (when (:flicker-fix hints)
       (.disable gl (.-DEPTH_TEST gl)))
 
-    (doseq [{:keys [point-buffer transform] :as b} bufs #_(sort-bufs bufs mv)]
-      ;; if we have a loaded point buffer for this buffer, lets render it, we may still want to draw
-      ;; the bbox if the point-buffer is not valid yet
-      ;;
-      (when point-buffer
-        (let [total-points (:total-points point-buffer)
-              stride (:point-stride point-buffer)
-              gl-buffer (:gl-buffer point-buffer)]
-          ;; override known per buffer uniforms
-          (.uniformMatrix4fv gl uniform-model-matrix false (:model-matrix transform))
-          (.uniform3fv       gl uniform-offset (:offset transform))
 
-          ;; if the buffer specifies addition uniforms set them here (things like availableColors) come through
-          ;; here
-          (when-let [u (seq (:uniforms point-buffer))]
-            (doseq [[uniform-key val] u
-                    :let [uniform (get uniforms uniform-key)]]
-              (set-uniform gl uniform val)))
-            
-
-          (when-let [ps (:point-size point-buffer)]
-            (set-uniform gl (get uniforms :pointSize) ps))
-
-          ;; setup attributes
-          (.bindBuffer gl bo/array-buffer gl-buffer)
-          (doseq [[name offset size] (:attributes point-buffer)]
-            (if-let [loc (get-in shader [:attribs name])]
-              (doto gl
-                (.enableVertexAttribArray loc)
-                (.vertexAttribPointer loc size data-type/float false stride (* 4 offset)))
-              #_(throw (js/Error. (str "Don't know anything about attribute: " name)))))
-
-          ;; finally make the draw call
-          #_(.enable gl capability/depth-test)
-          (.drawArrays gl draw-mode/points 0 total-points)
-
-          ;; disable bound vertex array
-          (doseq [[name _ _] (:attributes point-buffer)]
-            (when-let [loc (get-in shader [:attribs name] name)]
-              (.disableVertexAttribArray gl loc))))))
-
+    ;; render all buffers
+    (draw-all-buffers--buffers-only gl bufs shader uniforms)
 
     ;; if we were asked to draw bounding boxes, do that over the drawn area
-    (when draw-bbox?
+    (when (contains? draw-specs-set ::bbox)
       ;; render the bounding box
       (.lineWidth gl 1)
       (doseq [{:keys [point-buffer transform]} bufs]
         (when point-buffer
           (when-let [params (:bbox-params transform)]
             (let [shader (s/get-shader shader-context :bbox)]
-              (println "-- --" (:offset transform))
               (buffers/draw! gl
                              :shader (:shader shader)
                              :draw-mode draw-mode/lines

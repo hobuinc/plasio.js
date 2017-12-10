@@ -57,12 +57,20 @@
   (let [m (.-mvp gl)]
     (js/mat4.multiply m proj mv)))
 
+(defn check-extensions! [gl]
+  (let [extensions ["OES_texture_float"]]
+    (doseq [e extensions
+            :let [ext (.getExtension gl e)]]
+      (println ".. .. gl extension:" e ":" (if ext "YES" "NO")))))
+
 (defn get-gl-context [elem]
   (let [gl (context/get-context elem {:alpha false
                                       :premultiplied-alpha false})]
     (set! (.-proj gl) (js/Array 16))
     (set! (.-mv gl) (js/Array 16))
     (set! (.-mvp gl) (js/Array 16))
+
+    (check-extensions! gl)
     gl))
 
 (defn typed-array? [v]
@@ -147,6 +155,27 @@
       (uniform :zrange :vec2 [0 1])
       (uniform :offset :vec3 [0 0 0])
       (uniform :which :vec3 [0 0 0])))
+
+(def ^:private edl-uniform-map
+  (-> {}
+      (uniform :projectionMatrix :mat4 identity-matrix)
+      (uniform :modelViewMatrix :mat4 identity-matrix)
+      (uniform :modelMatrix :mat4 identity-matrix)
+      (uniform :pointSize :float 1.0)
+      (uniform :xyzScale :vec3 [1 1 1])
+      (uniform :offset :vec3 [0 0 0])))
+
+(def ^:private edl-debug-uniform-map
+  (-> {}
+      (uniform :projectionMatrix :mat4 identity-matrix)
+      (uniform :modelViewMatrix :mat4 identity-matrix)
+      (uniform :modelMatrix :mat4 identity-matrix)
+      (uniform :pointSize :float 1.0)
+      (uniform :screenWidth :float 1.0)
+      (uniform :screenHeight :float 1.0)
+      (uniform :xyzScale :vec3 [1 1 1])
+      (uniform :edlMap :int nil)
+      (uniform :offset :vec3 [0 0 0])))
 
 (defn- uniforms-with-override [which-map opts]
   (reduce (fn [m [k v]]
@@ -276,6 +305,11 @@
         [0 1]))
     [0 1]))
 
+
+(declare edl-enable!)
+(declare edl-disable!)
+(declare edl-post-pass)
+
 (defn render-state
   "Render the state in its current form"
   [{:keys [source-state local-state gl shader-context] :as state}]
@@ -301,17 +335,28 @@
         rangeMins [0 (zrange 0) (irange 0) 0]
         rangeMaxs [255 (zrange 1) (irange 1) 0]
 
-        visibility (:resource-visibility source-state)]
+        visibility (:resource-visibility source-state)
+        edl? (:edl ro)
+
+        ;; render options are not directly tranferable to shader parameters anymore, certain render options
+        ;; like EDL work at a higher level than shaders
+        cleaned-up-ro (dissoc ro :edl :edlStrength :edlRadius)]
+
+    ; update any buffers that need to be, the outside world can request a refresh of
+    ; a resource
+    (attribs/check-rereify-all aloader gl)
+
+
+    (when edl?
+      ;; if EDL is requested, enable EDL pre-pass which collects view to a render buffer
+      (edl-enable! state))
+
     ; clear buffer
     (apply buffers/clear-color-buffer gl (concat (:clear-color dp) [1.0]))
     (buffers/clear-depth-buffer gl 1.0)
 
     (.enable gl (.-DEPTH_TEST gl))
     (.depthMask gl true)
-
-    ; update any buffers that need to be, the outside world can request a refresh of
-    ; a resource
-    (attribs/check-rereify-all aloader gl)
 
     ; draw all loaded buffers
     (let [buffers-to-draw (sequence
@@ -323,8 +368,6 @@
                                             (get-in % [:point-buffer :key])
                                             true)))
                             (vals (:point-buffers state)))]
-      #_(println (count buffers-to-draw) "/" (count (:point-buffers state)))
-
       (draw/draw-all-buffers gl buffers-to-draw
                              (-> (:scene-overlays state)
                                  vals)
@@ -332,10 +375,11 @@
                                  vals)
                              shader-context
                              uniform-map
-                             proj mv ro width height
+                             proj mv cleaned-up-ro width height
                              hints
                              rangeMins rangeMaxs
-                             false))
+                             :renderer
+                             #{::draw/overlays ::draw/highlight-segments}))
 
     ;; if there are any planes to be drawn, draw them here
     ;;
@@ -402,6 +446,13 @@
                                  (get textures st (:normal textures))
                                  x y 20 20 width height)))))
 
+    (when edl?
+      ;; stop EDL phase capture if it was enabled
+      (edl-disable! state)
+
+      ;; finally render the edl post processed
+      (edl-post-pass state))
+
     ; if there are any post render callback, call that
     (doseq [cb (:post-render state)]
       (cb gl mvp mv proj))))
@@ -414,44 +465,47 @@
     (.deleteRenderbuffer gl (:db b))
     (.deleteTexture gl (:rt b))))
 
-(defn- create-fb-buffer [gl width height]
-  ;; create a frame buffer and set its size
-  (let [fb (.createFramebuffer gl)
-        rt (.createTexture gl)
-        rb (.createRenderbuffer gl)]
-    ;; bind framebuffer and set its size
-    (.bindFramebuffer gl fbo/framebuffer fb)
-    (set! (.-width fb) width)
-    (set! (.-height fb) height)
+(defn- create-fb-buffer
+  ([gl width height]
+    (create-fb-buffer gl width height dt/unsigned-byte))
+  ([gl width height data-type]
+    ;; create a frame buffer and set its size
+   (let [fb (.createFramebuffer gl)
+         rt (.createTexture gl)
+         rb (.createRenderbuffer gl)]
+     ;; bind framebuffer and set its size
+     (.bindFramebuffer gl fbo/framebuffer fb)
+     (set! (.-width fb) width)
+     (set! (.-height fb) height)
 
-    ;; bind texture and set its size, also have it initialize itself
-    (.bindTexture gl texture-target/texture-2d rt)
-    (.texParameteri gl texture-target/texture-2d tpn/texture-mag-filter tf/nearest) 
-    (.texParameteri gl texture-target/texture-2d tpn/texture-min-filter tf/nearest)
-    (.texParameteri gl texture-target/texture-2d tpn/texture-wrap-s twm/clamp-to-edge)
-    (.texParameteri gl texture-target/texture-2d tpn/texture-wrap-t twm/clamp-to-edge)
-    (.texImage2D gl
-                 texture-target/texture-2d 0 pf/rgba
-                 width height
-                 0 pf/rgba dt/unsigned-byte nil)
+     ;; bind texture and set its size, also have it initialize itself
+     (.bindTexture gl texture-target/texture-2d rt)
+     (.texParameteri gl texture-target/texture-2d tpn/texture-mag-filter tf/nearest)
+     (.texParameteri gl texture-target/texture-2d tpn/texture-min-filter tf/nearest)
+     (.texParameteri gl texture-target/texture-2d tpn/texture-wrap-s twm/clamp-to-edge)
+     (.texParameteri gl texture-target/texture-2d tpn/texture-wrap-t twm/clamp-to-edge)
+     (.texImage2D gl
+                  texture-target/texture-2d 0 pf/rgba
+                  width height
+                  0 pf/rgba data-type nil)
 
-    ;; bind render buffer
-    (.bindRenderbuffer gl fbo/renderbuffer rb)
-    (.renderbufferStorage gl
-                          fbo/renderbuffer
-                          fbo/depth-component16
-                          width height)
+     ;; bind render buffer
+     (.bindRenderbuffer gl fbo/renderbuffer rb)
+     (.renderbufferStorage gl
+                           fbo/renderbuffer
+                           fbo/depth-component16
+                           width height)
 
-    ;; set buffers for framebuffer
-    (.framebufferTexture2D gl fbo/framebuffer fbo/color-attachment0 texture-target/texture-2d rt 0)
-    (.framebufferRenderbuffer gl fbo/framebuffer fbo/depth-attachment fbo/renderbuffer rb)
+     ;; set buffers for framebuffer
+     (.framebufferTexture2D gl fbo/framebuffer fbo/color-attachment0 texture-target/texture-2d rt 0)
+     (.framebufferRenderbuffer gl fbo/framebuffer fbo/depth-attachment fbo/renderbuffer rb)
 
-    ;; All bindings done, unbind everything to restore state
-    (.bindTexture gl texture-target/texture-2d nil)
-    (.bindRenderbuffer gl fbo/renderbuffer nil)
-    (.bindFramebuffer gl fbo/framebuffer nil)
+     ;; All bindings done, unbind everything to restore state
+     (.bindTexture gl texture-target/texture-2d nil)
+     (.bindRenderbuffer gl fbo/renderbuffer nil)
+     (.bindFramebuffer gl fbo/framebuffer nil)
 
-    {:fb fb :rt rt :dp rb}))
+     {:fb fb :rt rt :dp rb :width width :height height})))
 
 (defn- create-pick-buffers
   "Create the 3 render buffers needed to pick points"
@@ -614,3 +668,87 @@
 
 (defn create-picker []
   (PointPicker. (atom {})))
+
+(defn- edl-downsize [width height]
+  #_[(js/Math.floor (* 0.5 width))
+   (js/Math.floor (* 0.5 height))]
+  [width height])
+
+(defn edl-create [gl width height]
+  (let [[w h] (edl-downsize width height)]
+    {:state (atom {:render-target (create-fb-buffer gl w h dt/float)})}))
+
+(defn edl-update! [edl-context gl width height]
+  (let [[w h] (edl-downsize width height)
+        render-target (:render-target @(:state edl-context))]
+    (when (or (not= (:width render-target) w)
+              (not= (:height render-target) h))
+      (let [new-render-target (create-fb-buffer gl w h dt/float)]
+        (swap! (:state edl-context)
+               assoc :render-target new-render-target)
+        (release-pick-buffers gl [render-target])))))
+
+(defn edl-enable!
+  "Enable the EDL rendering, basically binds a framebuffer to render off screen instead of rendering to
+   screen directly"
+  [{:keys [:gl :edl-context] :as state}]
+  (let [render-target (-> @(:state edl-context) :render-target)
+        [width height] (render-view-size state)]
+    (edl-update! edl-context gl width height)
+    (.bindFramebuffer gl fbo/framebuffer (:fb render-target))))
+
+(defn edl-disable!
+  "Unbinds EDL framebuffer"
+  [{:keys [:gl] :as state}]
+  (.bindFramebuffer gl fbo/framebuffer nil))
+
+(defn update-edl-point-buffer! [gl edl-state width height]
+  (let [state @(:state edl-state)
+        quad (:quad state)]
+    (when-not quad
+      (let [data (js/Float32Array.
+                   [1.0, 1.0,
+                    -1.0, 1.0,
+                    -1.0, -1.0,
+                    -1.0, -1.0,
+                    1.0, -1.0,
+                    1.0, 1.0])
+            buffer (buffers/create-buffer gl data
+                                          buffer-object/array-buffer buffer-object/static-draw)]
+        (swap! (:state edl-state)
+               assoc :quad buffer)))))
+
+(defn edl-post-pass
+  "Uses the EDL render target as texture to draw a full screen quad while
+  running stuff through EDL shaders"
+  [{:keys [:gl :edl-context :shader-context :source-state] :as state}]
+  (let [[width height] (render-view-size state)
+        shader (s/get-shader shader-context :edl)
+        position (get-in shader [:uniforms :position])
+
+        _ (update-edl-point-buffer! gl edl-context width height)
+
+        edl-state @(:state edl-context)
+        ro (-> source-state :display :render-options)]
+
+    (buffers/clear-color-buffer gl 0.0 0.0 0.0 0.0)
+    (buffers/clear-depth-buffer gl 0.0)
+    (buffers/draw! gl
+                   :shader (:shader shader)
+                   :draw-mode draw-mode/triangles
+                   :viewport {:x 0 :y 0 :width width :height height}
+                   :first 0
+                   :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
+                   :count 6
+                   :textures [{:name "colorMap"
+                               :texture (-> edl-state :render-target :rt)
+                               :texture-unit 0}]
+                   :attributes [{:location position
+                                 :components-per-vertex 2
+                                 :type data-type/float
+                                 :stride 0
+                                 :buffer (:quad edl-state)}]
+                   :uniforms [{:name "screenWidth" :type :float :values (array width)}
+                              {:name "edlStrength" :type :float :values (array (:edlStrength ro 1.0))}
+                              {:name "radius" :type :float :values (array (:edlRadius ro 1.0))}
+                              {:name "screenHeight" :type :float :values (array height)}])))
