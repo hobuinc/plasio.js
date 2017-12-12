@@ -176,24 +176,21 @@
 
 (defn draw-all-buffers [gl bufs scene-overlays highlight-segments
                         shader-context
-                        base-uniform-map proj mv ro width height hints
-                        rangeMins rangeMaxs
+                        base-uniform-map
+                        override-uniform-map
+                        width height proj mv
+                        hints
                         shader-key
                         draw-specs-set]
   (let [shader (s/get-shader shader-context shader-key)
         uniforms (uniforms-with-override
                    gl shader
                    base-uniform-map
-                   (assoc ro
-                     :screen [width height]
-                     :projectionMatrix proj
-                     :modelViewMatrix  mv
-                     :sourceClampsLow rangeMins
-                     :sourceClampsHigh rangeMaxs))
+                   override-uniform-map)
         overlays (->> scene-overlays
                       (take 8)
                       seq)
-        ;; Set viewoprt
+        ;; Set viewport
         _ (.viewport gl 0 0 width height)
         _ (.useProgram gl (:shader shader))]
 

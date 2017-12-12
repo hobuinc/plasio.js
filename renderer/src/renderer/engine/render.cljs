@@ -152,29 +152,6 @@
       (uniform :modelMatrix :mat4 identity-matrix)
       (uniform :pointSize :float 1.0)
       (uniform :xyzScale :vec3 [1 1 1])
-      (uniform :zrange :vec2 [0 1])
-      (uniform :offset :vec3 [0 0 0])
-      (uniform :which :vec3 [0 0 0])))
-
-(def ^:private edl-uniform-map
-  (-> {}
-      (uniform :projectionMatrix :mat4 identity-matrix)
-      (uniform :modelViewMatrix :mat4 identity-matrix)
-      (uniform :modelMatrix :mat4 identity-matrix)
-      (uniform :pointSize :float 1.0)
-      (uniform :xyzScale :vec3 [1 1 1])
-      (uniform :offset :vec3 [0 0 0])))
-
-(def ^:private edl-debug-uniform-map
-  (-> {}
-      (uniform :projectionMatrix :mat4 identity-matrix)
-      (uniform :modelViewMatrix :mat4 identity-matrix)
-      (uniform :modelMatrix :mat4 identity-matrix)
-      (uniform :pointSize :float 1.0)
-      (uniform :screenWidth :float 1.0)
-      (uniform :screenHeight :float 1.0)
-      (uniform :xyzScale :vec3 [1 1 1])
-      (uniform :edlMap :int nil)
       (uniform :offset :vec3 [0 0 0])))
 
 (defn- uniforms-with-override [which-map opts]
@@ -367,7 +344,13 @@
                               (filter #(get visibility
                                             (get-in % [:point-buffer :key])
                                             true)))
-                            (vals (:point-buffers state)))]
+                            (vals (:point-buffers state)))
+          uniform-overrides (assoc cleaned-up-ro
+                              :screen [width height]
+                              :projectionMatrix proj
+                              :modelViewMatrix  mv
+                              :sourceClampsLow rangeMins
+                              :sourceClampsHigh rangeMaxs)]
       (draw/draw-all-buffers gl buffers-to-draw
                              (-> (:scene-overlays state)
                                  vals)
@@ -375,9 +358,9 @@
                                  vals)
                              shader-context
                              uniform-map
-                             proj mv cleaned-up-ro width height
-                             hints
-                             rangeMins rangeMaxs
+                             uniform-overrides
+                             width height proj mv
+                             nil
                              :renderer
                              #{::draw/overlays ::draw/highlight-segments}))
 
@@ -507,15 +490,13 @@
 
      {:fb fb :rt rt :dp rb :width width :height height})))
 
-(defn- create-pick-buffers
-  "Create the 3 render buffers needed to pick points"
+(defn- create-pick-buffer
+  "Create the render buffer needed to pick points, we can use only a single buffer since we don't need 3 buffers for floating point support"
   [gl width height]
-  {:x (create-fb-buffer gl width height)
-   :y (create-fb-buffer gl width height)
-   :z (create-fb-buffer gl width height)})
+  (create-fb-buffer gl width height data-type/float))
 
 
-(defn- draw-picker [{:keys [source-state] :as state} shader target which]
+(defn- draw-picker [{:keys [source-state shader-context] :as state} shader target center-x center-y]
   (let [gl (:gl state)
         aloader (:attrib-loader state)
         [width height] (render-view-size state)
@@ -526,17 +507,45 @@
         tar (or (:target vw) [0 0 0])
         proj (projection-matrix gl cam width height)
         mv   (mv-matrix gl eye tar)
+
+        visibility (:resource-visibility source-state)
+
         ro (-> (:render-options dp)     ; picker rendering options don't need a ton of options
-               (select-keys [:xyzScale :zrange :offset])
+               (select-keys [:xyzScale :offset])
                (assoc :pointSize 10
-                      :which which))]
+                      :projectionMatrix proj
+                      :modelViewMatrix mv))]
     ;; render to the provided target framebuffer
     (.bindFramebuffer gl fbo/framebuffer (:fb target))
 
     (buffers/clear-color-buffer gl 0.0 0.0 0.0 0.0)
     (buffers/clear-depth-buffer gl 1.0)
 
-    (doseq [{:keys [attribs-id]} (vals (:point-buffers state))]
+    (.enable gl (.-SCISSOR_TEST gl))
+    (.scissor gl (- center-x 4) (- center-y 4)
+              8 8)
+
+    (let [buffers-to-draw (sequence
+                            (comp
+                              (map :attribs-id)
+                              (keep (partial attribs/attribs-in aloader))
+                              (filter #(get-in % [:point-buffer :gl-buffer]))
+                              (filter #(get visibility
+                                            (get-in % [:point-buffer :key])
+                                            true)))
+                            (vals (:point-buffers state)))]
+      (draw/draw-all-buffers gl buffers-to-draw nil nil
+                             shader-context
+                             picker-uniform-map
+                             ro
+                             width height proj mv
+                             nil
+                             :picker
+                             #{}))
+
+    (.disable gl (.-SCISSOR_TEST gl))
+
+    #_(doseq [{:keys [attribs-id]} (vals (:point-buffers state))]
       (when-let [buffer (attribs/attribs-in aloader attribs-id)]
         (draw-buffer-for-picking gl buffer shader
                                  picker-uniform-map
@@ -545,18 +554,23 @@
     ;; unbind framebuffer
     (.bindFramebuffer gl fbo/framebuffer nil)))
 
+(defn data-type->buffer [data-type size-or-buffer]
+  (if (= data-type dt/float)
+    (js/Float32Array. size-or-buffer)
+    (js/Uint8Array. size-or-buffer)))
+
 (defn- read-pixels
-  ([gl target x y]
-   (read-pixels gl target x y 1 1))
+  ([gl target x y data-type]
+   (read-pixels gl target x y 1 1 data-type))
 
-  ([gl target x y width height]
-   (let [buf (js/Uint8Array. (* 4 width height))]
-     (read-pixels gl target x y width height (.-buffer buf))))
+  ([gl target x y width height dt]
+   (let [buf (data-type->buffer dt (* 4 width height))]
+     (read-pixels gl target x y width height dt (.-buffer buf))))
 
-  ([gl target x y width height buffer]
-   (let [buf (js/Uint8Array. buffer)]
+  ([gl target x y width height dt buffer]
+   (let [buf (data-type->buffer dt buffer)]
      (.bindFramebuffer gl fbo/framebuffer (:fb target))
-     (.readPixels gl x y width height pf/rgba dt/unsigned-byte buf)
+     (.readPixels gl x y width height pf/rgba dt buf)
      (.bindFramebuffer gl fbo/framebuffer nil)
 
      (js/Float32Array. buffer))))
@@ -598,7 +612,7 @@
 
     (.bindFramebuffer gl fbo/framebuffer nil)
 
-    (let [pxs (read-pixels gl target-buffer 0 0 res res)]
+    (let [pxs (read-pixels gl target-buffer 0 0 res res dt/unsigned-byte)]
       (release-pick-buffers gl [target-buffer])
       pxs)))
 
@@ -633,37 +647,40 @@
         ;;
         (when (or (not= w (:width @picker-state))
                   (not= h (:height @picker-state)))
-          ;; the size of the view changed on us, re-create the buffers
-          (release-pick-buffers gl (select-keys @picker-state [:x :y :z]))
-          (let [bufs (create-pick-buffers gl w h)
+          ;; the size of the view changed on us, re-create the buffer
+          ;; uv(2017-12-12) we no longer need 3 separate buffers because we rely on floating point textures
+          ;;
+          (release-pick-buffers gl (:buf @picker-state))
+          (let [buf (create-pick-buffer gl w h)
                 read-buffer-size (* 4 w h)]
             (swap! picker-state assoc
                    :width w
                    :height h
-                   :rx (js/Float32Array. read-buffer-size)
-                   :ry (js/Float32Array. read-buffer-size)
-                   :rz (js/Float32Array. read-buffer-size)
-                   :x (:x bufs)
-                   :y (:y bufs)
-                   :z (:z bufs))))
-        ;; now go ahead and render the three buffers and read the point
+                   :rbuf (js/Float32Array. read-buffer-size)
+                   :buf buf)))
+        ;; now go ahead and render the point cloud onto the buffer and then read it out
         (let [shader (s/get-shader shader-context :picker)]
-          (draw-picker state shader (:x @picker-state) [1 0 0])
-          (draw-picker state shader (:y @picker-state) [0 1 0])
-          (draw-picker state shader (:z @picker-state) [0 0 1])
-
-          ;; read all textures unti our buffers
-          (read-pixels gl (:x @picker-state) 0 0 w h (.-buffer (:rx @picker-state)))
-          (read-pixels gl (:y @picker-state) 0 0 w h (.-buffer (:ry @picker-state)))
-          (read-pixels gl (:z @picker-state) 0 0 w h (.-buffer (:rz @picker-state))))) 
+          (draw-picker state shader (:buf @picker-state) client-x (- h client-y))
+          ;; uv(2017-12-12) don't try to read the whole buffer in one go since it causes major delay
+          ;; instead only read the part of the framebuffer which needs to be for current click
+          #_(read-pixels gl (:buf @picker-state) 0 0 w h dt/float (.-buffer (:rbuf @picker-state)))))
 
       ;; finally read from all three buffers
+      #_(let [x client-x
+            y (- h client-y)
+            off (+ (* 4 x) (* y (* w 4)))
+            buf (:rbuf @picker-state)]
+        [(aget buf (+ off 0))
+         (aget buf (+ off 1))
+         (aget buf (+ off 2))])
       (let [x client-x
             y (- h client-y)
-            off (+ x (* y w))
-            rp (fn [k]
-                 (aget (k @picker-state) off))]
-        [(rp :rx) (rp :ry) (rp :rz)]))))
+            buf (read-pixels gl (:buf @picker-state)
+                             x y 1 1
+                             dt/float)]
+        [(aget buf 0)
+         (aget buf 1)
+         (aget buf 2)]))))
 
 
 (defn create-picker []
@@ -740,8 +757,8 @@
                    :first 0
                    :blend-func [[bf/one bf/zero]] ; no contribution from what we have on screen, blindly color this
                    :count 6
-                   :textures [{:name "colorMap"
-                               :texture (-> edl-state :render-target :rt)
+                   :textures [{:name         "colorMap"
+                               :texture      (-> edl-state :render-target :rt)
                                :texture-unit 0}]
                    :attributes [{:location position
                                  :components-per-vertex 2
