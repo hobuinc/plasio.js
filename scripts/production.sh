@@ -30,6 +30,11 @@ cp -v \
     $TARGETDIR
 
 cp -v lib/dist/plasio.js $TARGETDIR/
+cp -v lib/dist/plasio.webworker.js $TARGETDIR/
+cp -v lib/lib/vendor/laz-perf.asm.js $TARGETDIR/
+cp -v lib/lib/vendor/laz-perf.asm.js.mem $TARGETDIR/
+cp -v lib/lib/vendor/laz-perf.js $TARGETDIR/
+cp -v lib/lib/vendor/laz-perf.wasm $TARGETDIR/
 
 echo " :: Cleaning up ..."
 cd renderer && lein clean && cd ..

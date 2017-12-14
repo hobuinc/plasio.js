@@ -6,7 +6,7 @@ PWD=`pwd`
 
 # move vendor stuff to dist
 mkdir -p lib/dist
-cp vendor/laz-perf.js lib/dist/
+cp lib/lib/vendor/* lib/dist/
 
 cd lib && npm install && cd ..
 

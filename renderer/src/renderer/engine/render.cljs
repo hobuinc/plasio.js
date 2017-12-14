@@ -534,6 +534,7 @@
                                             (get-in % [:point-buffer :key])
                                             true)))
                             (vals (:point-buffers state)))]
+      (println "-- -- picker, to draw:" (count buffers-to-draw))
       (draw/draw-all-buffers gl buffers-to-draw nil nil
                              shader-context
                              picker-uniform-map
