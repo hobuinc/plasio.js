@@ -31,6 +31,7 @@ cp -v \
 
 cp -v lib/dist/plasio.js $TARGETDIR/
 cp -v lib/dist/plasio.webworker.js $TARGETDIR/
+cp -v lib/dist/plasio.color.webworker.js $TARGETDIR/
 cp -v lib/lib/vendor/laz-perf.asm.js $TARGETDIR/
 cp -v lib/lib/vendor/laz-perf.asm.js.mem $TARGETDIR/
 cp -v lib/lib/vendor/laz-perf.js $TARGETDIR/

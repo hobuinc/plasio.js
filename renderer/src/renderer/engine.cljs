@@ -67,17 +67,17 @@
   (remove-overlay [this id])
   (get-loaded-buffers [this])
   (add-stats-listener [this which key f])
-  (remove-stats-listener [this which key]))
+  (remove-stats-listener [this which key])
+  (quick-add-point-buffer [this id load-params])
+  (quick-remove-point-buffer [this id]))
 
 
 (defn- changes
   "Given a list of keys and a map where some of those keys may be in use, return the list
   of keys which are not in the map, and the list of VALUES for keys no longer in map"
   ([ks obj]
-   (changes ks obj identity))
-  ([ks obj hash-fn]
-   (let [k        (set (map hash-fn ks))
-         obj-keys (set (keys obj))
+   (let [k (set ks)
+         obj-keys (time (set (keys obj)))
          new-keys (set/difference k obj-keys)
          del-keys (set/difference obj-keys k)
          unchanged (set/intersection k obj-keys)]
@@ -93,12 +93,12 @@
     (println "Unchanged:")
     (doall (map (partial pid "~") unchanged (range)))))
 
-(defn- add-remove
+(defn- add-remove-old
   "Given a seq of new objects, current state where the new objects eventually end up, a hash function, this function
   calls back the create and destroy functions and finally returns a new object which has the new objects added and removed"
-  ([in-ks out-obj create-fn destroy-fn hash-fn]
-     (let [[added-keys removed-keys unchanged-keys] (changes in-ks out-obj hash-fn)
-           added-map   (into {} (for [k in-ks] [(hash-fn k) k]))
+  ([in-ks out-obj create-fn destroy-fn]
+     (let [[added-keys removed-keys unchanged-keys] (changes in-ks out-obj)
+           added-map   (into {} (for [k in-ks] [k k]))
            added-objects   (select-keys added-map added-keys)
            removed-objects (select-keys out-obj removed-keys)]
 
@@ -115,10 +115,29 @@
              cleaned (apply dissoc out-obj removed-keys)
              ;; make sure when you call update, you give it the new input data
              ret (merge cleaned rn)]
-         ret)))
+         ret))))
 
-  ([in-ks out-obj create-fn destroy-fn]
-   (add-remove in-ks out-obj create-fn destroy-fn identity)))
+(defn add-remove
+  [in-ks out-obj create-fn destroy-fn]
+  (time
+    (let [in-key-set (set in-ks)
+          removed-keys (persistent!
+                         (reduce (fn [removed [k v]]
+                                   (if-not (contains? in-key-set k)
+                                     (do
+                                       (destroy-fn v)
+                                       (conj! removed k))
+                                     removed))
+                                 (transient []) out-obj))
+          new-obj (persistent!
+                    (reduce (fn [obj k]
+                              (if-not (contains? out-obj k)
+                                (assoc! obj k (create-fn k))
+                                obj))
+                            (dissoc! (transient out-obj)
+                                     removed-keys)
+                            in-ks))]
+      new-obj)))
 
 (defn- add-model [cursor cache scene uri pos]
   (transact! cursor []
@@ -449,7 +468,7 @@
            (let [cursor (StateCursor. run-state [] new-state)]
              ;; if buffers changed, update them, remember to pass the load params
              ;; as well
-             (when-not (identical? (:point-buffers old-state) (:point-buffers new-state))
+             #_(when-not (identical? (:point-buffers old-state) (:point-buffers new-state))
                (update-point-buffers (sub-cursor cursor [:point-buffers])
                                      (:point-buffers new-state)
                                      (:point-buffer-load-params new-state)))
@@ -465,6 +484,7 @@
                (update-line-strips (sub-cursor cursor [:line-strips])
                                    (:line-strips new-state)
                                    (:points new-state)))
+
 
              ;; something still changed, so we need to make sure that renderer is updated, we do this
              ;; by increasing our render count
@@ -593,7 +613,33 @@
     (let [rs @(:run-state @state)
           stats-collector (:stats-collector rs)]
       (when-let [s (get stats-collector (keyword which))]
-        (stats/unlisten! s key)))))
+        (stats/unlisten! s key))))
+
+  (quick-add-point-buffer [_ buffer-id load-params]
+    (let [run-state (-> state deref :run-state)
+          gl (:gl @run-state)
+          stats (:stats-collector @run-state)
+          attrib-loader (:attrib-loader @run-state)
+          all-loaders (:loaders @run-state)
+
+          decoded-id (util/decode-id buffer-id)]
+      (swap! run-state assoc-in [:point-buffers buffer-id] {:visible true})
+      (go (let [loaded-info (<! (load-buffer-components all-loaders decoded-id load-params))]
+            (when (-> @run-state :point-buffers (get buffer-id))
+              (update-stats! stats buffer-id loaded-info)
+              (let [attribs-id (attribs/reify-attribs attrib-loader gl loaded-info)]
+                (swap! run-state update-in [:point-buffers buffer-id]
+                       #(assoc % :attribs-id attribs-id))))))))
+  (quick-remove-point-buffer [_ id]
+    (let [run-state (-> state deref :run-state)
+          gl (:gl @run-state)
+          attrib-loader (:attrib-loader @run-state)
+
+          buf (get-in @run-state [:point-buffers id])]
+      (go (when-let [aid (:attribs-id buf)]
+            (attribs/unreify-attribs attrib-loader gl aid)))
+      (swap! run-state update-in [:run-state :point-buffers] dissoc id)))
+  )
 
 
 (defn make-engine

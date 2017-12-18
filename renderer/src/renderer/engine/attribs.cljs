@@ -41,7 +41,7 @@
      :source       {:data (aget props "data")}
      :gl-buffer    (when-not (zero? total-points)
                      (buffers/create-buffer *gl-context*
-                                           (aget props "data")
+                                           (aget props "data" "buf")
                                            buffer-object/array-buffer
                                            buffer-object/static-draw))}))
 
@@ -104,7 +104,7 @@
 
 (defmethod rereify-attrib :point-buffer [[_ buf]]
   (let [source (get-in buf [:source :data])
-        needs-update? (when source (.-update source))]
+        needs-update? (when source (aget source "update"))]
     (if needs-update?
       (do
         (aset source "update" false)
@@ -112,7 +112,7 @@
                 (fn [b]
                   (.deleteBuffer *gl-context* b)
                   (buffers/create-buffer *gl-context*
-                                         source
+                                         (aget source "buf")
                                          buffer-object/array-buffer
                                          buffer-object/static-draw))))
       buf)))

@@ -134,12 +134,15 @@
       (swap! state
              #(-> %
                   (update :point-buffers conj encoded-id)
-                  (assoc-in [:point-buffer-load-params encoded-id] load-params)))))
+                  (assoc-in [:point-buffer-load-params encoded-id] load-params)))
+      (r/quick-add-point-buffer @render-engine encoded-id load-params)))
 
   (remove-point-buffer [this id]
-    (swap! state update-in [:point-buffers]
-           (fn [bufs]
-             (remove #{(ru/encode-id id)} bufs))))
+    (let [encoded-id (ru/encode-id id)]
+      (swap! state update-in [:point-buffers]
+             (fn [bufs]
+               (remove #{encoded-id} bufs)))
+      (r/quick-remove-point-buffer @render-engine encoded-id)))
 
   (add-loader [this loader]
     (r/add-loader @render-engine loader))
