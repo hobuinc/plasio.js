@@ -336,15 +336,15 @@
     (.depthMask gl true)
 
     ; draw all loaded buffers
-    (let [buffers-to-draw (vec (sequence
-                                 (comp
-                                   (map :attribs-id)
-                                   (keep (partial attribs/attribs-in aloader))
-                                   (filter #(get-in % [:point-buffer :gl-buffer]))
-                                   (filter #(get visibility
-                                                 (get-in % [:point-buffer :key])
-                                                 true)))
-                                 (vals (:point-buffers state))))
+    (let [buffers-to-draw (sequence
+                            (comp
+                              (map :attribs-id)
+                              (keep (partial attribs/attribs-in aloader))
+                              (filter #(get-in % [:point-buffer :gl-buffer]))
+                              (filter #(get visibility
+                                            (get-in % [:point-buffer :key])
+                                            true)))
+                            (vals (:point-buffers state)))
           uniform-overrides (assoc cleaned-up-ro
                               :screen [width height]
                               :projectionMatrix proj
@@ -534,6 +534,7 @@
                                             (get-in % [:point-buffer :key])
                                             true)))
                             (vals (:point-buffers state)))]
+      (js/console.log (vec buffers-to-draw))
       (println "-- -- picker, to draw:" (count buffers-to-draw))
       (draw/draw-all-buffers gl buffers-to-draw nil nil
                              shader-context

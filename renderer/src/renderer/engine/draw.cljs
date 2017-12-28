@@ -79,44 +79,6 @@
        nil))))
 
 
-(defn size-f [mins maxs]
-  (let [x1 (aget mins 0)
-        x2 (aget maxs 0)
-        y1 (aget mins 1)
-        y2 (aget maxs 1)
-        z1 (aget mins 2)
-        z2 (aget maxs 2)]
-    (+
-      (* (- x1 x2) (- x1 x2))
-      (* (- y1 y2) (- y1 y2))
-      (* (- z1 z2) (- z1 z2)))))
-
-(defn sort-bufs [bufs mv]
-  ;; the buffers need to be sorted based on distance from eye
-  ;;
-  (let [tmp (js/vec4.create)]
-    (sort-by
-      (fn [{:keys [transform]}]
-        (let [position (get-in transform [:source :position])
-              pos (js/vec3.transformMat4 tmp position mv)]
-          ;; our key-fn weighs priority based on how big something is, if its small
-          ;; it needs to be renderered last
-          (/ (- (aget pos 2))
-             (size-f (:mins transform) (:maxs transform)))))
-      bufs)))
-
-
-#_(let [frustum-buffer (atom nil)
-      point-buffer (js/Float32Array. 15)                    ;; a triangle fan, originating at our eye and going
-      ]
-  (defn update-get-frustum-geometry [gl-context proj mv]
-    (let [buffer (or @frustum-buffer
-                     (reset! frustum-buffer (.createBuffer gl-context)))]
-
-      )
-    ))
-
-
 (defn highlight-segs->shader-vals [segs]
   ;; given segs as collection of maps with :start, :end and :width, returns a construct
   ;; ready for GPU
@@ -132,11 +94,24 @@
      :widths      (array)}
     segs))
 
+(defn with-point-limit [seq-of-bufs points-limit]
+  (letfn [(do-next [bufs rendered-so-far]
+            (let [buf (first bufs)
+                  point-count (-> buf :point-buffer :total-points)]
+              (lazy-seq
+                (when (and buf
+                           (< (+ rendered-so-far point-count) points-limit))
+                  (cons buf
+                        (do-next (next bufs) (+ rendered-so-far point-count)))))))]
+    (do-next seq-of-bufs 0)))
+
 
 (defn draw-all-buffers--buffers-only [gl bufs shader uniforms]
   (let [uniform-model-matrix (get-in shader [:uniforms "modelMatrix"])
         uniform-offset (get-in shader [:uniforms "offset"])]
-    (doseq [{:keys [point-buffer transform] :as b} bufs]
+    (doseq [{:keys [point-buffer transform] :as b} bufs #_(with-point-limit
+                                                     (sort-by #(-> % :point-buffer :display-importance) > bufs)
+                                                     1000000)]
       (when point-buffer
         (let [total-points (:total-points point-buffer)
               stride (:point-stride point-buffer)

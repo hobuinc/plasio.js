@@ -35,6 +35,7 @@
   (let [total-points (aget props "totalPoints")]
     {:key          (aget props "key")
      :point-stride (aget props "pointStride")
+     :display-importance (aget props "displayImportance")
      :total-points total-points
      :attributes   (js->clj (aget props "attributes"))
      :uniforms     (coerce-uniforms (aget props "uniforms"))
@@ -163,9 +164,10 @@
     (binding [*gl-context* context]
       (swap! state
              (fn [s]
-               (into {}
-                     (for [[k v] s]
-                       [k (u/map-vals #(rereify-attrib %) v)]))))))
+               (u/map-vals
+                 (fn [[_ v]]
+                   (u/map-vals #(rereify-attrib %) v))
+                 s)))))
 
   (unreify-attribs [_ context id]
     (binding [*gl-context* context]

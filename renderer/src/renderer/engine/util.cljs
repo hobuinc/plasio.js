@@ -67,8 +67,11 @@
 (defn- map-vals
   "Map values for the given map using f"
   [f m]
-  (into {} (for [[k v] m]
-             [k (f [k v])])))
+  (persistent!
+    (reduce (fn [m v]
+              (assoc! m (first v) (f v)))
+            (transient {})
+            m)))
 
 (defn release-line-buffer [gl buffer]
   (.deleteBuffer gl buffer))
