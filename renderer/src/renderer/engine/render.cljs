@@ -28,7 +28,10 @@
             [cljs-webgl.constants.shader :as shader]
             [cljs-webgl.buffers :as buffers]
             [cljs-webgl.typed-arrays :as ta]
-            [cljsjs.gl-matrix]))
+            [cljsjs.gl-matrix]
+            [goog.object :as gobject])
+
+  (:require-macros [renderer.macros :refer [object-for]]))
 
 
 (defn- to-rads [a]
@@ -336,21 +339,22 @@
     (.depthMask gl true)
 
     ; draw all loaded buffers
-    (let [buffers-to-draw (sequence
-                            (comp
-                              (map :attribs-id)
-                              (keep (partial attribs/attribs-in aloader))
-                              (filter #(get-in % [:point-buffer :gl-buffer]))
-                              (filter #(get visibility
-                                            (get-in % [:point-buffer :key])
-                                            true)))
-                            (vals (:point-buffers state)))
+    (let [buffers-to-draw (array)
+          all-point-buffers (:point-buffers state)
           uniform-overrides (assoc cleaned-up-ro
                               :screen [width height]
                               :projectionMatrix proj
                               :modelViewMatrix  mv
                               :sourceClampsLow rangeMins
                               :sourceClampsHigh rangeMaxs)]
+
+      (object-for all-point-buffers
+                  key value
+                  (let [attrib-id (gobject/get value "attribs-id")
+                        attribs (attribs/attribs-in aloader attrib-id)]
+                    (when (and attribs
+                               (get visibility (gobject/getValueByKeys attribs "point-buffer" "key") true))
+                      (.push buffers-to-draw attribs))))
       (draw/draw-all-buffers gl buffers-to-draw
                              (-> (:scene-overlays state)
                                  vals)
@@ -525,17 +529,16 @@
     (.scissor gl (- center-x 4) (- center-y 4)
               8 8)
 
-    (let [buffers-to-draw (sequence
-                            (comp
-                              (map :attribs-id)
-                              (keep (partial attribs/attribs-in aloader))
-                              (filter #(get-in % [:point-buffer :gl-buffer]))
-                              (filter #(get visibility
-                                            (get-in % [:point-buffer :key])
-                                            true)))
-                            (vals (:point-buffers state)))]
-      (js/console.log (vec buffers-to-draw))
-      (println "-- -- picker, to draw:" (count buffers-to-draw))
+    (let [buffers-to-draw (array)
+          all-point-buffers  (:point-buffers state)]
+
+      (object-for all-point-buffers
+                  key value
+                  (let [attrib-id (gobject/get value "attribs-id")
+                        attribs (attribs/attribs-in aloader attrib-id)]
+                    (when (and attribs
+                               (get visibility (gobject/getValueByKeys attribs "point-buffer" "key") true))
+                      (.push buffers-to-draw attribs))))
       (draw/draw-all-buffers gl buffers-to-draw nil nil
                              shader-context
                              picker-uniform-map

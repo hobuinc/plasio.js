@@ -11,9 +11,11 @@
             [renderer.stats :as stats]
             [renderer.log :as l]
             [cljs.core.async :as async :refer [<!]]
-            [clojure.set :as set])
+            [clojure.set :as set]
+
+            [goog.object :as gobject])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]
-                   [renderer.macros :refer [with-profile]]))
+                   [renderer.macros :refer [with-profile object-for]]))
 
 (defprotocol ICursor
   "A cursor represents a chunk of application state, updating this state
@@ -171,7 +173,7 @@
 (defn- load-buffer-components
   "Load all components required for an ID, if they fail, just substitute a nil instead"
   [all-loaders buffer-id load-params]
-  (let [comps (js/Object.keys buffer-id)
+  (let [comps (gobject/getKeys buffer-id)
         chans (for [loader-id comps
                     :let [loader (get all-loaders loader-id)]
                     :when loader]
@@ -450,7 +452,7 @@
                                                :green (stats/make-stats)
                                                :blue (stats/make-stats)}
                              :loaders {}
-                             :point-buffers {}
+                             :point-buffers (js-obj)
                              :screen-overlays {}})]
         ;; start watching states for changes
         (add-framed-watch
@@ -596,12 +598,13 @@
   (get-loaded-buffers [_]
     (let [rs (:run-state @state)
           attrib-loader (:attrib-loader @rs)
-          point-buffers (:point-buffers @rs)]
-      (sequence
-        (comp (map :attribs-id)
-              (map #(attribs/attribs-in attrib-loader %))
-              (remove nil?))
-        (vals point-buffers))))
+          point-buffers (:point-buffers @rs)
+          ret (array)]
+      (object-for point-buffers k v
+                  (when-let [a (attribs/attribs-in attrib-loader
+                                                   (gobject/get v "attribs-id"))]
+                    (.push ret a)))
+      ret))
 
   (add-stats-listener [_ which key f]
     (let [rs @(:run-state @state)
@@ -623,23 +626,34 @@
           all-loaders (:loaders @run-state)
 
           decoded-id (util/decode-id buffer-id)]
-      (swap! run-state assoc-in [:point-buffers buffer-id] {:visible true})
+      (gobject/set (-> @run-state :point-buffers) buffer-id (js-obj "visible" true))
       (go (let [loaded-info (<! (load-buffer-components all-loaders decoded-id load-params))]
-            (when (-> @run-state :point-buffers (get buffer-id))
+            (when (-> @run-state :point-buffers
+                      (gobject/containsKey buffer-id))
               (update-stats! stats buffer-id loaded-info)
-              (let [attribs-id (attribs/reify-attribs attrib-loader gl loaded-info)]
-                (swap! run-state update-in [:point-buffers buffer-id]
-                       #(assoc % :attribs-id attribs-id))))))))
+              (let [loaded-info-js (reduce (fn [obj [k v]]
+                                             (gobject/set obj (name k) v)
+                                             obj)
+                                           (js-obj) loaded-info)
+                    attribs-id (attribs/reify-attribs attrib-loader gl loaded-info-js)]
+                ;; directly update the buffers since this is just a plain old JS object
+                (js/console.log "new attrib is now:" attribs-id)
+                (gobject/set (gobject/get (-> @run-state :point-buffers) buffer-id)
+                             "attribs-id"
+                             attribs-id)
+                (swap! run-state update :render-count inc)))))))
+
   (quick-remove-point-buffer [_ id]
     (let [run-state (-> state deref :run-state)
           gl (:gl @run-state)
           attrib-loader (:attrib-loader @run-state)
 
           buf (get-in @run-state [:point-buffers id])]
-      (go (when-let [aid (:attribs-id buf)]
+      (go (when-let [aid (gobject/getValueByKeys (-> @run-state :point-buffers)
+                                                 id "attribs-id")]
             (attribs/unreify-attribs attrib-loader gl aid)))
-      (swap! run-state update-in [:run-state :point-buffers] dissoc id)))
-  )
+      (gobject/remove (-> @run-state :point-buffers) id)
+      (swap! run-state update :render-count inc))))
 
 
 (defn make-engine

@@ -13,16 +13,22 @@
             [cljs-webgl.constants.texture-filter :as tfilter]
             [cljs-webgl.buffers :as buffers]
             [cljs-webgl.texture :as texture]
-            [cljs-webgl.shaders :as shaders]))
+            [cljs-webgl.shaders :as shaders]
+
+            [goog.object :as gobject])
+  (:require-macros [renderer.macros :refer [object-for]]))
 
 (defn- gen-id []
   (rutil/random-id))
 
 (def ^:private ^:dynamic *gl-context* nil) ; The attribs creation and deletion executes in context of this gl-context
 
-(defmulti reify-attrib first)        ; The type of attribs to load is always the first argument
-(defmulti rereify-attrib first)
-(defmulti unreify-attrib first)
+(defmulti reify-attrib (fn [a b]
+                         a))        ; The type of attribs to load is always the first argument
+(defmulti rereify-attrib (fn [a b]
+                           a))
+(defmulti unreify-attrib (fn [a b]
+                           a))
 
 (defn- coerce-uniforms [uniforms]
   (when uniforms
@@ -31,35 +37,18 @@
                 :let [uniform (aget uniforms i)]]
             [(keyword (aget uniform 0)) (aget uniform 1)]))))
 
-(defmethod reify-attrib :point-buffer [[_ props]]
-  (let [total-points (aget props "totalPoints")]
-    {:key          (aget props "key")
-     :point-stride (aget props "pointStride")
-     :display-importance (aget props "displayImportance")
-     :total-points total-points
-     :attributes   (js->clj (aget props "attributes"))
-     :uniforms     (coerce-uniforms (aget props "uniforms"))
-     :source       {:data (aget props "data")}
-     :gl-buffer    (when-not (zero? total-points)
-                     (buffers/create-buffer *gl-context*
-                                           (aget props "data" "buf")
-                                           buffer-object/array-buffer
-                                           buffer-object/static-draw))}))
+(defmethod reify-attrib "point-buffer" [_ props]
+  (let [total-points (aget props "totalPoints")
+        res (gobject/clone props)]
+    ;; change some settings on how they appear
+    (doto res
+      (gobject/set "uniforms" (gobject/get res "uniforms"))
+      (gobject/set "source" (gobject/get res "data"))
+      (gobject/set "glBuffer" (buffers/create-buffer *gl-context*
+                                                         (aget props "data" "buf")
+                                                         buffer-object/array-buffer
+                                                         buffer-object/static-draw)))))
 
-
-(let [texture-cache (atom {})]
-  (defmethod reify-attrib :image-overlay [[_ props]]
-    (let [image (aget props "image")
-          need-flip (aget props "needFlip")]
-      (or (get @texture-cache image)
-          (let [texture (texture/create-texture
-                          *gl-context*
-                          :image image
-                          :pixel-store-modes {webgl/unpack-flip-y-webgl need-flip}
-                          :parameters {tparams/texture-min-filter tfilter/linear
-                                       tparams/texture-mag-filter tfilter/linear})]
-            (swap! texture-cache assoc image texture)
-            texture)))))
 
 (defn- -range [mins maxs]
   ;; we don't really care about Y because it has mostly nothing to do with imagery
@@ -73,68 +62,53 @@
   (let [x (aget translate 0)
         y (aget translate 1)
         z (aget translate 2)]
+    (js/Float32Array.
       (js/Array
-       1 0 0 0
-       0 1 0 0
-       0 0 1 0
-       x y z 1)))
+        1 0 0 0
+        0 1 0 0
+        0 0 1 0
+        x y z 1))))
 
-(declare setup-bbox)
-
-(defmethod reify-attrib :transform [[_ transform]]
+(declare setup-bbox-buffer)
+(defmethod reify-attrib "transform" [_ transform]
   ;; Note that this stuff is straight from JS land, so most things here are JS objects
   ;; Much apologies in advance
   (let [position (aget transform "position")
-        mins     (aget transform "mins")
-        maxs     (aget transform "maxs")
+        mins (aget transform "mins")
+        maxs (aget transform "maxs")
         normalized-space? (aget transform "normalize")
         model-matrix (translation-matrix position)
-        uv-range     (-range mins maxs)]
-    {:model-matrix model-matrix
-     :offset       (aget transform "offset")
-     :mins         mins
-     :maxs         maxs
-     :normalized-space? normalized-space?
-     :source {:position position
-              :mins mins
-              :maxs maxs}
-     :uv-range     uv-range
-     :bbox-params  (setup-bbox position
-                               mins
-                               maxs)}))
+        uv-range (-range mins maxs)
 
-(defmethod rereify-attrib :point-buffer [[_ buf]]
-  (let [source (get-in buf [:source :data])
-        needs-update? (when source (aget source "update"))]
-    (if needs-update?
-      (do
-        (aset source "update" false)
-        (update buf :gl-buffer
-                (fn [b]
-                  (.deleteBuffer *gl-context* b)
-                  (buffers/create-buffer *gl-context*
-                                         (aget source "buf")
-                                         buffer-object/array-buffer
-                                         buffer-object/static-draw))))
-      buf)))
+        res (gobject/clone transform)]
+    (doto res
+      (gobject/set "modelMatrix" model-matrix)
+      (gobject/set "uvRange" (into-array uv-range))
+      (gobject/set "bboxBuffer" (setup-bbox-buffer position
+                                                   mins
+                                                   maxs)))))
 
-(defmethod rereify-attrib :image-overlay [[_ image]]
-  image)
+(defmethod rereify-attrib "point-buffer" [_ buf]
+  (let [source (gobject/get buf "source")
+        needs-update? (when source (gobject/get source "update"))]
+    (when needs-update?
+      (gobject/set source "update" false)
+      (.deleteBuffer *gl-context* (gobject/get buf "glBuffer"))
+      (gobject/set buf "glBuffer"
+                   (buffers/create-buffer *gl-context*
+                                          (gobject/get source "buf")
+                                          buffer-object/array-buffer
+                                          buffer-object/static-draw)))))
 
-(defmethod rereify-attrib :transform [[_ transform]]
-  transform)
-
-(defmethod unreify-attrib :point-buffer [[_ buffer]]
-  (when buffer
-    (.deleteBuffer *gl-context* (:gl-buffer buffer))))
-
-(defmethod unreify-attrib :image-overlay [[_ image]]
-  ;; textures are managed by the cache, we can't just delete anything here
-  ;;
+(defmethod rereify-attrib "transform" [_ transform]
   )
 
-(defmethod unreify-attrib :transform [[_ transform]]
-  (when-let [b (get-in transform [:bbox-params :buffer])]
+(defmethod unreify-attrib "point-buffer" [_ buffer]
+  (when buffer
+    (.deleteBuffer *gl-context* (gobject/get buffer "glBuffer"))))
+
+(defmethod unreify-attrib "transform" [_ transform]
+  (when-let [b (gobject/get transform "bboxBuffer")]
     (.deleteBuffer *gl-context* b)))
 
 (defprotocol IAttribLoader
@@ -147,22 +121,32 @@
   IAttribLoader
   (reify-attribs [_ context attribs]
     (binding [*gl-context* context]
-      (let [loaded (u/map-vals #(reify-attrib %) attribs)
+      (let [loaded (gobject/map attribs
+                                (fn [v k]
+                                  (reify-attrib k v)))
             id     (gen-id)]
-        (swap! state assoc id loaded)
+        (gobject/set (-> @state :items) id loaded)
         id)))
 
   (attribs-in [this id]
     (attribs-in this id []))
 
   (attribs-in [_ id korks]
-    (when-let [res (get @state id)]
-      (let [korks (if (sequential? korks) korks [korks])]
-        (get-in res korks))))
+    (let [korks (if (sequential? korks) korks [korks])]
+      (apply
+        gobject/getValueByKeys
+        (-> @state :items) id
+        (map #(if (keyword? %) (name %) (str %)) korks))))
 
   (check-rereify-all [this context]
     (binding [*gl-context* context]
-      (swap! state
+      (object-for (-> @state :items)
+                  id resources
+                  (object-for resources
+                              id2 params2
+                              (rereify-attrib id2 params2)))
+
+      #_(swap! state
              (fn [s]
                (u/map-vals
                  (fn [[_ v]]
@@ -171,19 +155,19 @@
 
   (unreify-attribs [_ context id]
     (binding [*gl-context* context]
-      (when-let [res (get @state id)]
-        (swap! state dissoc id)
-        (doall (u/map-vals #(unreify-attrib %) res))))))
+      (when-let [res (gobject/get (-> @state :items) id)]
+        (gobject/remove (-> @state :items) id)
+        (object-for res k v
+                    (unreify-attrib k v))))))
 
 (defn create-attribs-loader []
-  (AttribCache. (atom {})))
-
+  (AttribCache. (atom {:items (js-obj)})))
 
 ;; some methods which need more work
 ;;
 (declare gen-point-buffer)
 
-(defn- setup-bbox
+(defn- setup-bbox-buffer
   "setup what we need to render bounding boxes for a rendered volume"
   [pos mins maxs]
   ;; generate a list of points as we need them rendering lines
@@ -193,7 +177,7 @@
                                          point-buffer
                                          buffer-object/array-buffer
                                          buffer-object/static-draw)]
-    {:buffer gl-buffer}))
+    gl-buffer))
 
 
 (defn gen-point-buffer [pos mins maxs]

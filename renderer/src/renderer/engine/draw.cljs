@@ -11,7 +11,9 @@
             [cljs-webgl.buffers :as buffers]
             [cljs-webgl.constants.capability :as capability]
             [cljs-webgl.constants.buffer-object :as buffer-object]
-            [renderer.engine.util :as eutil]))
+            [renderer.engine.util :as eutil]
+            [goog.object :as gobject])
+  (:require-macros [renderer.macros :refer [object-for array-for-each array-for-each]]))
 
 (defn typed-array? [v]
   (let [t (type v)]
@@ -54,11 +56,20 @@
     (set-uniform gl-content uniform values))
   ([gl-context {:keys [type transpose location]} values]
    (when-not location
-     (throw (js/Error. "Not sure what uniform you're trying to set, location is null")))
+     (throw (ex-info "Not sure what uniform you're trying to set, location is null"
+                     {:type :type
+                      :transpose transpose
+                      :location location
+                      :values values})))
 
    (when-not values
-     (throw (js/Error. "Not sure what values you're trying to set, they are null")))
+     (throw (ex-info "Not sure what values you're trying to set, they are null"
+                     {:type type
+                      :transpose transpose
+                      :location location
+                      :values values})))
 
+    ;; make appropriate call
    (let [uniform-location location]
      (case type
        :bool (.uniform1fv gl-context uniform-location values)
@@ -77,7 +88,6 @@
        :mat3 (.uniformMatrix3fv gl-context uniform-location transpose values)
        :mat4 (.uniformMatrix4fv gl-context uniform-location transpose values)
        nil))))
-
 
 (defn highlight-segs->shader-vals [segs]
   ;; given segs as collection of maps with :start, :end and :width, returns a construct
@@ -105,49 +115,58 @@
                         (do-next (next bufs) (+ rendered-so-far point-count)))))))]
     (do-next seq-of-bufs 0)))
 
-
 (defn draw-all-buffers--buffers-only [gl bufs shader uniforms]
   (let [uniform-model-matrix (get-in shader [:uniforms "modelMatrix"])
         uniform-offset (get-in shader [:uniforms "offset"])]
-    (doseq [{:keys [point-buffer transform] :as b} bufs #_(with-point-limit
-                                                     (sort-by #(-> % :point-buffer :display-importance) > bufs)
-                                                     1000000)]
-      (when point-buffer
-        (let [total-points (:total-points point-buffer)
-              stride (:point-stride point-buffer)
-              gl-buffer (:gl-buffer point-buffer)]
-          ;; override known per buffer uniforms
-          (.uniformMatrix4fv gl uniform-model-matrix false (:model-matrix transform))
-          (.uniform3fv gl uniform-offset (:offset transform))
 
-          ;; if the buffer specifies addition uniforms set them here (things like availableColors) come through
-          ;; here
-          (when-let [u (seq (:uniforms point-buffer))]
-            (doseq [[uniform-key val] u
-                    :let [uniform (get uniforms uniform-key)]
-                    :when uniform]
-              (set-uniform gl uniform val)))
+    (array-for-each bufs index buf
+                    (let [point-buffer (gobject/get buf "point-buffer")
+                          transform (gobject/get buf "transform")]
+                      (when point-buffer
+                        (let [total-points (gobject/get point-buffer "totalPoints")
+                              stride (gobject/get point-buffer "pointStride")
+                              gl-buffer (gobject/get point-buffer "glBuffer")
 
-          (when-let [ps (:point-size point-buffer)]
-            (set-uniform gl (get uniforms :pointSize) ps))
+                              attributes (gobject/get point-buffer "attributes")]
+                          ;; override known per buffer uniforms
+                          (.uniformMatrix4fv gl uniform-model-matrix false
+                                             (gobject/get transform "modelMatrix"))
+                          (.uniform3fv gl uniform-offset
+                                       (gobject/get transform "offset"))
 
-          ;; setup attributes
-          (.bindBuffer gl bo/array-buffer gl-buffer)
-          (doseq [[name offset size] (:attributes point-buffer)]
-            (if-let [loc (get-in shader [:attribs name])]
-              (doto gl
-                (.enableVertexAttribArray loc)
-                (.vertexAttribPointer loc size data-type/float false stride (* 4 offset)))
-              #_(throw (js/Error. (str "Don't know anything about attribute: " name)))))
+                          ;; if the buffer specifies addition uniforms set them here (things like availableColors) come through
+                          ;; here
+                          (when-let [u (gobject/get point-buffer "uniforms")]
+                            (array-for-each u index uniform-item
+                                     (let [uniform-name (aget uniform-item 0)
+                                           uniform-key (keyword uniform-name)
+                                           uniform (get uniforms uniform-key)]
+                                       (when uniform
+                                         (set-uniform gl uniform (aget uniform-item 1))))))
 
-          ;; finally make the draw call
-          #_(.enable gl capability/depth-test)
-          (.drawArrays gl draw-mode/points 0 total-points)
+                          (when-let [ps (gobject/get point-buffer "pointSize")]
+                            (set-uniform gl (get uniforms :pointSize) ps))
 
-          ;; disable bound vertex array
-          (doseq [[name _ _] (:attributes point-buffer)]
-            (when-let [loc (get-in shader [:attribs name] name)]
-              (.disableVertexAttribArray gl loc))))))))
+                          ;; setup attributes
+                          (.bindBuffer gl bo/array-buffer gl-buffer)
+                          (array-for-each attributes index attribs
+                                   (let [name (aget attribs 0)
+                                         offset (aget attribs 1)
+                                         size (aget attribs 2)]
+                                     (if-let [loc (get-in shader [:attribs name])]
+                                       (doto gl
+                                         (.enableVertexAttribArray loc)
+                                         (.vertexAttribPointer loc size data-type/float false stride (* 4 offset)))
+                                       #_(throw (js/Error. (str "Don't know anything about attribute: " name))))))
+
+                          ;; finally make the draw call
+                          #_(.enable gl capability/depth-test)
+                          (.drawArrays gl draw-mode/points 0 total-points)
+
+                          ;; disable bound vertex array
+                          (array-for-each attributes index attribs
+                                   (when-let [loc (get-in shader [:attribs (aget attribs 0)])]
+                                     (.disableVertexAttribArray gl loc)))))))))
 
 (defn draw-all-buffers [gl bufs scene-overlays highlight-segments
                         shader-context
@@ -228,7 +247,6 @@
 
     (when (:flicker-fix hints)
       (.disable gl (.-DEPTH_TEST gl)))
-
 
     ;; render all buffers
     (draw-all-buffers--buffers-only gl bufs shader uniforms)
