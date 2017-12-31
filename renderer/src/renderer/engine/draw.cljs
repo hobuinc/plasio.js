@@ -54,40 +54,43 @@
 (defn set-uniform
   ([gl-content {:keys [:values] :as uniform}]
     (set-uniform gl-content uniform values))
-  ([gl-context {:keys [type transpose location]} values]
-   (when-not location
-     (throw (ex-info "Not sure what uniform you're trying to set, location is null"
-                     {:type :type
-                      :transpose transpose
-                      :location location
-                      :values values})))
+  ([gl-context {:keys [type transpose] :as uniform} ^:boolean values]
+   (let [^boolean location (:location uniform)
+         ^boolean vals values]
 
-   (when-not values
-     (throw (ex-info "Not sure what values you're trying to set, they are null"
-                     {:type type
-                      :transpose transpose
-                      :location location
-                      :values values})))
+     (when-not location
+       (throw (ex-info "Not sure what uniform you're trying to set, location is null"
+                       {:type      :type
+                        :transpose transpose
+                        :location  location
+                        :values    values})))
 
-    ;; make appropriate call
-   (let [uniform-location location]
-     (case type
-       :bool (.uniform1fv gl-context uniform-location values)
-       :bvec2 (.uniform2fv gl-context uniform-location values)
-       :bvec3 (.uniform3fv gl-context uniform-location values)
-       :bvec4 (.uniform4fv gl-context uniform-location values)
-       :float (.uniform1fv gl-context uniform-location values)
-       :vec2 (.uniform2fv gl-context uniform-location values)
-       :vec3 (.uniform3fv gl-context uniform-location values)
-       :vec4 (.uniform4fv gl-context uniform-location values)
-       :int (.uniform1iv gl-context uniform-location values)
-       :ivec2 (.uniform2iv gl-context uniform-location values)
-       :ivec3 (.uniform3iv gl-context uniform-location values)
-       :ivec4 (.uniform4iv gl-context uniform-location values)
-       :mat2 (.uniformMatrix2fv gl-context uniform-location transpose values)
-       :mat3 (.uniformMatrix3fv gl-context uniform-location transpose values)
-       :mat4 (.uniformMatrix4fv gl-context uniform-location transpose values)
-       nil))))
+     (when-not vals
+       (throw (ex-info "Not sure what values you're trying to set, they are null"
+                       {:type      type
+                        :transpose transpose
+                        :location  location
+                        :values    values})))
+
+     ;; make appropriate call
+     (let [uniform-location location]
+       (case type
+         :bool (.uniform1fv gl-context uniform-location values)
+         :bvec2 (.uniform2fv gl-context uniform-location values)
+         :bvec3 (.uniform3fv gl-context uniform-location values)
+         :bvec4 (.uniform4fv gl-context uniform-location values)
+         :float (.uniform1fv gl-context uniform-location values)
+         :vec2 (.uniform2fv gl-context uniform-location values)
+         :vec3 (.uniform3fv gl-context uniform-location values)
+         :vec4 (.uniform4fv gl-context uniform-location values)
+         :int (.uniform1iv gl-context uniform-location values)
+         :ivec2 (.uniform2iv gl-context uniform-location values)
+         :ivec3 (.uniform3iv gl-context uniform-location values)
+         :ivec4 (.uniform4iv gl-context uniform-location values)
+         :mat2 (.uniformMatrix2fv gl-context uniform-location transpose values)
+         :mat3 (.uniformMatrix3fv gl-context uniform-location transpose values)
+         :mat4 (.uniformMatrix4fv gl-context uniform-location transpose values)
+         nil)))))
 
 (defn highlight-segs->shader-vals [segs]
   ;; given segs as collection of maps with :start, :end and :width, returns a construct

@@ -69,9 +69,9 @@
 (defn get-gl-context [elem]
   (let [gl (context/get-context elem {:alpha false
                                       :premultiplied-alpha false})]
-    (set! (.-proj gl) (js/Array 16))
-    (set! (.-mv gl) (js/Array 16))
-    (set! (.-mvp gl) (js/Array 16))
+    (set! (.-proj gl) (js/Float32Array. 16))
+    (set! (.-mv gl) (js/Float32Array. 16))
+    (set! (.-mvp gl) (js/Float32Array. 16))
 
     (check-extensions! gl)
     gl))
