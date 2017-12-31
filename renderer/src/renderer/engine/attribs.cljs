@@ -16,7 +16,7 @@
             [cljs-webgl.shaders :as shaders]
 
             [goog.object :as gobject])
-  (:require-macros [renderer.macros :refer [object-for]]))
+  (:require-macros [renderer.macros :refer [object-for js-map-foreach]]))
 
 (defn- gen-id []
   (rutil/random-id))
@@ -113,7 +113,7 @@
 
 (defprotocol IAttribLoader
   (reify-attribs [this context attribs])
-  (attribs-in [this id] [this id korks])
+  (attribs-in [this id])
   (check-rereify-all [this context])
   (unreify-attribs [this context id]))
 
@@ -125,26 +125,20 @@
                                 (fn [v k]
                                   (reify-attrib k v)))
             id     (gen-id)]
-        (gobject/set (-> @state :items) id loaded)
+        (.set (-> @state :items) id loaded)
         id)))
 
-  (attribs-in [this id]
-    (attribs-in this id []))
-
-  (attribs-in [_ id korks]
-    (let [korks (if (sequential? korks) korks [korks])]
-      (apply
-        gobject/getValueByKeys
-        (-> @state :items) id
-        (map #(if (keyword? %) (name %) (str %)) korks))))
+  (attribs-in [_ id]
+    (let [val (.get (-> @state :items) id)]
+      val))
 
   (check-rereify-all [this context]
     (binding [*gl-context* context]
-      (object-for (-> @state :items)
-                  id resources
-                  (object-for resources
-                              id2 params2
-                              (rereify-attrib id2 params2)))
+      (js-map-foreach (-> @state :items)
+                      id resources
+                      (object-for resources
+                                  id2 params2
+                                  (rereify-attrib id2 params2)))
 
       #_(swap! state
              (fn [s]
@@ -156,12 +150,12 @@
   (unreify-attribs [_ context id]
     (binding [*gl-context* context]
       (when-let [res (gobject/get (-> @state :items) id)]
-        (gobject/remove (-> @state :items) id)
+        (.delete (-> @state :items) id)
         (object-for res k v
                     (unreify-attrib k v))))))
 
 (defn create-attribs-loader []
-  (AttribCache. (atom {:items (js-obj)})))
+  (AttribCache. (atom {:items (js/Map.)})))
 
 ;; some methods which need more work
 ;;

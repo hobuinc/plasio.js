@@ -15,7 +15,7 @@
 
             [goog.object :as gobject])
   (:require-macros [cljs.core.async.macros :refer [go go-loop]]
-                   [renderer.macros :refer [with-profile object-for]]))
+                   [renderer.macros :refer [with-profile object-for js-map-foreach]]))
 
 (defprotocol ICursor
   "A cursor represents a chunk of application state, updating this state
@@ -184,16 +184,18 @@
     (async/into {} chan-no-nils)))
 
 (defn update-stat-for! [stats stat-type id pb]
-  (when-let [js-stats (aget pb "stats")]
+  (when-let [js-stats (gobject/get pb "stats")]
     (when-let [s (aget js-stats (name stat-type))]
       (when-let [st (get stats stat-type)]
-        (stats/add-node! st id (js->clj s))))))
+        #_(js/console.log s)
+        (stats/add-node! st id s)))))
 
 (let [stats-to-update #{:z :intensity :red :green :blue}]
   (defn update-stats! [stats id loaded-info]
     (when-let [pb (:point-buffer loaded-info)]
       (doseq [s stats-to-update]
         (update-stat-for! stats s id pb)))))
+
 
 (defn update-point-buffers
   "Adds or removes point buffers from scene"
@@ -209,7 +211,7 @@
                                (let [decoded-id (util/decode-id buffer-id)
                                      load-params (get state-pb-load-params buffer-id (js-obj))]
                                  (go (let [loaded-info (<! (load-buffer-components all-loaders decoded-id load-params))]
-                                       (update-stats! stats buffer-id loaded-info)
+                                       #_(update-stats! stats buffer-id loaded-info)
                                        (transact! cursor [buffer-id]
                                                   (fn [v]
                                                     (when-not (nil? v)
@@ -452,7 +454,7 @@
                                                :green (stats/make-stats)
                                                :blue (stats/make-stats)}
                              :loaders {}
-                             :point-buffers (js-obj)
+                             :point-buffers (js/Map.)
                              :screen-overlays {}})]
         ;; start watching states for changes
         (add-framed-watch
@@ -600,7 +602,7 @@
           attrib-loader (:attrib-loader @rs)
           point-buffers (:point-buffers @rs)
           ret (array)]
-      (object-for point-buffers k v
+      (js-map-foreach point-buffers k v
                   (when-let [a (attribs/attribs-in attrib-loader
                                                    (gobject/get v "attribs-id"))]
                     (.push ret a)))
@@ -626,10 +628,9 @@
           all-loaders (:loaders @run-state)
 
           decoded-id (util/decode-id buffer-id)]
-      (gobject/set (-> @run-state :point-buffers) buffer-id (js-obj "visible" true))
+      (.set (-> @run-state :point-buffers) buffer-id (js-obj "visible" true))
       (go (let [loaded-info (<! (load-buffer-components all-loaders decoded-id load-params))]
-            (when (-> @run-state :point-buffers
-                      (gobject/containsKey buffer-id))
+            (when (-> @run-state :point-buffers (.has buffer-id))
               (update-stats! stats buffer-id loaded-info)
               (let [loaded-info-js (reduce (fn [obj [k v]]
                                              (gobject/set obj (name k) v)
@@ -638,9 +639,10 @@
                     attribs-id (attribs/reify-attribs attrib-loader gl loaded-info-js)]
                 ;; directly update the buffers since this is just a plain old JS object
                 (js/console.log "new attrib is now:" attribs-id)
-                (gobject/set (gobject/get (-> @run-state :point-buffers) buffer-id)
-                             "attribs-id"
-                             attribs-id)
+                (let [existing (.get (-> @run-state :point-buffers) buffer-id)]
+                  (gobject/extend existing (js-obj "attribs-id" attribs-id)))
+
+                ;; the state is not directly modified, so just inc a counter to re-trigger render
                 (swap! run-state update :render-count inc)))))))
 
   (quick-remove-point-buffer [_ id]
@@ -648,11 +650,13 @@
           gl (:gl @run-state)
           attrib-loader (:attrib-loader @run-state)
 
-          buf (get-in @run-state [:point-buffers id])]
-      (go (when-let [aid (gobject/getValueByKeys (-> @run-state :point-buffers)
-                                                 id "attribs-id")]
+          buf (get-in @run-state [:point-buffers id])
+          point-buffer (.get (-> @run-state :point-buffers) id)]
+      (go (when-let [aid (and point-buffer
+                              (gobject/get point-buffer "attribs-id"))]
             (attribs/unreify-attribs attrib-loader gl aid)))
-      (gobject/remove (-> @run-state :point-buffers) id)
+      (.delete (-> @run-state :point-buffers) id)
+      ;; same as adding, inc count to show that the buffer is gone
       (swap! run-state update :render-count inc))))
 
 

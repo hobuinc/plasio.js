@@ -1,4 +1,6 @@
-(ns renderer.stats)
+(ns renderer.stats
+  (:require [goog.object :as gobject])
+  (:require-macros [renderer.macros :refer [js-map-foreach object-for]]))
 
 (defprotocol IStats
   (add-node! [this id node])
@@ -6,43 +8,78 @@
   (current-stats [this])
   (listen! [this key f])
   (unlisten! [this key])
+  (range [this])
   (empty-stats? [this]))
 
 
-(defrecord TransientStats [state]
+(defn merge-stats
+  "Given a current accumulated states, and a new stats update to be added this function
+   updates the stats in place onto stats"
+  [stats node]
+  (object-for node key value
+              (.set stats key
+                    (if (.has stats key)
+                      (+ (.get stats key) value)
+                      value))))
+
+(defn unmerge-stats
+  "Same as merge stats, but subtracts instead of adding"
+  [stats node]
+  (object-keys node key value
+               (when (.has stats key)
+                 (.set stats key (- (.get stats key) value)))))
+
+(def ^:private ^:mutable nn)
+(def ^:private ^:mutable xx)
+
+(defn update-min-max
+  "Given a JS object to store min and max for given stats and a stats map, update the min max values"
+  [minmax stats]
+  (set! nn (gobject/get minmax "min"))
+  (set! xx (gobject/get minmax "max"))
+  (js-map-foreach stats key value
+                  (when (< key nn) (set! nn key))
+                  (when (> key xx) (set! xx key)))
+  (gobject/set minmax "min" nn)
+  (gobject/set minmax "max" xx))
+
+(defrecord TransientStats [stats nodes listeners minmax]
   IStats
   (add-node! [this id node]
-    (swap! state
-           (fn [st]
-             (-> st
-                 (update :stats #(merge-with + % node))
-                 (update :nodes assoc id node))))
+    (.set nodes id node)
+    (merge-stats stats node)
+    (update-min-max minmax stats)
+    (doseq [f @listeners]
+      (f stats))
     this)
 
   (remove-node! [this id]
-    (when-let [data (get-in @state [:nodes id])]
-      (swap! state
-             (fn [st]
-               (-> st
-                   (update :stats #(merge-with - % data))
-                   (update :nodes dissoc id)))))
+    (when-let [data (.get nodes id)]
+      (.delete nodes id)
+      (unmerge-stats stats data)
+      (update-min-max minmax stats)
+      (doseq [f @listeners]
+        (f stats)))
     this)
 
   (current-stats [_]
-    (:stats @state))
+    stats)
 
   (listen! [_ id f]
-    (add-watch state id (fn [_ _ o n] (f (:stats o) (:stats n))))
+    (swap! listeners assoc id f)
     ;; invoke on add
-    (f nil (:stats @state)))
+    (f stats))
 
   (unlisten! [_ id]
-    (remove-watch state id))
+    (swap! listeners dissoc id))
 
   (empty-stats? [_]
-    (let [stats (:stats @state)]
-      (or (nil? stats)
-          (not (some (comp pos? second) stats))))))
+    (zero? (.-size stats)))
+
+  (range [_]
+    [(gobject/get minmax "min")
+     (gobject/get minmax "max")]))
 
 (defn make-stats []
-  (TransientStats. (atom {})))
+  (TransientStats. (js/Map.) (js/Map.) (atom {}) (js-obj "min" js/Number.MAX_SAFE_INTEGER
+                                                         "max" js/Number.MIN_SAFE_INTEGER)))

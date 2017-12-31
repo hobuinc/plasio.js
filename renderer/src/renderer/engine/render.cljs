@@ -31,7 +31,7 @@
             [cljsjs.gl-matrix]
             [goog.object :as gobject])
 
-  (:require-macros [renderer.macros :refer [object-for]]))
+  (:require-macros [renderer.macros :refer [object-for js-map-foreach]]))
 
 
 (defn- to-rads [a]
@@ -275,15 +275,13 @@
                   (and (< d1 0) (< d2 0)))
                (map plane-distances (repeat mins) (repeat maxs) planes)))))
 
+(def ^:private DEFAULT-RANGE [0 1])
 (defn stats-range [stats stat-type]
-  (if-let [s (get stats stat-type)]
-    (let [histogram (stats/current-stats s)]
-      (if-let [ss (seq histogram)]
-        (let [all-values (map (comp js/parseFloat first) ss)]
-          [(apply min all-values)
-           (apply max all-values)])
-        [0 1]))
-    [0 1]))
+  (or (when-let [s (get stats stat-type)]
+        (let [[n x :as r] (stats/range s)]
+          (when (< n x)
+            r)))
+      DEFAULT-RANGE))
 
 
 (declare edl-enable!)
@@ -348,13 +346,13 @@
                               :sourceClampsLow rangeMins
                               :sourceClampsHigh rangeMaxs)]
 
-      (object-for all-point-buffers
+      (js-map-foreach all-point-buffers
                   key value
                   (let [attrib-id (gobject/get value "attribs-id")
-                        attribs (attribs/attribs-in aloader attrib-id)]
-                    (when (and attribs
-                               (get visibility (gobject/getValueByKeys attribs "point-buffer" "key") true))
-                      (.push buffers-to-draw attribs))))
+                        ^boolean attribs (attribs/attribs-in aloader attrib-id)]
+                    (when attribs
+                      (when ^boolean (get visibility (gobject/getValueByKeys attribs "point-buffer" "key") true)
+                        (.push buffers-to-draw attribs)))))
       (draw/draw-all-buffers gl buffers-to-draw
                              (-> (:scene-overlays state)
                                  vals)
@@ -532,13 +530,13 @@
     (let [buffers-to-draw (array)
           all-point-buffers  (:point-buffers state)]
 
-      (object-for all-point-buffers
+      (js-map-foreach all-point-buffers
                   key value
                   (let [attrib-id (gobject/get value "attribs-id")
-                        attribs (attribs/attribs-in aloader attrib-id)]
-                    (when (and attribs
-                               (get visibility (gobject/getValueByKeys attribs "point-buffer" "key") true))
-                      (.push buffers-to-draw attribs))))
+                        ^boolean attribs (attribs/attribs-in aloader attrib-id)]
+                    (when attribs
+                      (when ^boolean (get visibility (gobject/getValueByKeys attribs "point-buffer" "key") true)
+                        (.push buffers-to-draw attribs)))))
       (draw/draw-all-buffers gl buffers-to-draw nil nil
                              shader-context
                              picker-uniform-map
