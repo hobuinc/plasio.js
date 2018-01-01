@@ -38,11 +38,11 @@
 (defmacro array-for-each
   "Iterates over each item in an array, binding an index and element for each iteration"
   [arr index item & body]
-  `(let [a# ~arr
-         al# (alength a#)]
-     (loop [i# 0]
-       (when (< i# al#)
-         (let [~index i#
-               ~item (aget a# i#)]
-           (do ~@body)
-           (recur (unchecked-inc-int i#)))))))
+  `(when-let [a# ~arr]
+     (let [al# (alength a#)]
+       (loop [i# 0]
+         (when (< i# al#)
+           (let [~index i#
+                 ~item (aget a# i#)]
+             (do ~@body)
+             (recur (unchecked-inc-int i#))))))))
