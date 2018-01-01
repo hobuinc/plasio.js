@@ -331,7 +331,7 @@
   "Changes all passed arguments from javascript to clj types for easy mucking"
   [f this]
   (fn [& args]
-    (let [c (js->clj args :keywordize-keys true)]
+    (let [c (ru/new-js->clj3 args :keywordize-keys true)]
       (clj->js (apply f this c)))))
 
 (defn partial-js-passthrough
@@ -360,7 +360,7 @@
               :setRenderOptions (partial-js set-render-options r)
               :setRenderHints (partial-js set-render-hints r)
               :pickPoint (partial-js pick-point r)
-              :pickUIPoint (partial-js pick-ui-point r)
+              :pickUIPoint (partial-js-passthrough pick-ui-point r)
               :applyState (partial-js apply-state r)
               :setRenderViewSize (partial-js resize-view! r)
               :addPostRender (partial-js-passthrough add-post-render r)

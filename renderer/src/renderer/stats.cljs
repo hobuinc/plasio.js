@@ -16,18 +16,18 @@
   "Given a current accumulated states, and a new stats update to be added this function
    updates the stats in place onto stats"
   [stats node]
-  (object-for node key value
-              (.set stats key
-                    (if (.has stats key)
-                      (+ (.get stats key) value)
-                      value))))
+  (js-map-foreach node key value
+                  (.set stats key
+                        (if (.has stats key)
+                          (+ (.get stats key) value)
+                          value))))
 
 (defn unmerge-stats
   "Same as merge stats, but subtracts instead of adding"
   [stats node]
-  (object-keys node key value
-               (when (.has stats key)
-                 (.set stats key (- (.get stats key) value)))))
+  (js-map-foreach node key value
+                  (when (.has stats key)
+                    (.set stats key (- (.get stats key) value)))))
 
 (def ^:private ^:mutable nn)
 (def ^:private ^:mutable xx)
@@ -49,8 +49,8 @@
     (.set nodes id node)
     (merge-stats stats node)
     (update-min-max minmax stats)
-    (doseq [f @listeners]
-      (f stats))
+    (doseq [[_ f] @listeners]
+      (f stats minmax))
     this)
 
   (remove-node! [this id]
@@ -58,8 +58,8 @@
       (.delete nodes id)
       (unmerge-stats stats data)
       (update-min-max minmax stats)
-      (doseq [f @listeners]
-        (f stats)))
+      (doseq [[_ f] @listeners]
+        (f stats minmax)))
     this)
 
   (current-stats [_]
@@ -68,7 +68,7 @@
   (listen! [_ id f]
     (swap! listeners assoc id f)
     ;; invoke on add
-    (f stats))
+    (f stats minmax))
 
   (unlisten! [_ id]
     (swap! listeners dissoc id))

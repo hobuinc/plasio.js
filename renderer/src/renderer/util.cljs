@@ -87,3 +87,36 @@
       (.toFixed 16)
       (subs 2)))
 
+;; see: https://dev.clojure.org/jira/browse/CLJS-844
+;; see: https://gist.github.com/pangloss/591d77231fda460c2fbe
+
+(defn new-js->clj3
+  "Recursively transforms JavaScript arrays into ClojureScript
+  vectors, and JavaScript objects into ClojureScript maps.  With
+  option ':keywordize-keys true' will convert object fields from
+  strings to keywords."
+  ([x] (new-js->clj3 x {:keywordize-keys false}))
+  ([x & opts]
+   (cond
+     (satisfies? IEncodeClojure x)
+     (-js->clj x (apply array-map opts))
+     (seq opts)
+     (let [{:keys [keywordize-keys]} opts
+           keyfn (if keywordize-keys keyword str)
+           f (fn thisfn [x]
+               (cond
+                 (seq? x)
+                 (doall (map thisfn x))
+                 (coll? x)
+                 (into (empty x) (map thisfn) x)
+                 (array? x)
+                 (persistent!
+                   (reduce #(conj! %1 (thisfn %2))
+                           (transient []) x))
+                 (identical? (type x) js/Object)
+                 (persistent!
+                   (reduce (fn [r k] (assoc! r (keyfn k) (thisfn (aget x k))))
+                           (transient {}) (js-keys x)))
+                 :else x))]
+       (f x)))))
+

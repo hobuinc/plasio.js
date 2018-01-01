@@ -38,16 +38,16 @@
             [(keyword (aget uniform 0)) (aget uniform 1)]))))
 
 (defmethod reify-attrib "point-buffer" [_ props]
-  (let [total-points (aget props "totalPoints")
-        res (gobject/clone props)]
+  (let [res (gobject/clone props)]
     ;; change some settings on how they appear
     (doto res
       (gobject/set "uniforms" (gobject/get res "uniforms"))
       (gobject/set "source" (gobject/get res "data"))
-      (gobject/set "glBuffer" (buffers/create-buffer *gl-context*
-                                                         (aget props "data" "buf")
-                                                         buffer-object/array-buffer
-                                                         buffer-object/static-draw)))))
+      (gobject/set "glBuffer" (when-let [buf (gobject/getValueByKeys res "data" "buf")]
+                                (buffers/create-buffer *gl-context*
+                                                       buf
+                                                       buffer-object/array-buffer
+                                                       buffer-object/static-draw))))))
 
 
 (defn- -range [mins maxs]
