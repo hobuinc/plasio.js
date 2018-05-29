@@ -240,6 +240,7 @@
       (doseq [{:keys [point-buffer transform]} bufs]
         (when point-buffer
           (when-let [params (:bbox-params transform)]
+            (println transform)
             (let [shader (s/get-shader shader-context :bbox)]
               (buffers/draw! gl
                              :shader (:shader shader)

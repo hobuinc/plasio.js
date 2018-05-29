@@ -34,13 +34,13 @@
 
         var viewer = new Plasio.PointCloudViewer(document.getElementById("app"), {
             server: SERVER,
-            resource: "dc", //["mn-z", RESOURCE],
+            resource: "ept://localhost:3000/ept/autzen-bin", //["mn-z", RESOURCE],
             brushes: [
                     //'local://ramp?field=Intensity'
                 //'local://ramp?field=Intensity'
                 // 'local://ramp?field=Z&step=20'
-                //'local://color'
-                'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw',
+                'local://color'
+                //'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw',
                 //'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw'
             ],
             baseDepth: 9,
