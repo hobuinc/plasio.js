@@ -24,26 +24,29 @@
     <script src="lib/dist/plasio.js"></script>
 
     <script>
-        var SERVER = "http://c[0-7].greyhound.io/"; //"http://devdata.greyhound.io";
+        var SERVER = "http://data.greyhound.io/"; //"http://devdata.greyhound.io";
         //var RESOURCE = "nyc-h"; //"autzen-scaled";
         //var RESOURCE = "ellipsoid-nyc";
         // var RESOURCE='red-rocks';
         // var RESOURCE = 'sncf';
-        var RESOURCE = "iowa-z";
+        var RESOURCE = "nyc-z";
         //var RESOURCE = "dev/ellipsoid-scaled";
 
         var viewer = new Plasio.PointCloudViewer(document.getElementById("app"), {
             server: SERVER,
+            //resource: [RESOURCE, 'epts://s3.amazonaws.com/ept-data/ma'],
+            resource: 'epts://s3.amazonaws.com/ept-data/ma',
+            resource: 'ept://ept-data.s3-website-us-east-1.amazonaws.com/dev/autzen-h2',
             //resource: "epts://s3.amazonaws.com/ept-data/nyc-tw",
             //resource: 'epts://s3.amazonaws.com/ept-data/autzen-wbm',
-            resource: 'epts://s3.amazonaws.com/ept-data/red-rocks-wbm',
+            //resource: 'epts://s3.amazonaws.com/ept-data/red-rocks-wbm',
             //resource: "ept://localhost:3000/ept/autzen-bin", //["mn-z", RESOURCE],
             brushes: [
                     //'local://ramp?field=Intensity'
                 //'local://ramp?field=Intensity'
                 // 'local://ramp?field=Z&step=20'
-                //'local://color'
-                'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw',
+                'local://color'
+                //'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw',
                 //'remote://imagery?url=http%3A%2F%2Fapi.tiles.mapbox.com%2Fv4%2Fmapbox.satellite%2F%7B%7Bz%7D%7D%2F%7B%7Bx%7D%7D%2F%7B%7By%7D%7D.jpg70%3Faccess_token%3Dpk.eyJ1IjoiaG9idSIsImEiOiItRUhHLW9NIn0.RJvshvzdstRBtmuzSzmLZw'
             ],
             baseDepth: 9,
