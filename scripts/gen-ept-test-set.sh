@@ -14,4 +14,4 @@ set -x
 docker run -v `pwd`:/data connormanning/entwine:ept build \
    -i http://s3.amazonaws.com/entwine.io/sample-data/autzen.laz \
    -o /data/ept/$DIRNAME \
-   --noOriginId $*
+   $*
