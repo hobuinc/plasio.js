@@ -19,6 +19,7 @@
                         :compiler {:output-to "target/dev/renderer.js"
                                    :main renderer.core
                                    :asset-path "renderer/target/dev"
+                                   :libs ["src/libs"]
                                    :output-dir "target/dev"
                                    :pretty-print true
                                    :optimizations :whitespace}}
@@ -27,6 +28,7 @@
                         :compiler {:output-to "target/test/testable.js"
                                    :output-dir "target/test"
                                    :main renderer.test-runner
+                                   :libs ["src/libs"]
                                    :pretty-print true
                                    :target :nodejs
                                    :optimizations :none}}
@@ -35,6 +37,7 @@
                         :source-paths ["src"]
                         :compiler {:output-to "target/rel/renderer.cljs.js"
                                    :output-dir "target/rel"
+                                   :libs ["src/libs"]
                                    :externs ["externs/webgl.js"]
                                    :pretty-print false
                                    :optimizations :advanced}}]})

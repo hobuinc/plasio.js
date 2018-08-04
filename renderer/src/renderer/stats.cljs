@@ -1,4 +1,5 @@
-(ns renderer.stats)
+(ns renderer.stats
+  (:require [renderer.jsutil :as jsutil]))
 
 (defprotocol IStats
   (add-node! [this id node])
@@ -6,7 +7,8 @@
   (current-stats [this])
   (listen! [this key f])
   (unlisten! [this key])
-  (empty-stats? [this]))
+  (empty-stats? [this])
+  (equal-stats? [this other]))
 
 
 (defrecord TransientStats [state]
@@ -15,16 +17,16 @@
     (swap! state
            (fn [st]
              (-> st
-                 (update :stats #(merge-with + % node))
+                 (update :stats #(jsutil/fastMergeStatsNode % node))
                  (update :nodes assoc id node))))
     this)
 
   (remove-node! [this id]
-    (when-let [data (get-in @state [:nodes id])]
+    (when-let [node (get-in @state [:nodes id])]
       (swap! state
              (fn [st]
                (-> st
-                   (update :stats #(merge-with - % data))
+                   (update :stats #(jsutil/fastUnmergeStatsNode % node))
                    (update :nodes dissoc id)))))
     this)
 
@@ -40,9 +42,19 @@
     (remove-watch state id))
 
   (empty-stats? [_]
+    ;; stats are empty if they are empty or if all
+    ;; stored values within them are zeros.
     (let [stats (:stats @state)]
       (or (nil? stats)
-          (not (some (comp pos? second) stats))))))
+          (not (jsutil/jsMapHasNonZeroValue stats)))))
+
+  (equal-stats? [_ other]
+    ;; stats are equal if the two histograms they store are equal
+    ;; and they have the same set of nodes
+    (and (jsutil/jsMapsAreEqual (-> @state :stats)
+                                (-> @(:state other) :stats))
+         (= (set (-> @state :nodes keys))
+            (set (-> @(:state other) :nodes keys))))))
 
 (defn make-stats []
   (TransientStats. (atom {})))

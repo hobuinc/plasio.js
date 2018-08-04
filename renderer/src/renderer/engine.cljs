@@ -185,7 +185,7 @@
   (when-let [js-stats (aget pb "stats")]
     (when-let [s (aget js-stats (name stat-type))]
       (when-let [st (get stats stat-type)]
-        (stats/add-node! st id (js->clj s))))))
+        (stats/add-node! st id s)))))
 
 (let [stats-to-update #{:z :intensity :red :green :blue}]
   (defn update-stats! [stats id loaded-info]
