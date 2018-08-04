@@ -8,6 +8,7 @@
             [renderer.engine.attribs :as attribs]
             [renderer.engine.specs :as specs]
             [renderer.engine.draw :as draw]
+            [renderer.jsutil :as jsutil]
             [cljs-webgl.context :as context]
             [cljs-webgl.shaders :as shaders]
             [cljs-webgl.constants.capability :as capability]
@@ -28,7 +29,8 @@
             [cljs-webgl.constants.shader :as shader]
             [cljs-webgl.buffers :as buffers]
             [cljs-webgl.typed-arrays :as ta]
-            [cljsjs.gl-matrix]))
+            [cljsjs.gl-matrix]
+            [goog.object :as gobject]))
 
 
 (defn- to-rads [a]
@@ -275,10 +277,10 @@
 (defn stats-range [stats stat-type]
   (if-let [s (get stats stat-type)]
     (let [histogram (stats/current-stats s)]
-      (if-let [ss (seq histogram)]
-        (let [all-values (map (comp js/parseFloat first) ss)]
-          [(apply min all-values)
-           (apply max all-values)])
+      (if histogram
+        (let [nx (jsutil/findMinMaxMapKeys histogram)]
+          [(gobject/get nx "min")
+           (gobject/get nx "max")])
         [0 1]))
     [0 1]))
 

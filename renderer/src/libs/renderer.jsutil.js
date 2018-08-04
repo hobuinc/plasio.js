@@ -7,10 +7,12 @@ renderer.jsutil.fastMergeStatsNode = function (currentMap, newNode) {
     if (!currentMap)
         currentMap = new Map();
 
-    for (var k in newNode) {
-        var curr = currentMap.get(k) || 0;
-        curr += newNode[k];
-        currentMap.set(k, curr);
+    var allKeys = newNode.keys();
+    var k;
+    while (!(k = allKeys.next()).done) {
+        var curr = currentMap.get(k.value) || 0;
+        curr += newNode.get(k.value);
+        currentMap.set(k.value, curr);
     }
 
     return currentMap;
@@ -18,13 +20,14 @@ renderer.jsutil.fastMergeStatsNode = function (currentMap, newNode) {
 
 
 renderer.jsutil.fastUnmergeStatsNode = function (currentMap, newNode) {
-    if (!currentMap)
-        return;
-
-    for (var k in newNode) {
-        var curr = currentMap.get(k) || 0;
-        curr -= newNode[k];
-        currentMap.set(k, curr);
+    if (currentMap) {
+        var allKeys = newNode.keys();
+        var k;
+        while (!(k = allKeys.next()).done) {
+            var curr = currentMap.get(k.value) || 0;
+            curr -= newNode.get(k.value);
+            currentMap.set(k.value, curr);
+        }
     }
 
     return currentMap;
@@ -69,4 +72,21 @@ renderer.jsutil.jsMapHasNonZeroValue = function(map) {
     }
 
     return false;
+};
+
+
+renderer.jsutil.findMinMaxMapKeys = function(map) {
+    var allkeys = map.keys();
+
+    var nn = Number.MAX_SAFE_INTEGER;
+    var xx = Number.MIN_SAFE_INTEGER;
+
+    while (!(k = allkeys.next()).done) {
+        var v = k.value;
+
+        if (v < nn) nn = v;
+        if (v > xx) xx = v;
+    }
+
+    return {min: nn, max: xx};
 };
